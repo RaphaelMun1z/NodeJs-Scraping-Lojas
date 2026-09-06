@@ -12,6 +12,7 @@ export class ServicoColeta {
 	) {}
 
 	executar(): Promise<number> {
+		// Compartilha a promessa atual para impedir coletas concorrentes.
 		if (this.execucaoAtual) return this.execucaoAtual;
 
 		this.execucaoAtual = this.executarColeta().finally(() => {

@@ -1,28 +1,21 @@
 # Scraping Lojas
 
-Projeto de scraping de lojas em HTML com persistência em MongoDB, API REST e coleta agendada.
+Aplicação em Node.js/TypeScript que coleta produtos de uma loja HTML, valida os dados, opcionalmente grava-os no MongoDB e disponibiliza uma API REST para consulta.
 
-## Tecnologias
+## Requisitos
 
-- TypeScript e Node.js
-- Cheerio para leitura do HTML
-- `fetch` nativo para obter as páginas
-- Zod para validação
-- MongoDB + Mongoose para persistência
-- Express para API REST
-- node-cron para agendamento
-- Pino para logs
-- dotenv para configuração
+- Node.js 20+
+- MongoDB local ou uma URI acessível
+- Chromium do Playwright
 
 ## Instalação
 
 ```bash
 npm install
+npx playwright install chromium
 ```
 
-## MongoDB local
-
-Com Docker:
+Para subir um MongoDB local com Docker:
 
 ```bash
 docker compose up -d
@@ -30,97 +23,75 @@ docker compose up -d
 
 ## Configuração
 
-1. Copie `.env.example` para `.env`.
-2. Defina `SCRAPER_URL`.
-3. Preencha os seletores em `src/config/selectors.ts`.
-4. Ajuste `src/modelos/item-coletado.model.ts` caso os campos extraídos sejam diferentes.
+Copie `.env.example` para `.env`, informe a URL da loja e ajuste os seletores em [`src/config/selectors.ts`](src/config/selectors.ts).
 
-Configuração padrão do agendamento:
+| Variável | Obrigatória | Finalidade |
+| --- | --- | --- |
+| `SCRAPER_URL` | Sim | Página usada como origem da coleta. |
+| `MONGODB_URI` | Não | Conexão com o MongoDB. |
+| `PORTA_API` | Não | Porta da API; padrão `3000`. |
+| `SALVAR_COLETA` | Não | Persiste os itens quando `true`; padrão `false`. |
+| `REQUEST_TIMEOUT_MS` | Não | Tempo limite de navegação em milissegundos. |
+| `NAVEGADOR_VISIVEL` | Não | Exibe o Chromium quando `true`. |
+| `NAVEGADOR_PAUSA_MS` | Não | Pausa após o carregamento da página. |
+| `CRON_EXPRESSAO` | Não | Expressão do agendamento; padrão `0 15 * * *`. |
+| `CRON_FUSO_HORARIO` | Não | Fuso do agendamento; padrão `America/Sao_Paulo`. |
+| `EXECUTAR_COLETA_AO_INICIAR` | Não | Executa uma coleta ao iniciar; padrão `true`. |
+| `LOG_LEVEL` | Não | Nível dos logs do Pino. |
 
-```env
-CRON_EXPRESSAO=0 15 * * *
-CRON_FUSO_HORARIO=America/Sao_Paulo
-```
+## Execução
 
-Isso executa a coleta todos os dias às 15:00 no horário de São Paulo.
-
-`EXECUTAR_COLETA_AO_INICIAR=true` também faz uma coleta ao iniciar a aplicação.
-
-## Executar
+Desenvolvimento:
 
 ```bash
 npm run dev
 ```
 
-### Ver o navegador durante a coleta
-
-Para acompanhar a navegação em uma janela do Chromium, configure:
-
-```env
-NAVEGADOR_VISIVEL=true
-NAVEGADOR_PAUSA_MS=5000
-```
-
-Na primeira instalação, baixe o navegador com `npx playwright install chromium`. Para execução em servidor, use `NAVEGADOR_VISIVEL=false`.
-
-Build de produção:
+Produção:
 
 ```bash
 npm run build
 npm start
 ```
 
-## API REST
+Para gerar um CSV sem iniciar a API:
 
-### Saúde
-
-```http
-GET /api/saude
+```bash
+npm run scraping:test
 ```
 
-### Listar itens
+O arquivo pode ser definido com `CSV_SAIDA`.
 
-```http
-GET /api/itens
-```
+## API
 
-Parâmetros opcionais:
-
-```text
-pagina=1
-limite=20
-busca=texto
-```
+| Método | Rota | Uso |
+| --- | --- | --- |
+| `GET` | `/api/saude` | Verifica se a API e o banco estão disponíveis. |
+| `GET` | `/api/itens` | Lista itens paginados. Aceita `pagina`, `limite` e `busca`. |
+| `GET` | `/api/itens/:id` | Busca um item pelo ID do MongoDB. |
 
 Exemplo:
 
-```http
+```text
 GET /api/itens?pagina=1&limite=20&busca=produto
 ```
 
-### Buscar item por ID
+## Estrutura de diretórios
 
-```http
-GET /api/itens/:id
-```
+| Diretório | Responsabilidade |
+| --- | --- |
+| `src/agendadores` | Agenda e controla execuções automáticas da coleta. |
+| `src/analisadores` | Interpreta o HTML e transforma cards em itens validados. |
+| `src/api` | Configura a API REST, rotas, controladores e tratamento de erros. |
+| `src/banco` | Gerencia a conexão, o schema Mongoose e o repositório de itens. |
+| `src/clientes` | Obtém o HTML usando Playwright ou HTTP. |
+| `src/coletores` | Coordena a obtenção e a análise do conteúdo da loja. |
+| `src/config` | Centraliza configuração, seletores e logger. |
+| `src/modelos` | Define os tipos e a validação dos dados coletados. |
+| `src/servicos` | Contém o fluxo de negócio da coleta e evita execuções simultâneas. |
+| `src/utilitarios` | Reúne funções auxiliares, como geração de chaves de itens. |
+| `src/index.ts` | Compõe as dependências e inicia o ciclo de vida da aplicação. |
 
 ## Persistência
 
-Os itens são gravados em lote usando `bulkWrite` com `upsert`. A chave de identificação usa a URL quando disponível e, caso contrário, uma combinação do título e descrição. Assim, coletas futuras atualizam o item em vez de criar duplicatas.
-
-## Estrutura
-
-```text
-src/
-├── agendadores/     # Agendamento das coletas
-├── analisadores/    # Extração do HTML com Cheerio
-├── api/             # API REST
-├── banco/           # Conexão, modelos e repositórios MongoDB
-├── clientes/        # Comunicação HTTP
-├── coletores/       # Coordenação do scraping
-├── config/          # Configurações, seletores e logs
-├── modelos/         # Tipos e validação dos dados extraídos
-├── servicos/        # Regras de aplicação
-├── utilitarios/     # Funções auxiliares
-└── index.ts         # Inicialização da aplicação
-```
+Quando `SALVAR_COLETA=true`, os itens são gravados em lote com `bulkWrite` e `upsert`. A chave usa a URL do item quando disponível e evita duplicidades entre coletas.

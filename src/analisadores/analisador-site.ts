@@ -10,6 +10,8 @@ export class AnalisadorSite {
 		const $ = cheerio.load(html);
 		const itens: ItemColetado[] = [];
 
+		// Converte e valida cada card isoladamente para preservar os demais itens
+		// quando um produto estiver incompleto ou fora do formato esperado.
 		$(seletores.item).each((_, elemento) => {
 			const itemAtual = $(elemento);
 			const titulo = itemAtual.find(seletores.titulo).first().text().trim();
@@ -35,6 +37,7 @@ export class AnalisadorSite {
 	}
 
 	private converterPreco(texto: string): number | undefined {
+		// Normaliza o formato brasileiro (1.234,56) para um número JavaScript.
 		const valor = texto.replace(/[^\d,.]/g, "");
 		if (!valor) return undefined;
 

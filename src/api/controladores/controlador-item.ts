@@ -13,6 +13,7 @@ export class ControladorItem {
   constructor(private readonly repositorioItem: RepositorioItem) {}
 
   listar = async (requisicao: Request, resposta: Response): Promise<void> => {
+    // O schema aplica valores padrão e limita o tamanho da página.
     const consulta = esquemaConsulta.parse(requisicao.query);
     const resultado = await this.repositorioItem.consultar(consulta);
     const totalPaginas = Math.ceil(resultado.total / consulta.limite);
@@ -31,7 +32,7 @@ export class ControladorItem {
   buscarPorId = async (requisicao: Request, resposta: Response): Promise<void> => {
     const { id } = requisicao.params;
 
-    if (!id || !isValidObjectId(id)) {
+    if (typeof id !== "string" || !isValidObjectId(id)) {
       resposta.status(400).json({ erro: "Identificador inválido" });
       return;
     }

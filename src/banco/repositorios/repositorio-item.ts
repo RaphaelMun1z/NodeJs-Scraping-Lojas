@@ -1,4 +1,3 @@
-import type { FilterQuery } from "mongoose";
 import type { ItemColetado } from "../../modelos/item-coletado.model.js";
 import { gerarChaveItem } from "../../utilitarios/chave-item.js";
 import { ModeloItemBanco } from "../modelos/item-banco.model.js";
@@ -45,7 +44,7 @@ export class RepositorioItem {
   }
 
   async consultar({ pagina, limite, busca }: ConsultaItens): Promise<ResultadoConsultaItens> {
-    const filtro: FilterQuery<unknown> = {};
+    const filtro: Record<string, unknown> = {};
 
     if (busca) {
       const termo = this.escaparExpressaoRegular(busca);
@@ -56,6 +55,7 @@ export class RepositorioItem {
 
     const deslocamento = (pagina - 1) * limite;
 
+    // Busca e contagem são executadas em paralelo para reduzir a latência da API.
     // lean() evita criar documentos Mongoose completos em consultas somente leitura.
     const [itens, total] = await Promise.all([
       ModeloItemBanco.find(filtro)

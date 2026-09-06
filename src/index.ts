@@ -10,6 +10,7 @@ import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
 
 async function iniciarAplicacao(): Promise<void> {
+	// Centraliza a composição das dependências compartilhadas pela aplicação.
 	const conexaoBanco = new ConexaoBanco();
 	await conexaoBanco.conectar(configuracaoAplicacao.banco.uri);
 

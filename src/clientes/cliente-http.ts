@@ -15,6 +15,7 @@ export class ClienteHttp {
 	}
 
 	private async obterHtmlComNavegador(url: string): Promise<string> {
+		// Fecha o Chromium no finally para não acumular processos em coletas agendadas.
 		const navegador = await chromium.launch({
 			headless: process.env.NAVEGADOR_VISIVEL !== "true",
 		});
@@ -37,6 +38,7 @@ export class ClienteHttp {
 	}
 
 	private async obterHtmlPorHttp(url: string): Promise<string> {
+		// O AbortController impede que uma loja indisponível deixe a coleta pendurada.
 		const controlador = new AbortController();
 		const timeout = setTimeout(() => controlador.abort(), this.tempoLimiteMs);
 

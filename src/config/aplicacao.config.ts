@@ -19,6 +19,7 @@ const esquemaConfiguracao = z.object({
     .transform((valor) => valor === "true"),
 });
 
+// Valida a configuração na inicialização para falhar cedo com uma mensagem clara.
 const ambiente = esquemaConfiguracao.parse(process.env);
 
 export const configuracaoAplicacao = {
