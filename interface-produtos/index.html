@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Produtos coletados de múltiplas lojas" />
+    <title>Live Promo · Produtos</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/">Live Promo</a>
+        <form class="searchbar" id="search-form">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Buscar produtos" autocomplete="off" />
+          <button type="submit">Buscar</button>
+        </form>
+      </header>
+
+      <nav class="categorybar" aria-label="Categorias">
+        <button class="category-link is-active" type="button" data-category="">Todos</button>
+        <button class="category-link" type="button" data-category="notebook">Notebooks</button>
+        <button class="category-link" type="button" data-category="placa de vídeo">Placas de vídeo</button>
+        <button class="category-link" type="button" data-category="monitor">Monitores</button>
+        <button class="category-link" type="button" data-category="gamer">Gamer</button>
+        <span class="category-spacer"></span>
+        <span class="result-status" id="result-status">Carregando produtos...</span>
+      </nav>
+
+      <main class="content-layout">
+        <aside class="filters-panel">
+          <div class="filters-heading"><h1>Filtros</h1><button id="clear-filters" class="text-button" type="button">Limpar</button></div>
+
+          <section class="filter-section">
+            <h2>Fonte</h2>
+            <div class="radio-list" id="source-filter">
+              <label class="radio-row"><input type="radio" name="source" value="" checked /> Todas as fontes</label>
+              <label class="radio-row"><input type="radio" name="source" value="kabum" /> KaBuM!</label>
+              <label class="radio-row"><input type="radio" name="source" value="amazon" /> Amazon</label>
+              <label class="radio-row"><input type="radio" name="source" value="terabyteshop" /> Terabyte Shop</label>
+            </div>
+          </section>
+
+          <section class="filter-section">
+            <h2>Preço</h2>
+            <div class="price-slider">
+              <div class="range-values"><span id="min-price-label">R$ 0</span><span id="max-price-label">Sem limite</span></div>
+              <label class="range-label" for="min-price">Preço mínimo</label>
+              <input id="min-price" type="range" min="0" max="20000" step="50" value="0" />
+              <label class="range-label" for="max-price">Preço máximo</label>
+              <input id="max-price" type="range" min="0" max="20000" step="50" value="20000" />
+            </div>
+          </section>
+          <section class="filter-section">
+            <h2>Status</h2>
+            <label class="check-row"><input id="only-active" type="checkbox" checked /> Somente ativos</label>
+          </section>
+        </aside>
+
+        <section class="products-area" aria-live="polite">
+          <div class="toolbar">
+            <div id="active-filters" class="active-filters"></div>
+            <label class="sort-control"><span>Ordenar por</span><select id="sort-filter"><option value="recent">Mais recentes</option><option value="price-asc">Menor preço</option><option value="price-desc">Maior preço</option></select></label>
+          </div>
+          <div id="loading" class="empty-state">Carregando produtos...</div>
+          <div id="products-grid" class="products-grid"></div>
+          <div id="empty" class="empty-state is-hidden">Nenhum produto encontrado com esses filtros.</div>
+          <nav class="pagination" id="pagination" aria-label="Paginação"></nav>
+        </section>
+      </main>
+      <section id="product-detail" class="product-detail is-hidden"></section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

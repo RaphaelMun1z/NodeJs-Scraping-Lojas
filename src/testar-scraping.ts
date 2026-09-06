@@ -12,11 +12,13 @@ function escaparCsv(valor: string | number | undefined): string {
 }
 
 function gerarCsv(itens: ItemColetado[]): string {
-	const cabecalho = ["titulo", "preco", "url", "imagemUrl"];
+	const cabecalho = ["fonte", "titulo", "preco", "precoAntigo", "url", "imagemUrl"];
 	const linhas = itens.map((item) =>
 		[
+			escaparCsv(item.fonte),
 			escaparCsv(item.titulo),
 			escaparCsv(item.preco),
+			escaparCsv(item.precoAntigo),
 			escaparCsv(item.url),
 			escaparCsv(item.imagemUrl),
 		].join(";"),

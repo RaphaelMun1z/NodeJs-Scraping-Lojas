@@ -4,7 +4,8 @@ import { AnalisadorSite } from "./analisadores/analisador-site.js";
 import { ConexaoBanco } from "./banco/conexao-banco.js";
 import { RepositorioItem } from "./banco/repositorios/repositorio-item.js";
 import { ClienteHttp } from "./clientes/cliente-http.js";
-import { ColetorSite } from "./coletores/coletor-site.js";
+import { ColetorFonteSite } from "./fontes/coletor-fonte-site.js";
+import { seletoresPorFonte } from "./config/fontes.js";
 import { configuracaoAplicacao } from "./config/aplicacao.config.js";
 import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
@@ -20,9 +21,23 @@ async function iniciarAplicacao(): Promise<void> {
 	);
 
 	const repositorioItem = new RepositorioItem();
-	const coletor = new ColetorSite(clienteHttp, new AnalisadorSite());
+	const fontes = configuracaoAplicacao.coleta.fontesAtivas.map((nome) => {
+		const url = nome === "kabum"
+			? configuracaoAplicacao.coleta.url
+			: configuracaoAplicacao.coleta.urls[nome];
+
+		if (!url) throw new Error(`URL não configurada para a fonte ${nome}`);
+
+		return new ColetorFonteSite(
+			nome,
+			url,
+			clienteHttp,
+			new AnalisadorSite(),
+			seletoresPorFonte[nome],
+		);
+	});
 	const servicoColeta = new ServicoColeta(
-		coletor,
+		fontes,
 		repositorioItem,
 		configuracaoAplicacao.coleta.salvarColeta,
 	);

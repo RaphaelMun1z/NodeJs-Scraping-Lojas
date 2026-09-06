@@ -1,3 +1,3 @@
 export abstract class ColetorBase<T> {
-  abstract coletar(): Promise<T[]>;
+	abstract coletar(): Promise<T[]>;
 }
