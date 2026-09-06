@@ -1,0 +1,12 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: scraping-lojas-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - scraping_lojas_dados:/data/db
+
+volumes:
+  scraping_lojas_dados:
