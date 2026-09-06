@@ -5,17 +5,17 @@ import type { ItemColetado } from "../modelos/item-coletado.model.js";
 import { ColetorBase } from "./coletor-base.js";
 
 export class ColetorSite extends ColetorBase<ItemColetado> {
-  constructor(
-    private readonly clienteHttp: ClienteHttp,
-    private readonly analisador: AnalisadorSite,
-  ) {
-    super();
-  }
+	constructor(
+		private readonly clienteHttp: ClienteHttp,
+		private readonly analisador: AnalisadorSite,
+	) {
+		super();
+	}
 
-  async coletar(): Promise<ItemColetado[]> {
-    const url = configuracaoAplicacao.coleta.url;
-    const html = await this.clienteHttp.obterHtml(url);
+	async coletar(): Promise<ItemColetado[]> {
+		const url = configuracaoAplicacao.coleta.url;
+		const html = await this.clienteHttp.obterHtml(url);
 
-    return this.analisador.analisar(html, url);
-  }
+		return this.analisador.analisar(html, url);
+	}
 }

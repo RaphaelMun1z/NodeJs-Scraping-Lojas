@@ -52,6 +52,17 @@ Isso executa a coleta todos os dias às 15:00 no horário de São Paulo.
 npm run dev
 ```
 
+### Ver o navegador durante a coleta
+
+Para acompanhar a navegação em uma janela do Chromium, configure:
+
+```env
+NAVEGADOR_VISIVEL=true
+NAVEGADOR_PAUSA_MS=5000
+```
+
+Na primeira instalação, baixe o navegador com `npx playwright install chromium`. Para execução em servidor, use `NAVEGADOR_VISIVEL=false`.
+
 Build de produção:
 
 ```bash

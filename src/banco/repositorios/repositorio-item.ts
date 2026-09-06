@@ -27,7 +27,8 @@ export class RepositorioItem {
         update: {
           $set: {
             titulo: item.titulo,
-            descricao: item.descricao,
+            preco: item.preco,
+            imagemUrl: item.imagemUrl,
             url: item.url,
             ultimaColetaEm: agora,
           },
@@ -50,7 +51,6 @@ export class RepositorioItem {
       const termo = this.escaparExpressaoRegular(busca);
       filtro.$or = [
         { titulo: { $regex: termo, $options: "i" } },
-        { descricao: { $regex: termo, $options: "i" } },
       ];
     }
 
@@ -59,7 +59,7 @@ export class RepositorioItem {
     // lean() evita criar documentos Mongoose completos em consultas somente leitura.
     const [itens, total] = await Promise.all([
       ModeloItemBanco.find(filtro)
-        .select("titulo descricao url primeiraColetaEm ultimaColetaEm")
+        .select("titulo preco imagemUrl url primeiraColetaEm ultimaColetaEm")
         .sort({ ultimaColetaEm: -1 })
         .skip(deslocamento)
         .limit(limite)
@@ -73,7 +73,7 @@ export class RepositorioItem {
 
   async buscarPorId(id: string): Promise<unknown | null> {
     return ModeloItemBanco.findById(id)
-      .select("titulo descricao url primeiraColetaEm ultimaColetaEm")
+      .select("titulo preco imagemUrl url primeiraColetaEm ultimaColetaEm")
       .lean()
       .exec();
   }

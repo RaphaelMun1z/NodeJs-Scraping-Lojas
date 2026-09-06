@@ -1,39 +1,40 @@
-import type { ColetorBase } from "../coletores/coletor-base.js";
-import { logger } from "../config/logger.js";
-import type { ItemColetado } from "../modelos/item-coletado.model.js";
-import type { RepositorioItem } from "../banco/repositorios/repositorio-item.js";
+import { RepositorioItem } from "../banco/repositorios/repositorio-item.js";
+import { ColetorBase } from "../coletores/coletor-base.js";
+import { ItemColetado } from "../modelos/item-coletado.model.js";
 
 export class ServicoColeta {
-  private execucaoAtual?: Promise<number>;
+	private execucaoAtual?: Promise<number>;
 
-  constructor(
-    private readonly coletor: ColetorBase<ItemColetado>,
-    private readonly repositorioItem: RepositorioItem,
-  ) {}
+	constructor(
+		private readonly coletor: ColetorBase<ItemColetado>,
+		private readonly repositorioItem: RepositorioItem,
+		private readonly salvarColeta: boolean,
+	) {}
 
-  executar(): Promise<number> {
-    // Reutiliza a execução atual para impedir duas coletas simultâneas.
-    if (this.execucaoAtual) return this.execucaoAtual;
+	executar(): Promise<number> {
+		if (this.execucaoAtual) return this.execucaoAtual;
 
-    this.execucaoAtual = this.executarColeta().finally(() => {
-      this.execucaoAtual = undefined;
-    });
+		this.execucaoAtual = this.executarColeta().finally(() => {
+			this.execucaoAtual = undefined;
+		});
 
-    return this.execucaoAtual;
-  }
+		return this.execucaoAtual;
+	}
 
-  private async executarColeta(): Promise<number> {
-    const inicio = Date.now();
-    logger.info("Iniciando coleta");
+	private async executarColeta(): Promise<number> {
+		const inicio = Date.now();
+		console.log("🔎 Iniciando busca de produtos...");
 
-    const itens = await this.coletor.coletar();
-    await this.repositorioItem.salvarMuitos(itens);
+		const itens = await this.coletor.coletar();
 
-    logger.info(
-      { total: itens.length, duracaoMs: Date.now() - inicio },
-      "Coleta concluída e persistida",
-    );
+		if (this.salvarColeta) {
+			await this.repositorioItem.salvarMuitos(itens);
+			console.log(`💾 ${itens.length} produto(s) encontrado(s) e salvo(s).`);
+		} else {
+			console.log(`✅ Busca concluída: ${itens.length} produto(s) encontrado(s).`);
+		}
 
-    return itens.length;
-  }
+		console.log(`⏱️ Tempo da busca: ${Date.now() - inicio}ms.`);
+		return itens.length;
+	}
 }

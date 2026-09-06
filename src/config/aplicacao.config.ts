@@ -7,6 +7,10 @@ const esquemaConfiguracao = z.object({
   SCRAPER_URL: z.string().url(),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   USER_AGENT: z.string().min(1).default("Mozilla/5.0 (compatible; ScrapingLojas/2.0)"),
+  SALVAR_COLETA: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((valor) => valor === "true"),
   CRON_EXPRESSAO: z.string().min(1).default("0 15 * * *"),
   CRON_FUSO_HORARIO: z.string().min(1).default("America/Sao_Paulo"),
   EXECUTAR_COLETA_AO_INICIAR: z
@@ -28,6 +32,7 @@ export const configuracaoAplicacao = {
     url: ambiente.SCRAPER_URL,
     tempoLimiteMs: ambiente.REQUEST_TIMEOUT_MS,
     agenteUsuario: ambiente.USER_AGENT,
+    salvarColeta: ambiente.SALVAR_COLETA,
     executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
   },
   agendamento: {

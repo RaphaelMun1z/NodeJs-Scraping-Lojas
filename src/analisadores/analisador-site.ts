@@ -1,36 +1,44 @@
 import * as cheerio from "cheerio";
 import { seletores } from "../config/selectors.js";
 import {
-  esquemaItemColetado,
-  type ItemColetado,
+	esquemaItemColetado,
+	type ItemColetado,
 } from "../modelos/item-coletado.model.js";
 
 export class AnalisadorSite {
-  analisar(html: string, urlBase: string): ItemColetado[] {
-    const $ = cheerio.load(html);
-    const itens: ItemColetado[] = [];
+	analisar(html: string, urlBase: string): ItemColetado[] {
+		const $ = cheerio.load(html);
+		const itens: ItemColetado[] = [];
 
-    $(seletores.item).each((_, elemento) => {
-      const itemAtual = $(elemento);
+		$(seletores.item).each((_, elemento) => {
+			const itemAtual = $(elemento);
+			const titulo = itemAtual.find(seletores.titulo).first().text().trim();
+			const textoPreco = itemAtual
+				.find(seletores.preco)
+				.map((_, preco) => $(preco).text())
+				.get()
+				.join(" ");
+			const href = itemAtual.attr("href");
+			const imagemUrl = itemAtual.find(seletores.imagem).first().attr("src");
 
-      const titulo = itemAtual.find(seletores.titulo).text().trim();
-      const descricao =
-        itemAtual.find(seletores.descricao).text().trim() || undefined;
-      const href = itemAtual.find(seletores.link).attr("href");
+			const resultado = esquemaItemColetado.safeParse({
+				titulo,
+				preco: this.converterPreco(textoPreco),
+				imagemUrl,
+				url: href ? new URL(href, urlBase).toString() : undefined,
+			});
 
-      // Converte links relativos em URLs completas antes da validação.
-      const resultado = esquemaItemColetado.safeParse({
-        titulo,
-        descricao,
-        url: href ? new URL(href, urlBase).toString() : undefined,
-      });
+			if (resultado.success) itens.push(resultado.data);
+		});
 
-      // Itens inválidos são ignorados para não interromper toda a coleta.
-      if (resultado.success) {
-        itens.push(resultado.data);
-      }
-    });
+		return itens;
+	}
 
-    return itens;
-  }
+	private converterPreco(texto: string): number | undefined {
+		const valor = texto.replace(/[^\d,.]/g, "");
+		if (!valor) return undefined;
+
+		const numero = Number(valor.replace(/\./g, "").replace(",", "."));
+		return Number.isFinite(numero) ? numero : undefined;
+	}
 }

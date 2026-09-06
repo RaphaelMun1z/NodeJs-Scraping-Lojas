@@ -10,53 +10,57 @@ import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
 
 async function iniciarAplicacao(): Promise<void> {
-  const conexaoBanco = new ConexaoBanco();
-  await conexaoBanco.conectar(configuracaoAplicacao.banco.uri);
+	const conexaoBanco = new ConexaoBanco();
+	await conexaoBanco.conectar(configuracaoAplicacao.banco.uri);
 
-  const clienteHttp = new ClienteHttp(
-    configuracaoAplicacao.coleta.tempoLimiteMs,
-    configuracaoAplicacao.coleta.agenteUsuario,
-  );
+	const clienteHttp = new ClienteHttp(
+		configuracaoAplicacao.coleta.tempoLimiteMs,
+		configuracaoAplicacao.coleta.agenteUsuario,
+	);
 
-  const repositorioItem = new RepositorioItem();
-  const coletor = new ColetorSite(clienteHttp, new AnalisadorSite());
-  const servicoColeta = new ServicoColeta(coletor, repositorioItem);
+	const repositorioItem = new RepositorioItem();
+	const coletor = new ColetorSite(clienteHttp, new AnalisadorSite());
+	const servicoColeta = new ServicoColeta(
+		coletor,
+		repositorioItem,
+		configuracaoAplicacao.coleta.salvarColeta,
+	);
 
-  const agendador = new AgendadorColeta(
-    servicoColeta,
-    configuracaoAplicacao.agendamento.expressao,
-    configuracaoAplicacao.agendamento.fusoHorario,
-  );
+	const agendador = new AgendadorColeta(
+		servicoColeta,
+		configuracaoAplicacao.agendamento.expressao,
+		configuracaoAplicacao.agendamento.fusoHorario,
+	);
 
-  const servidorApi = new ServidorApi(repositorioItem, conexaoBanco);
+	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco);
 
-  servidorApi.iniciar(configuracaoAplicacao.api.porta);
-  agendador.iniciar();
+	servidorApi.iniciar(configuracaoAplicacao.api.porta);
+	agendador.iniciar();
 
-  if (configuracaoAplicacao.coleta.executarAoIniciar) {
-    // A primeira coleta ocorre sem bloquear a inicialização da API.
-    void servicoColeta.executar().catch((erro) => {
-      logger.error({ erro }, "Erro na coleta inicial");
-    });
-  }
+	if (configuracaoAplicacao.coleta.executarAoIniciar) {
+		// A primeira coleta ocorre sem bloquear a inicialização da API.
+		void servicoColeta.executar().catch((erro) => {
+			logger.error({ erro }, "Erro na coleta inicial");
+		});
+	}
 
-  let encerrando = false;
+	let encerrando = false;
 
-  const encerrar = async (): Promise<void> => {
-    if (encerrando) return;
-    encerrando = true;
+	const encerrar = async (): Promise<void> => {
+		if (encerrando) return;
+		encerrando = true;
 
-    logger.info("Encerrando aplicação");
-    agendador.parar();
-    await servidorApi.parar();
-    await conexaoBanco.desconectar();
-  };
+		logger.info("Encerrando aplicação");
+		agendador.parar();
+		await servidorApi.parar();
+		await conexaoBanco.desconectar();
+	};
 
-  process.once("SIGINT", () => void encerrar());
-  process.once("SIGTERM", () => void encerrar());
+	process.once("SIGINT", () => void encerrar());
+	process.once("SIGTERM", () => void encerrar());
 }
 
 iniciarAplicacao().catch((erro) => {
-  logger.fatal({ erro }, "Falha ao iniciar a aplicação");
-  process.exit(1);
+	logger.fatal({ erro }, "Falha ao iniciar a aplicação");
+	process.exit(1);
 });
