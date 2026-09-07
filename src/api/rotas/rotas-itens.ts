@@ -6,6 +6,7 @@ export function criarRotasItens(controladorItem: ControladorItem): Router {
 
 	roteador.get("/", controladorItem.listar);
 	roteador.get("/sugestoes", controladorItem.sugestoes);
+	roteador.get("/categorias", controladorItem.categorias);
 	roteador.get("/novidades", controladorItem.novidades);
 	roteador.get("/:id/historico", controladorItem.historico);
 	roteador.get("/:id", controladorItem.buscarPorId);

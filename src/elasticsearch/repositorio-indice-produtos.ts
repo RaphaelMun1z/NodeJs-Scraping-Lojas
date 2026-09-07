@@ -11,6 +11,12 @@ export interface ProdutoIndexado {
 	url?: string;
 	chave: string;
 	grupoProdutoId?: string;
+	categoriaOriginal?: string;
+	categoriaNormalizada?: string;
+	categoria?: string;
+	subcategoria?: string;
+	tipoProduto?: string;
+	confiancaCategoria?: number;
 	embedding?: number[];
 }
 
@@ -31,6 +37,7 @@ export class RepositorioIndiceProdutos {
 		const indiceExiste = await this.client.indices.exists({ index: this.indice });
 		if (indiceExiste) {
 			await this.client.indices.putMapping({ index: this.indice, properties: { grupoProdutoId: { type: "keyword" } } });
+			await this.client.indices.putMapping({ index: this.indice, properties: { categoriaOriginal: { type: "text" }, categoriaNormalizada: { type: "keyword" }, categoria: { type: "keyword" }, subcategoria: { type: "keyword" }, tipoProduto: { type: "keyword" }, confiancaCategoria: { type: "float" } } });
 			return;
 		}
 		await this.client.indices.create({
@@ -45,6 +52,12 @@ export class RepositorioIndiceProdutos {
 					url: { type: "keyword", index: false },
 					chave: { type: "keyword" },
 					grupoProdutoId: { type: "keyword" },
+					categoriaOriginal: { type: "text" },
+					categoriaNormalizada: { type: "keyword" },
+					categoria: { type: "keyword" },
+					subcategoria: { type: "keyword" },
+					tipoProduto: { type: "keyword" },
+					confiancaCategoria: { type: "float" },
 					embedding: { type: "dense_vector", dims: this.dimensao, index: true, similarity: "cosine" },
 				},
 			},

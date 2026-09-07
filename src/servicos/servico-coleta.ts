@@ -65,8 +65,9 @@ export class ServicoColeta {
 					await this.eventosScraping!.concluirExecucao(execucaoId, { produtosEncontrados: itens.length, produtosNovos: metricas.novos, produtosAtualizados: metricas.atualizados, produtosInativados: metricas.inativados });
 				}
 				if (this.salvarColeta && this.servicoMatchingCatalogo && itens.length > 0) {
-					// Indexa em segundo plano para não bloquear o salvamento no MongoDB.
-					void this.indexarComRetentativas(itens, fonte.nome);
+					// Aguarda a classificação para concluir a atualização do catálogo.
+					await this.indexarComRetentativas(itens, fonte.nome);
+					console.log(`🏷️ ${fonte.nome}: classificação e indexação concluídas.`);
 				}
 
 				console.log(

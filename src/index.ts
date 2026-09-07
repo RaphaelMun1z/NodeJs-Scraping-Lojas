@@ -19,6 +19,7 @@ import { ServicoAutenticacao } from "./autenticacao/servico-autenticacao.js";
 import { ServicoConfiguracaoScraping } from "./configuracoes/servico-configuracao-scraping.js";
 import { ServicoEventosScraping } from "./monitoramento/servico-eventos-scraping.js";
 import { ServicoBuscaManual } from "./servicos/servico-busca-manual.js";
+import { ProvedorClassificacaoOllama } from "./classificacao/provedor-classificacao-ollama.js";
 
 async function iniciarAplicacao(): Promise<void> {
 	// Centraliza a composição das dependências compartilhadas pela aplicação.
@@ -56,6 +57,7 @@ async function iniciarAplicacao(): Promise<void> {
 			embeddings,
 			new ServicoMatchingProduto(indice, embeddings),
 			repositorioItem,
+			configuracaoAplicacao.coleta.classificacao.habilitada ? new ProvedorClassificacaoOllama(configuracaoAplicacao.coleta.classificacao.url, configuracaoAplicacao.coleta.classificacao.modelo) : undefined,
 		);
 	}
 	const fontes = configuracaoPersistida.fontes.map((configuracaoFonte) => {

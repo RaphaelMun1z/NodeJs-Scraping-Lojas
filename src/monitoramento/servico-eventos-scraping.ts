@@ -114,11 +114,12 @@ export class ServicoEventosScraping {
 		return [...maisRecentes.values()];
 	}
 
-	async obterResumo(): Promise<{ ultimaAtualizacao?: Date; produtosAtivos: number; duracaoMediaMs?: number }> {
+	async obterResumo(): Promise<{ ultimaAtualizacao?: Date; produtosSalvos: number; produtosAtivos: number; duracaoMediaMs?: number }> {
 		const fontesAtivas = this.obterFontesAtivas ? await this.obterFontesAtivas() : undefined;
 		const filtroFontes = fontesAtivas ? { fonte: { $in: fontesAtivas } } : {};
-		const [ultimaExecucao, produtosAtivos, duracao] = await Promise.all([
+		const [ultimaExecucao, produtosSalvos, produtosAtivos, duracao] = await Promise.all([
 			ModeloExecucaoScraping.findOne({ ...filtroFontes, finalizadoEm: { $exists: true } }).sort({ finalizadoEm: -1 }).select("finalizadoEm").lean().exec(),
+			ModeloItemBanco.countDocuments(filtroFontes).exec(),
 			ModeloItemBanco.countDocuments({ ...filtroFontes, $or: [{ ativo: true }, { ativo: { $exists: false } }] }).exec(),
 			ModeloExecucaoScraping.aggregate([
 				{ $match: { ...filtroFontes, status: "concluido", rodadaId: { $exists: true, $ne: "" }, duracaoMs: { $exists: true, $gt: 0 } } },
@@ -126,7 +127,7 @@ export class ServicoEventosScraping {
 				{ $group: { _id: null, mediaRodadasMs: { $avg: "$totalRodadaMs" } } },
 			]).exec(),
 		]);
-		return { ultimaAtualizacao: ultimaExecucao?.finalizadoEm ?? undefined, produtosAtivos, duracaoMediaMs: duracao[0]?.mediaRodadasMs };
+		return { ultimaAtualizacao: ultimaExecucao?.finalizadoEm ?? undefined, produtosSalvos, produtosAtivos, duracaoMediaMs: duracao[0]?.mediaRodadasMs };
 	}
 
 	async listarExecucoes(consulta: ConsultaExecucoesScraping): Promise<{ itens: Record<string, unknown>[]; total: number }> {

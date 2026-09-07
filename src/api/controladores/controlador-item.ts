@@ -8,6 +8,7 @@ const esquemaConsulta = z.object({
 	pagina: z.coerce.number().int().positive().default(1),
 	limite: z.coerce.number().int().positive().max(100).default(20),
 	busca: z.string().trim().min(1).optional(),
+	categoria: z.string().trim().min(1).optional(),
 	fonte: z.string().trim().min(1).optional(),
 	precoMin: z.coerce.number().nonnegative().optional(),
 	precoMax: z.coerce.number().nonnegative().optional(),
@@ -27,6 +28,10 @@ export class ControladorItem {
 		const limite = z.coerce.number().int().positive().max(30).default(12).parse(requisicao.query.limite);
 		const dados = await this.repositorioItem.consultarNovidades(limite);
 		resposta.json({ dados });
+	};
+
+	categorias = async (_requisicao: Request, resposta: Response): Promise<void> => {
+		resposta.json({ dados: await this.repositorioItem.consultarCategorias() });
 	};
 
  listar = async (requisicao: Request, resposta: Response): Promise<void> => {

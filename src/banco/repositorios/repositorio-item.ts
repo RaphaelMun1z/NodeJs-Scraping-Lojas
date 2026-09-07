@@ -2,11 +2,14 @@ import type { ItemColetado } from "../../modelos/item-coletado.model.js";
 import { gerarChaveItem } from "../../utilitarios/chave-item.js";
 import { ModeloItemBanco } from "../modelos/item-banco.model.js";
 import { ModeloHistoricoPreco } from "../modelos/historico-preco.model.js";
+import type { ResultadoClassificacaoProduto } from "../../classificacao/provedor-classificacao.js";
+import { CATEGORIAS_PRODUTO } from "../../classificacao/categorias-produto.js";
 
 export interface ConsultaItens {
 	pagina: number;
 	limite: number;
 	busca?: string;
+	categoria?: string;
 	fonte?: string;
 	precoMin?: number;
 	precoMax?: number;
@@ -27,9 +30,34 @@ export interface MetricasSincronizacaoFonte {
 export interface EstadoIndexacaoItem {
 	titulo: string;
 	grupoProdutoId?: string | null;
+	classificacaoProcessada?: boolean;
+	classificacaoVersao?: number | null;
 }
 
 export class RepositorioItem {
+	async consultarCategorias(): Promise<string[]> {
+		const categoriasSalvas = await ModeloItemBanco.distinct("categoriaNormalizada", {
+			categoriaNormalizada: { $exists: true, $nin: [null, ""] },
+			$or: [{ ativo: true }, { ativo: { $exists: false } }],
+		});
+		const disponiveis = new Set<string>();
+		for (const categoriaNormalizada of categoriasSalvas) {
+			if (typeof categoriaNormalizada !== "string") continue;
+			const [categoria] = categoriaNormalizada.split(" > ");
+			if (!categoria) continue;
+			const subcategoria = categoriaNormalizada.includes(" > ") ? categoriaNormalizada.slice(categoriaNormalizada.indexOf(" > ") + 3) : undefined;
+			if (!(categoria in CATEGORIAS_PRODUTO)) continue;
+			const subcategoriasPermitidas = CATEGORIAS_PRODUTO[categoria as keyof typeof CATEGORIAS_PRODUTO];
+			if (subcategoria && !subcategoriasPermitidas.includes(subcategoria as never)) continue;
+			disponiveis.add(categoria);
+			if (subcategoria) disponiveis.add(categoriaNormalizada);
+		}
+		return Object.entries(CATEGORIAS_PRODUTO).flatMap(([categoria, subcategorias]) => [
+			disponiveis.has(categoria) ? categoria : undefined,
+			...subcategorias.map((subcategoria) => disponiveis.has(`${categoria} > ${subcategoria}`) ? `${categoria} > ${subcategoria}` : undefined),
+		].filter((item): item is string => Boolean(item)));
+	}
+
 	async sugerirTitulos(texto: string, limite = 8): Promise<string[]> {
 		const itens = await ModeloItemBanco.find({ ativo: true, titulo: { $regex: texto, $options: "i" } })
 			.select("titulo")
@@ -108,10 +136,14 @@ export class RepositorioItem {
 		await ModeloHistoricoPreco.updateMany({ chaveProduto: chave }, { $set: { grupoProdutoId } }).exec();
 	}
 
+	async salvarClassificacao(chave: string, classificacao: ResultadoClassificacaoProduto): Promise<void> {
+		await ModeloItemBanco.updateOne({ chave }, { $set: { ...classificacao, confiancaCategoria: classificacao.confianca, classificacaoProcessada: true } }).exec();
+	}
+
 	async consultarEstadosIndexacao(chaves: string[]): Promise<Map<string, EstadoIndexacaoItem>> {
 		if (chaves.length === 0) return new Map();
-		const itens = await ModeloItemBanco.find({ chave: { $in: chaves } }).select("chave titulo grupoProdutoId").lean().exec();
-		return new Map(itens.map((item) => [item.chave, { titulo: item.titulo, grupoProdutoId: item.grupoProdutoId }]));
+		const itens = await ModeloItemBanco.find({ chave: { $in: chaves } }).select("chave titulo grupoProdutoId classificacaoProcessada classificacaoVersao").lean().exec();
+		return new Map(itens.map((item) => [item.chave, { titulo: item.titulo, grupoProdutoId: item.grupoProdutoId, classificacaoProcessada: item.classificacaoProcessada, classificacaoVersao: item.classificacaoVersao }]));
 	}
 
 	async consultarNovidades(limite = 12): Promise<unknown[]> {
@@ -153,6 +185,7 @@ export class RepositorioItem {
 		pagina,
 		limite,
 		busca,
+		categoria,
 		fonte,
 		precoMin,
 		precoMax,
@@ -162,7 +195,12 @@ export class RepositorioItem {
 
 		if (busca) {
 			const termo = this.escaparExpressaoRegular(busca);
-			filtro.$or = [{ titulo: { $regex: termo, $options: "i" } }];
+			filtro.$or = [{ titulo: { $regex: termo, $options: "i" } }, { categoriaNormalizada: { $regex: termo, $options: "i" } }];
+		}
+
+		if (categoria) {
+			const categoriaEscapada = this.escaparExpressaoRegular(categoria);
+			filtro.categoriaNormalizada = new RegExp(`^${categoriaEscapada}(?: >|$)`, "i");
 		}
 
 		if (fonte) filtro.fonte = fonte;
@@ -178,7 +216,7 @@ export class RepositorioItem {
 		}
 
 		const deslocamento = (pagina - 1) * limite;
-		const campos = "fonte titulo preco precoAntigo ativo imagemUrl url grupoProdutoId primeiraColetaEm ultimaColetaEm";
+		const campos = "fonte titulo preco precoAntigo ativo imagemUrl url grupoProdutoId categoriaOriginal categoriaNormalizada categoria subcategoria tipoProduto confiancaCategoria classificacaoVersao primeiraColetaEm ultimaColetaEm";
 		const [itens, total] = await Promise.all([
 			ModeloItemBanco.find(filtro)
 				.select(campos)
