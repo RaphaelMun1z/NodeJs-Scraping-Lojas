@@ -1,12 +1,124 @@
 services:
-  mongodb:
-    image: mongo:8.0
-    container_name: scraping-lojas-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - scraping_lojas_dados:/data/db
+    mongodb:
+        image: mongo:8.0
+        container_name: scraping-lojas-mongodb
+        restart: unless-stopped
+        ports:
+            - "27017:27017"
+        volumes:
+            - scraping_lojas_dados:/data/db
+
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' --host localhost | grep 1",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    backend:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: scraping-lojas-backend
+        restart: unless-stopped
+        depends_on:
+            mongodb:
+                condition: service_healthy
+        environment:
+            NODE_ENV: production
+            PORTA_API: 3000
+            MONGODB_URI: mongodb://mongodb:27017/scraping_lojas
+            SCRAPER_URL: ${SCRAPER_URL:-https://example.com}
+            AMAZON_URL: ${AMAZON_URL:-https://www.amazon.com.br}
+            TERABYTESHOP_URL: ${TERABYTESHOP_URL:-https://www.terabyteshop.com.br/promocoes}
+            FONTES_ATIVAS: ${FONTES_ATIVAS:-kabum,amazon,terabyteshop}
+            SALVAR_COLETA: ${SALVAR_COLETA:-false}
+            REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
+            USER_AGENT: ${USER_AGENT:-Mozilla/5.0 (compatible; ScrapingLojas/2.0)}
+            NAVEGADOR_VISIVEL: "false"
+            NAVEGADOR_PAUSA_MS: ${NAVEGADOR_PAUSA_MS:-3000}
+            NAVEGADOR_ESPERA_VERIFICACAO_MS: ${NAVEGADOR_ESPERA_VERIFICACAO_MS:-60000}
+            CRON_EXPRESSAO: ${CRON_EXPRESSAO:-*/30 * * * *}
+            CRON_FUSO_HORARIO: ${CRON_FUSO_HORARIO:-America/Sao_Paulo}
+            EXECUTAR_COLETA_AO_INICIAR: ${EXECUTAR_COLETA_AO_INICIAR:-true}
+            LOG_LEVEL: ${LOG_LEVEL:-info}
+            LOG_PRETTY: ${LOG_PRETTY:-false}
+            AUTENTICACAO_COOKIE_SECURE: ${AUTENTICACAO_COOKIE_SECURE:-false}
+            CLASSIFICACAO_HABILITADA: ${CLASSIFICACAO_HABILITADA:-false}
+            CLASSIFICADOR_URL: ${CLASSIFICADOR_URL:-http://ollama:11434/api/generate}
+            CLASSIFICADOR_MODELO: ${CLASSIFICADOR_MODELO:-llama3.2:3b}
+            ELASTICSEARCH_HABILITADO: ${ELASTICSEARCH_HABILITADO:-false}
+            ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+            ELASTICSEARCH_INDICE: ${ELASTICSEARCH_INDICE:-produtos}
+            EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-}
+            EMBEDDING_URL: ${EMBEDDING_URL:-}
+            EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+            EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+        volumes:
+            - scraping_lojas_app_dados:/app/.dados
+        ports:
+            - "3000:3000"
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    'node -e "fetch(''http://localhost:3000/api/saude'').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+                ]
+            interval: 15s
+            timeout: 5s
+            retries: 10
+            start_period: 20s
+
+    frontend:
+        build:
+            context: ./interface-produtos
+            dockerfile: Dockerfile
+        container_name: scraping-lojas-frontend
+        restart: unless-stopped
+        depends_on:
+            backend:
+                condition: service_healthy
+        ports:
+            - "8080:80"
+
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.2
+        container_name: scraping-lojas-elasticsearch
+        profiles: ["matching"]
+        restart: unless-stopped
+        environment:
+            discovery.type: single-node
+            xpack.security.enabled: "false"
+            ES_JAVA_OPTS: ${ES_JAVA_OPTS:--Xms512m -Xmx512m}
+        ports:
+            - "9200:9200"
+        volumes:
+            - scraping_lojas_elasticsearch:/usr/share/elasticsearch/data
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "curl -fsS http://localhost:9200/_cluster/health >/dev/null",
+                ]
+            interval: 15s
+            timeout: 10s
+            retries: 10
+
+    ollama:
+        image: ollama/ollama:latest
+        container_name: scraping-lojas-ollama
+        profiles: ["classificacao"]
+        restart: unless-stopped
+        ports:
+            - "11434:11434"
+        volumes:
+            - scraping_lojas_ollama:/root/.ollama
 
 volumes:
-  scraping_lojas_dados:
+    scraping_lojas_dados:
+    scraping_lojas_app_dados:
+    scraping_lojas_elasticsearch:
+    scraping_lojas_ollama:

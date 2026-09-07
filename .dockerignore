@@ -1,0 +1,9 @@
+node_modules
+dist
+.dados
+.env
+*.log
+produtos.csv
+.git
+.gitignore
+interface-produtos
