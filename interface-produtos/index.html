@@ -14,7 +14,9 @@
           <span class="search-icon" aria-hidden="true">⌕</span>
           <input id="search-input" type="search" placeholder="Buscar produtos" autocomplete="off" />
           <button type="submit">Buscar</button>
+          <div id="search-suggestions" class="search-suggestions is-hidden" role="listbox" aria-label="Sugestões de produtos"></div>
         </form>
+        <div class="account-area"><button id="account-avatar" class="account-avatar account-login-button" type="button" aria-label="Entrar">Entrar</button><div id="account-menu" class="account-menu is-hidden"><button id="account-monitoring" type="button">Scrapings</button><button id="account-settings" type="button">Configurações</button><button id="account-logout" type="button">Sair</button></div></div>
       </header>
 
       <nav class="categorybar" aria-label="Categorias">
@@ -24,7 +26,6 @@
         <button class="category-link" type="button" data-category="monitor">Monitores</button>
         <button class="category-link" type="button" data-category="gamer">Gamer</button>
         <span class="category-spacer"></span>
-        <span class="result-status" id="result-status">Carregando produtos...</span>
       </nav>
 
       <main class="content-layout">
@@ -35,9 +36,9 @@
             <h2>Fonte</h2>
             <div class="radio-list" id="source-filter">
               <label class="radio-row"><input type="radio" name="source" value="" checked /> Todas as fontes</label>
-              <label class="radio-row"><input type="radio" name="source" value="kabum" /> KaBuM!</label>
-              <label class="radio-row"><input type="radio" name="source" value="amazon" /> Amazon</label>
-              <label class="radio-row"><input type="radio" name="source" value="terabyteshop" /> Terabyte Shop</label>
+              <label class="radio-row"><input type="radio" name="source" value="kabum" /><img src="/kabum-logo.png" alt="" aria-hidden="true" /> KaBuM!</label>
+              <label class="radio-row"><input type="radio" name="source" value="amazon" /><img src="/amazon-logo.png" alt="" aria-hidden="true" /> Amazon</label>
+              <label class="radio-row"><input type="radio" name="source" value="terabyteshop" /><img src="/terabyte-logo.png" alt="" aria-hidden="true" /> Terabyte Shop</label>
             </div>
           </section>
 
@@ -46,9 +47,12 @@
             <div class="price-slider">
               <div class="range-values"><span id="min-price-label">R$ 0</span><span id="max-price-label">Sem limite</span></div>
               <label class="range-label" for="min-price">Preço mínimo</label>
-              <input id="min-price" type="range" min="0" max="20000" step="50" value="0" />
+              <div class="dual-range" aria-label="Faixa de preco">
+                <div class="dual-range-track"></div>
+                <input id="min-price" type="range" min="0" max="20000" step="50" value="0" aria-label="Preco minimo" />
               <label class="range-label" for="max-price">Preço máximo</label>
-              <input id="max-price" type="range" min="0" max="20000" step="50" value="20000" />
+                <input id="max-price" type="range" min="0" max="20000" step="50" value="20000" aria-label="Preco maximo" />
+              </div>
             </div>
           </section>
           <section class="filter-section">
@@ -59,16 +63,41 @@
 
         <section class="products-area" aria-live="polite">
           <div class="toolbar">
-            <div id="active-filters" class="active-filters"></div>
+            <div class="toolbar-summary"><span id="result-status" class="result-status">Carregando produtos...</span><div id="active-filters" class="active-filters"></div></div>
             <label class="sort-control"><span>Ordenar por</span><select id="sort-filter"><option value="recent">Mais recentes</option><option value="price-asc">Menor preço</option><option value="price-desc">Maior preço</option></select></label>
           </div>
-          <div id="loading" class="empty-state">Carregando produtos...</div>
+          <div id="loading" class="empty-state"><div class="skeleton loading-skeleton"></div></div>
           <div id="products-grid" class="products-grid"></div>
           <div id="empty" class="empty-state is-hidden">Nenhum produto encontrado com esses filtros.</div>
           <nav class="pagination" id="pagination" aria-label="Paginação"></nav>
         </section>
       </main>
+      <section id="new-products" class="new-products is-hidden" aria-labelledby="new-products-title">
+        <div class="section-heading">
+          <div><span class="section-kicker">Destaque</span><h2 id="new-products-title">Novidades</h2></div>
+          <div class="new-products-controls" aria-label="Paginação das novidades">
+            <button id="new-products-previous" class="page-button" type="button" aria-label="Novidades anteriores">‹</button>
+            <span id="new-products-page" class="new-products-page"></span>
+            <button id="new-products-next" class="page-button" type="button" aria-label="Próximas novidades">›</button>
+          </div>
+        </div>
+        <div id="new-products-grid" class="new-products-grid"></div>
+      </section>
       <section id="product-detail" class="product-detail is-hidden"></section>
+      <div id="admin-shell" class="admin-shell is-hidden">
+        <aside id="admin-sidebar" class="admin-sidebar" aria-label="Navegação administrativa">
+          <div class="admin-sidebar-heading"><strong>Administração</strong></div>
+          <nav class="admin-sidebar-nav">
+            <a href="#admin" data-admin-nav="admin"><span aria-hidden="true">⚙</span> Configurações</a>
+            <a href="#admin/scraping" data-admin-nav="admin/scraping"><span aria-hidden="true">▤</span> Monitoramento</a>
+            <a href="#admin/autenticacao" data-admin-nav="admin/autenticacao"><span aria-hidden="true">♙</span> Autenticação</a>
+            <a href="#admin/busca" data-admin-nav="admin/busca"><span aria-hidden="true">⌕</span> Busca manual</a>
+          </nav>
+          <a class="admin-sidebar-back" href="#"><span aria-hidden="true">←</span> Voltar aos produtos</a>
+          <button id="admin-sidebar-logout" class="admin-sidebar-logout" type="button"><span aria-hidden="true">↪</span> Sair</button>
+        </aside>
+        <section id="admin-page" class="admin-page"></section>
+      </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module" src="/src/main.js"></script>

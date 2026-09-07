@@ -8,7 +8,7 @@ const esquemaConfiguracao = z.object({
 		.string()
 		.min(1)
 		.default("mongodb://127.0.0.1:27017/scraping_lojas"),
-	SCRAPER_URL: z.string().url(),
+	SCRAPER_URL: z.string().url().optional(),
 	AMAZON_URL: z.string().url().optional(),
 	TERABYTESHOP_URL: z.string().url().optional(),
 	FONTES_ATIVAS: z.string().default("kabum,amazon,terabyteshop"),
@@ -27,6 +27,9 @@ const esquemaConfiguracao = z.object({
 		.enum(["true", "false"])
 		.default("true")
 		.transform((valor) => valor === "true"),
+	SCRAPING_RETENCAO_EXECUCOES: z.coerce.number().int().positive().default(100),
+	SCRAPING_RETENCAO_LOGS: z.coerce.number().int().positive().default(2000),
+	HISTORICO_PRECO_RETENCAO_DIAS: z.coerce.number().int().nonnegative().default(730),
 });
 
 // Valida a configuração na inicialização para falhar cedo com uma mensagem clara.
@@ -40,7 +43,7 @@ export const configuracaoAplicacao = {
 		uri: ambiente.MONGODB_URI,
 	},
 	coleta: {
-		url: ambiente.SCRAPER_URL,
+		url: ambiente.SCRAPER_URL ?? "",
 		fontesAtivas: ambiente.FONTES_ATIVAS.split(",")
 			.map((fonte) => fonte.trim())
 			.filter((fonte): fonte is NomeFonte =>
@@ -54,6 +57,7 @@ export const configuracaoAplicacao = {
 		agenteUsuario: ambiente.USER_AGENT,
 		salvarColeta: ambiente.SALVAR_COLETA,
 		executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
+		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
 	},
 	agendamento: {
 		expressao: ambiente.CRON_EXPRESSAO,

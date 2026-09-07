@@ -1,5 +1,6 @@
 import { AnalisadorSite } from "../analisadores/analisador-site.js";
 import { ClienteHttp } from "../clientes/cliente-http.js";
+import { load } from "cheerio";
 import type { ItemColetado } from "../modelos/item-coletado.model.js";
 import { ColetorBase } from "../coletores/coletor-base.js";
 import type { SeletoresSite } from "../config/selectors.js";
@@ -21,10 +22,19 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 			seletorItens: this.seletores.paginaVirtualizada
 				? this.seletores.item
 				: undefined,
+			seletorAguardar: this.seletores.item,
 			seletorCarregarMais: this.seletores.carregarMais,
 		});
 
-		if (/Just a moment|Performing security verification|Cloudflare/i.test(html)) {
+		const possuiSinaisDeBloqueio =
+			/Just a moment|Performing security verification|cf-chl-|challenge-platform|challenge-running|Verify you are human/i.test(
+				html,
+			);
+		const quantidadeDeProdutos = load(html)(this.seletores.item).length;
+
+		// Scripts da protecao podem permanecer no HTML mesmo com os produtos
+		// carregados. So interrompemos quando nao ha nenhum card disponivel.
+		if (possuiSinaisDeBloqueio && quantidadeDeProdutos === 0) {
 			throw new Error("A fonte retornou uma página de verificação/bloqueio");
 		}
 

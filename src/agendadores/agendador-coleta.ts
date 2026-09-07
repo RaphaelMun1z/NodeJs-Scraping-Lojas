@@ -41,4 +41,8 @@ export class AgendadorColeta {
   parar(): void {
     this.tarefa?.stop();
   }
+
+  obterProximaExecucao(): Date | null {
+    return this.tarefa?.getNextRun() ?? null;
+  }
 }

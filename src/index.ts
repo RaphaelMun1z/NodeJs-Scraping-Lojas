@@ -9,6 +9,16 @@ import { seletoresPorFonte } from "./config/fontes.js";
 import { configuracaoAplicacao } from "./config/aplicacao.config.js";
 import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
+import { ProvedorEmbeddingHttp } from "./embeddings/provedor-embedding-http.js";
+import { criarClienteElasticsearch } from "./elasticsearch/cliente-elasticsearch.js";
+import { RepositorioIndiceProdutos } from "./elasticsearch/repositorio-indice-produtos.js";
+import { configuracaoMatching, validarConfiguracaoMatching } from "./matching/configuracao-matching.js";
+import { ServicoMatchingProduto } from "./matching/servico-matching-produto.js";
+import { ServicoMatchingCatalogoProdutos } from "./matching/servico-matching-catalogo-produtos.js";
+import { ServicoAutenticacao } from "./autenticacao/servico-autenticacao.js";
+import { ServicoConfiguracaoScraping } from "./configuracoes/servico-configuracao-scraping.js";
+import { ServicoEventosScraping } from "./monitoramento/servico-eventos-scraping.js";
+import { ServicoBuscaManual } from "./servicos/servico-busca-manual.js";
 
 async function iniciarAplicacao(): Promise<void> {
 	// Centraliza a composição das dependências compartilhadas pela aplicação.
@@ -21,10 +31,35 @@ async function iniciarAplicacao(): Promise<void> {
 	);
 
 	const repositorioItem = new RepositorioItem();
-	const fontes = configuracaoAplicacao.coleta.fontesAtivas.map((nome) => {
-		const url = nome === "kabum"
-			? configuracaoAplicacao.coleta.url
-			: configuracaoAplicacao.coleta.urls[nome];
+	await repositorioItem.removerHistoricoAntigo(configuracaoAplicacao.coleta.historicoRetencaoDias);
+	const autenticacao = new ServicoAutenticacao();
+	const configuracaoScraping = new ServicoConfiguracaoScraping();
+	const eventosScraping = new ServicoEventosScraping(undefined, undefined, () => configuracaoScraping.obterFontesAtivas().then((fontes) => fontes.map((fonte) => fonte.fonte)));
+	await eventosScraping.prepararRetencao();
+	const configuracaoPersistida = await configuracaoScraping.obterOuCriarPadrao();
+	let servicoMatchingCatalogo: ServicoMatchingCatalogoProdutos | undefined;
+	let clienteElasticsearch: ReturnType<typeof criarClienteElasticsearch> | undefined;
+	let repositorioIndiceProdutos: RepositorioIndiceProdutos | undefined;
+	if (configuracaoMatching.habilitado) {
+		validarConfiguracaoMatching();
+		clienteElasticsearch = criarClienteElasticsearch();
+		const indice = new RepositorioIndiceProdutos(clienteElasticsearch);
+		repositorioIndiceProdutos = indice;
+		await indice.garantirIndice();
+		const embeddings = new ProvedorEmbeddingHttp(
+			configuracaoMatching.embeddingUrl!,
+			configuracaoMatching.embeddingModelo!,
+			configuracaoMatching.embeddingApiKey,
+		);
+		servicoMatchingCatalogo = new ServicoMatchingCatalogoProdutos(
+			indice,
+			embeddings,
+			new ServicoMatchingProduto(indice, embeddings),
+			repositorioItem,
+		);
+	}
+	const fontes = configuracaoPersistida.fontes.map((configuracaoFonte) => {
+		const { fonte: nome, url } = configuracaoFonte;
 
 		if (!url) throw new Error(`URL não configurada para a fonte ${nome}`);
 
@@ -40,6 +75,13 @@ async function iniciarAplicacao(): Promise<void> {
 		fontes,
 		repositorioItem,
 		configuracaoAplicacao.coleta.salvarColeta,
+		servicoMatchingCatalogo,
+		eventosScraping,
+		() => configuracaoScraping.obterFontesAtivas().then((fontes) => fontes.map((fonte) => fonte.fonte)),
+	);
+	const servicoBuscaManual = new ServicoBuscaManual(
+		fontes,
+		() => configuracaoScraping.obterFontesAtivas().then((fontesAtivas) => fontesAtivas.map((fonte) => fonte.fonte)),
 	);
 
 	const agendador = new AgendadorColeta(
@@ -48,7 +90,7 @@ async function iniciarAplicacao(): Promise<void> {
 		configuracaoAplicacao.agendamento.fusoHorario,
 	);
 
-	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco);
+	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco, autenticacao, configuracaoScraping, eventosScraping, () => agendador.obterProximaExecucao(), servicoBuscaManual, repositorioIndiceProdutos);
 
 	servidorApi.iniciar(configuracaoAplicacao.api.porta);
 	agendador.iniciar();
@@ -69,6 +111,7 @@ async function iniciarAplicacao(): Promise<void> {
 		logger.info("Encerrando aplicação");
 		agendador.parar();
 		await servidorApi.parar();
+		await clienteElasticsearch?.close();
 		await conexaoBanco.desconectar();
 	};
 

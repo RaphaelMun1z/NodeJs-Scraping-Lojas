@@ -5,6 +5,8 @@ export function criarRotasItens(controladorItem: ControladorItem): Router {
 	const roteador = Router();
 
 	roteador.get("/", controladorItem.listar);
+	roteador.get("/sugestoes", controladorItem.sugestoes);
+	roteador.get("/novidades", controladorItem.novidades);
 	roteador.get("/:id/historico", controladorItem.historico);
 	roteador.get("/:id", controladorItem.buscarPorId);
 

@@ -26,6 +26,5 @@ export const seletoresPorFonte: Record<NomeFonte, SeletoresSite> = {
 		precoAntigo: ".product-item__old-price del > span",
 		imagem: "img.image-thumbnail",
 		url: "a.product-item__name",
-		carregarMais: "a.btn-pdmore",
 	},
 };

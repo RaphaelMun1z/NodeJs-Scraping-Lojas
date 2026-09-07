@@ -1,4 +1,6 @@
 import { chromium } from "playwright";
+import { mkdirSync } from "node:fs";
+import { resolve } from "node:path";
 
 export class ClienteHttp {
 	constructor(
@@ -11,11 +13,16 @@ export class ClienteHttp {
 
 	async obterHtml(
 		url: string,
-		opcoes?: { seletorItens?: string; seletorCarregarMais?: string },
+		opcoes?: {
+			seletorItens?: string;
+			seletorAguardar?: string;
+			seletorCarregarMais?: string;
+		},
 	): Promise<string> {
 		return this.obterHtmlComNavegador(
 			url,
 			opcoes?.seletorItens,
+			opcoes?.seletorAguardar,
 			opcoes?.seletorCarregarMais,
 		);
 	}
@@ -23,12 +30,18 @@ export class ClienteHttp {
 	private async obterHtmlComNavegador(
 		url: string,
 		seletorItens?: string,
+		seletorAguardar?: string,
 		seletorCarregarMais?: string,
 	): Promise<string> {
-		const navegador = await chromium.launch({
+		const hostname = new URL(url).hostname.replace(/[^a-z0-9.-]/gi, "_");
+		const perfilBase = process.env.NAVEGADOR_PERFIL ?? ".dados/navegador";
+		const perfil = resolve(perfilBase, hostname);
+		mkdirSync(perfil, { recursive: true });
+		const navegador = await chromium.launchPersistentContext(perfil, {
 			headless: process.env.NAVEGADOR_VISIVEL !== "true",
+			userAgent: this.agenteUsuario,
 		});
-		const pagina = await navegador.newPage({ userAgent: this.agenteUsuario });
+		const pagina = await navegador.newPage();
 
 		try {
 			await pagina.goto(url, {
@@ -45,6 +58,21 @@ export class ClienteHttp {
 
 			const pausaMs = Number(process.env.NAVEGADOR_PAUSA_MS ?? 3_000);
 			if (pausaMs > 0) await pagina.waitForTimeout(pausaMs);
+
+			if (seletorAguardar) {
+				const esperaVerificacaoMs = Number(
+					process.env.NAVEGADOR_ESPERA_VERIFICACAO_MS ?? 60_000,
+				);
+				try {
+					await pagina.locator(seletorAguardar).first().waitFor({
+						state: "attached",
+						timeout: esperaVerificacaoMs,
+					});
+				} catch {
+					// A coleta seguirá para que o coletor rejeite a página de
+					// verificação sem alterar os produtos existentes.
+				}
+			}
 
 			if (seletorCarregarMais) {
 				let tentativasSemNovosItens = 0;

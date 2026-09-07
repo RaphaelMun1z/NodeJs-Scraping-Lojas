@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import type { RepositorioItem } from "../../banco/repositorios/repositorio-item.js";
+import type { RepositorioIndiceProdutos } from "../../elasticsearch/repositorio-indice-produtos.js";
 
 const esquemaConsulta = z.object({
 	pagina: z.coerce.number().int().positive().default(1),
@@ -14,9 +15,21 @@ const esquemaConsulta = z.object({
 });
 
 export class ControladorItem {
-	constructor(private readonly repositorioItem: RepositorioItem) {}
+	constructor(private readonly repositorioItem: RepositorioItem, private readonly repositorioIndice?: RepositorioIndiceProdutos) {}
 
-	listar = async (requisicao: Request, resposta: Response): Promise<void> => {
+	sugestoes = async (requisicao: Request, resposta: Response): Promise<void> => {
+		const texto = z.string().trim().min(2).parse(requisicao.query.q);
+		const sugestoes = this.repositorioIndice ? await this.repositorioIndice.sugerirTitulos(texto) : [];
+		resposta.json({ dados: sugestoes.length > 0 ? sugestoes : await this.repositorioItem.sugerirTitulos(texto) });
+	};
+
+	novidades = async (requisicao: Request, resposta: Response): Promise<void> => {
+		const limite = z.coerce.number().int().positive().max(30).default(12).parse(requisicao.query.limite);
+		const dados = await this.repositorioItem.consultarNovidades(limite);
+		resposta.json({ dados });
+	};
+
+ listar = async (requisicao: Request, resposta: Response): Promise<void> => {
 		// O schema aplica valores padrão e limita o tamanho da página.
 		const consulta = esquemaConsulta.parse(requisicao.query);
 		const resultado = await this.repositorioItem.consultar(consulta);

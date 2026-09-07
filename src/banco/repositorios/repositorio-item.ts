@@ -18,12 +18,39 @@ export interface ResultadoConsultaItens {
 	total: number;
 }
 
+export interface MetricasSincronizacaoFonte {
+	novos: number;
+	atualizados: number;
+	inativados: number;
+}
+
+export interface EstadoIndexacaoItem {
+	titulo: string;
+	grupoProdutoId?: string | null;
+}
+
 export class RepositorioItem {
+	async sugerirTitulos(texto: string, limite = 8): Promise<string[]> {
+		const itens = await ModeloItemBanco.find({ ativo: true, titulo: { $regex: texto, $options: "i" } })
+			.select("titulo")
+			.sort({ ultimaColetaEm: -1 })
+			.limit(limite * 3)
+			.lean()
+			.exec();
+		return [...new Set(itens.map((item) => item.titulo))].slice(0, limite);
+	}
+
 	async salvarMuitos(itens: ItemColetado[]): Promise<void> {
 		if (itens.length === 0) return;
 
+		// A mesma fonte pode retornar o mesmo card mais de uma vez. Mantemos
+		// somente uma operação por chave para evitar upserts duplicados na coleta.
+		const itensUnicos = Array.from(
+			new Map(itens.map((item) => [gerarChaveItem(item), item])).values(),
+		);
+
 		const agora = new Date();
-		const operacoes = itens.map((item) => ({
+		const operacoes = itensUnicos.map((item) => ({
 			updateOne: {
 				filter: { chave: gerarChaveItem(item) },
 				update: {
@@ -40,6 +67,7 @@ export class RepositorioItem {
 					$setOnInsert: {
 						chave: gerarChaveItem(item),
 						primeiraColetaEm: agora,
+						novaNaUltimaColeta: true,
 					},
 				},
 				upsert: true,
@@ -48,34 +76,66 @@ export class RepositorioItem {
 
 		await ModeloItemBanco.bulkWrite(operacoes, { ordered: false });
 
-		const historicos = Array.from(
-			new Map(
-				itens
-					.filter((item) => item.preco !== undefined)
-					.map((item) => [gerarChaveItem(item), {
-						chaveProduto: gerarChaveItem(item),
-						fonte: item.fonte,
-						preco: item.preco,
-						precoAntigo: item.precoAntigo,
-						coletadoEm: agora,
-					}]),
-			).values(),
-		);
+		const chavesComPreco = itensUnicos.filter((item) => item.preco !== undefined).map((item) => gerarChaveItem(item));
+		const historicosRecentes = await ModeloHistoricoPreco.find({ chaveProduto: { $in: chavesComPreco } }).sort({ coletadoEm: -1 }).select("chaveProduto preco precoAntigo").lean().exec();
+		const ultimoHistorico = new Map<string, { preco: number; precoAntigo?: number | null }>();
+		for (const historico of historicosRecentes) if (!ultimoHistorico.has(historico.chaveProduto)) ultimoHistorico.set(historico.chaveProduto, { preco: historico.preco, precoAntigo: historico.precoAntigo });
+		const historicos = itensUnicos
+			.filter((item) => item.preco !== undefined)
+			.filter((item) => {
+				const anterior = ultimoHistorico.get(gerarChaveItem(item));
+				return !anterior || anterior.preco !== item.preco || anterior.precoAntigo !== item.precoAntigo;
+			})
+			.map((item) => ({ chaveProduto: gerarChaveItem(item), fonte: item.fonte, preco: item.preco!, precoAntigo: item.precoAntigo, coletadoEm: agora }));
 		if (historicos.length > 0) {
 			await ModeloHistoricoPreco.insertMany(historicos, { ordered: false });
 		}
 	}
 
-	async sincronizarFonte(fonte: string, itens: ItemColetado[]): Promise<void> {
+	async removerHistoricoAntigo(dias: number): Promise<number> {
+		if (dias <= 0) return 0;
+		const limite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+		const resultado = await ModeloHistoricoPreco.deleteMany({ coletadoEm: { $lt: limite } }).exec();
+		return resultado.deletedCount ?? 0;
+	}
+
+	async iniciarRodadaColeta(): Promise<void> {
+		await ModeloItemBanco.updateMany({}, { $set: { novaNaUltimaColeta: false } }).exec();
+	}
+
+	async vincularGrupoProduto(chave: string, grupoProdutoId: string): Promise<void> {
+		await ModeloItemBanco.updateOne({ chave }, { $set: { grupoProdutoId } }).exec();
+		await ModeloHistoricoPreco.updateMany({ chaveProduto: chave }, { $set: { grupoProdutoId } }).exec();
+	}
+
+	async consultarEstadosIndexacao(chaves: string[]): Promise<Map<string, EstadoIndexacaoItem>> {
+		if (chaves.length === 0) return new Map();
+		const itens = await ModeloItemBanco.find({ chave: { $in: chaves } }).select("chave titulo grupoProdutoId").lean().exec();
+		return new Map(itens.map((item) => [item.chave, { titulo: item.titulo, grupoProdutoId: item.grupoProdutoId }]));
+	}
+
+	async consultarNovidades(limite = 12): Promise<unknown[]> {
+		return ModeloItemBanco.find({ novaNaUltimaColeta: true, ativo: true })
+			.select("fonte titulo preco precoAntigo ativo imagemUrl url primeiraColetaEm ultimaColetaEm")
+			.sort({ primeiraColetaEm: -1 })
+			.limit(limite)
+			.lean()
+			.exec();
+	}
+
+	async sincronizarFonte(fonte: string, itens: ItemColetado[]): Promise<MetricasSincronizacaoFonte> {
 		if (itens.length === 0) {
 			console.warn(
 				`${fonte}: nenhum produto retornado; sincronização ignorada para preservar os dados existentes.`,
 			);
-			return;
+			return { novos: 0, atualizados: 0, inativados: 0 };
 		}
 
+		const chavesEncontradas = Array.from(
+			new Set(itens.map((item) => gerarChaveItem(item))),
+		);
+		const existentes = await ModeloItemBanco.countDocuments({ chave: { $in: chavesEncontradas } }).exec();
 		await this.salvarMuitos(itens);
-		const chavesEncontradas = itens.map((item) => gerarChaveItem(item));
 		const resultado = await ModeloItemBanco.updateMany(
 			{ fonte, chave: { $nin: chavesEncontradas } },
 			{ $set: { ativo: false } },
@@ -86,6 +146,7 @@ export class RepositorioItem {
 				`${fonte}: ${resultado.modifiedCount} produto(s) marcado(s) como inativo(s).`,
 			);
 		}
+		return { novos: chavesEncontradas.length - existentes, atualizados: existentes, inativados: resultado.modifiedCount };
 	}
 
 	async consultar({
@@ -117,7 +178,7 @@ export class RepositorioItem {
 		}
 
 		const deslocamento = (pagina - 1) * limite;
-		const campos = "fonte titulo preco precoAntigo ativo imagemUrl url primeiraColetaEm ultimaColetaEm";
+		const campos = "fonte titulo preco precoAntigo ativo imagemUrl url grupoProdutoId primeiraColetaEm ultimaColetaEm";
 		const [itens, total] = await Promise.all([
 			ModeloItemBanco.find(filtro)
 				.select(campos)
@@ -142,19 +203,28 @@ export class RepositorioItem {
 	async buscarComHistorico(id: string): Promise<{
 		produto: Record<string, unknown>;
 		historico: unknown[];
+		ofertas: unknown[];
 	} | null> {
 		const produto = await ModeloItemBanco.findById(id).lean().exec();
 		if (!produto) return null;
 
-		const historico = await ModeloHistoricoPreco.find({
-			chaveProduto: produto.chave,
-		})
-			.select("preco precoAntigo coletadoEm")
+		const filtroHistorico = produto.grupoProdutoId
+			? { grupoProdutoId: produto.grupoProdutoId }
+			: { chaveProduto: produto.chave };
+		const historico = await ModeloHistoricoPreco.find(filtroHistorico)
+			.select("preco precoAntigo coletadoEm fonte")
 			.sort({ coletadoEm: 1 })
 			.lean()
 			.exec();
+		const ofertas = produto.grupoProdutoId
+			? await ModeloItemBanco.find({ grupoProdutoId: produto.grupoProdutoId })
+				.select("fonte titulo preco precoAntigo ativo imagemUrl url")
+				.sort({ preco: 1 })
+				.lean()
+				.exec()
+			: [produto];
 
-		return { produto, historico };
+		return { produto, historico, ofertas };
 	}
 
 	private escaparExpressaoRegular(valor: string): string {
