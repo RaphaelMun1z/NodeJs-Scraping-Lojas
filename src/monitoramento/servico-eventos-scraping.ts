@@ -17,6 +17,14 @@ export interface MetricasScraping {
 	produtosInativados?: number;
 }
 
+export interface ProgressoScraping {
+	coleta?: number;
+	classificacao?: number;
+	embeddings?: number;
+	indexacao?: number;
+	geral?: number;
+}
+
 export interface ConsultaExecucoesScraping {
 	pagina: number;
 	limite: number;
@@ -60,7 +68,7 @@ export class ServicoEventosScraping {
 
 	async iniciarExecucao(fonte: string, rodadaId: string): Promise<string | undefined> {
 		try {
-			const execucao = await ModeloExecucaoScraping.create({ fonte, rodadaId, status: "executando", iniciadoEm: new Date() });
+			const execucao = await ModeloExecucaoScraping.create({ fonte, rodadaId, status: "executando", iniciadoEm: new Date(), progresso: { coleta: 0, classificacao: 0, embeddings: 0, indexacao: 0, geral: 0 } });
 			this.emitir("execucao", execucao.toObject());
 			await this.registrarLog(execucao.id, fonte, "info", "Scraping iniciado");
 			return execucao.id;
@@ -84,9 +92,24 @@ export class ServicoEventosScraping {
 		if (execucao) this.emitir("execucao", execucao);
 	}
 
+	async atualizarProgresso(execucaoId: string, progressoParcial: ProgressoScraping): Promise<void> {
+		const execucao = await ModeloExecucaoScraping.findById(execucaoId).select("progresso").lean().exec();
+		if (!execucao) return;
+		const progressoAtual = (execucao.progresso ?? {}) as ProgressoScraping;
+		const progresso = {
+			coleta: progressoParcial.coleta ?? progressoAtual.coleta ?? 0,
+			classificacao: progressoParcial.classificacao ?? progressoAtual.classificacao ?? 0,
+			embeddings: progressoParcial.embeddings ?? progressoAtual.embeddings ?? 0,
+			indexacao: progressoParcial.indexacao ?? progressoAtual.indexacao ?? 0,
+			geral: progressoParcial.geral ?? Math.round(((progressoParcial.coleta ?? progressoAtual.coleta ?? 0) + (progressoParcial.classificacao ?? progressoAtual.classificacao ?? 0) + (progressoParcial.embeddings ?? progressoAtual.embeddings ?? 0) + (progressoParcial.indexacao ?? progressoAtual.indexacao ?? 0)) / 4),
+		};
+		const atualizado = await ModeloExecucaoScraping.findByIdAndUpdate(execucaoId, { $set: { progresso } }, { returnDocument: "after" }).lean().exec();
+		if (atualizado) this.emitir("execucao", atualizado);
+	}
+
 	async concluirExecucao(execucaoId: string, metricas: MetricasScraping = {}): Promise<void> {
 		const finalizadoEm = new Date();
-		const execucao = await ModeloExecucaoScraping.findByIdAndUpdate(execucaoId, { $set: { ...metricas, status: "concluido", finalizadoEm }, $setOnInsert: { iniciadoEm: finalizadoEm } }, { returnDocument: "after" }).lean().exec();
+		const execucao = await ModeloExecucaoScraping.findByIdAndUpdate(execucaoId, { $set: { ...metricas, status: "concluido", finalizadoEm, progresso: { coleta: 100, classificacao: 100, embeddings: 100, indexacao: 100, geral: 100 } }, $setOnInsert: { iniciadoEm: finalizadoEm } }, { returnDocument: "after" }).lean().exec();
 		if (!execucao) return;
 		await ModeloExecucaoScraping.findByIdAndUpdate(execucaoId, { $set: { duracaoMs: finalizadoEm.getTime() - new Date(execucao.iniciadoEm).getTime() } }).exec();
 		await this.registrarLog(execucaoId, execucao.fonte, "sucesso", "Scraping concluído");

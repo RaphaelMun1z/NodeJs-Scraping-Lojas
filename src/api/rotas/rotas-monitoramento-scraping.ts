@@ -6,6 +6,7 @@ export function criarRotasMonitoramentoScraping(controlador: ControladorMonitora
 	const roteador = Router();
 	roteador.use(autenticacao.middlewareAdministrador());
 	roteador.get("/status", controlador.status);
+	roteador.post("/executar", autenticacao.middlewareCsrf(), controlador.iniciarAgora);
 	roteador.get("/execucoes", controlador.listarExecucoes);
 	roteador.get("/execucoes/:id", controlador.buscarExecucao);
 	roteador.get("/execucoes/:id/logs", controlador.listarLogs);

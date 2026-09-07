@@ -13,6 +13,7 @@ export interface AtributosProduto {
 	formas: Set<string>;
 	resolucoes: Set<string>;
 	identificadores: Set<string>;
+	capacidades: Set<string>;
 }
 
 const VARIANTES = new Set(["pro", "max", "ultra", "plus", "fe", "se", "lite", "mini", "slim", "digital", "leitor", "oled"]);
@@ -36,6 +37,7 @@ export function extrairAtributosProduto(titulo: string): AtributosProduto {
 	const formas = new Set(tokens.filter((token) => FORMAS.has(token)));
 	const resolucoes = new Set(tokens.filter((token) => RESOLUCOES.has(token)));
 	const identificadores = new Set<string>();
+	const capacidades = new Set<string>();
 	// Captura códigos de modelo e part number, que diferenciam variantes visualmente parecidas.
 	for (const token of tokens) {
 		if (token.length >= 5 && /[a-z]/.test(token) && /\d/.test(token) && !["ddr4", "ddr5", "fullhd", "smartphone"].includes(token)) identificadores.add(token);
@@ -53,6 +55,9 @@ export function extrairAtributosProduto(titulo: string): AtributosProduto {
 		if (/^(19|20)\d{2}$/.test(token)) ano.add(token);
 		if (/^\d+(?:\.\d+)?$/.test(token)) numeros.add(token);
 	}
+	for (const capacidade of titulo.toLowerCase().match(/\d+(?:[.,]\d+)?\s*(?:mah|wh|w)\b/g) ?? []) {
+		capacidades.add(capacidade.replace(/\s+/g, "").replace(",", "."));
+	}
 	// Aspas são removidas na normalização, por isso a medida é lida no título original.
 	for (const medida of titulo.match(/(\d+(?:[.,]\d+)?)\s*(?:["”]|pol\b|polegadas\b)/gi) ?? []) polegadas.add(medida.replace(",", ".").match(/\d+(?:\.\d+)?/)?.[0] ?? medida);
 	const modelos = new Set(tokens.filter((token) => /[a-z]/.test(token) && /\d/.test(token)));
@@ -61,12 +66,18 @@ export function extrairAtributosProduto(titulo: string): AtributosProduto {
 		const atual = tokens[indice];
 		if (anterior && atual && /[a-z]/.test(anterior) && /\d/.test(atual)) modelos.add(`${anterior}${atual}`);
 	}
-	return { numeros, armazenamento, ram, polegadas, ano, variantes, modelos, marcas, tipos, formas, resolucoes, identificadores };
+	for (const modelo of [...modelos]) {
+		if (/\d+(?:\.\d+)?(?:gb|tb|mb|mah|wh|w)/.test(modelo) || armazenamento.has(modelo) || ram.has(modelo)) modelos.delete(modelo);
+	}
+	for (const identificador of [...identificadores]) {
+		if (/\d+(?:\.\d+)?(?:gb|tb|mb|mah|wh|w)/.test(identificador)) identificadores.delete(identificador);
+	}
+	return { numeros, armazenamento, ram, polegadas, ano, variantes, modelos, marcas, tipos, formas, resolucoes, identificadores, capacidades };
 }
 
 export function possuiConflitoDeAtributos(esquerda: AtributosProduto, direita: AtributosProduto): boolean {
 	// Rejeita candidatos com capacidades, modelos ou variantes incompatíveis.
-	for (const [atributosEsquerda, atributosDireita] of [[esquerda.armazenamento, direita.armazenamento], [esquerda.ram, direita.ram], [esquerda.polegadas, direita.polegadas], [esquerda.ano, direita.ano], [esquerda.variantes, direita.variantes], [esquerda.modelos, direita.modelos], [esquerda.marcas, direita.marcas], [esquerda.tipos, direita.tipos], [esquerda.formas, direita.formas], [esquerda.resolucoes, direita.resolucoes], [esquerda.identificadores, direita.identificadores]] as const) {
+	for (const [atributosEsquerda, atributosDireita] of [[esquerda.armazenamento, direita.armazenamento], [esquerda.ram, direita.ram], [esquerda.polegadas, direita.polegadas], [esquerda.ano, direita.ano], [esquerda.variantes, direita.variantes], [esquerda.modelos, direita.modelos], [esquerda.marcas, direita.marcas], [esquerda.tipos, direita.tipos], [esquerda.formas, direita.formas], [esquerda.resolucoes, direita.resolucoes], [esquerda.identificadores, direita.identificadores], [esquerda.capacidades, direita.capacidades]] as const) {
 		if (atributosEsquerda.size && atributosDireita.size && ![...atributosEsquerda].some((valor) => atributosDireita.has(valor))) return true;
 	}
 	if (esquerda.variantes.size !== direita.variantes.size || [...esquerda.variantes].some((valor) => !direita.variantes.has(valor))) return true;

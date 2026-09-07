@@ -13,6 +13,7 @@ export class ProvedorClassificacaoOllama implements ProvedorClassificacaoProduto
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ model: this.modelo, prompt, stream: false, format: "json", options: { temperature: 0 } }),
+			signal: AbortSignal.timeout(Number(process.env.REQUEST_TIMEOUT_MS ?? 30_000)),
 		});
 		if (!resposta.ok) throw new Error(`Erro no classificador de produtos: HTTP ${resposta.status}`);
 		const dados = (await resposta.json()) as RespostaOllama;

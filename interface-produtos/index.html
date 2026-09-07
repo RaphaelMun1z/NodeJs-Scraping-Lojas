@@ -71,7 +71,7 @@
         <section class="products-area" aria-live="polite">
           <div class="toolbar">
             <div class="toolbar-summary"><span id="result-status" class="result-status">Carregando produtos...</span><div id="active-filters" class="active-filters"></div></div>
-            <label class="sort-control"><span>Ordenar por</span><select id="sort-filter"><option value="recent">Mais recentes</option><option value="price-asc">Menor preço</option><option value="price-desc">Maior preço</option></select></label>
+            <label class="sort-control"><span>Ordenar por</span><select id="sort-filter"><option value="desconto" selected>Maior desconto</option><option value="recent">Mais recentes</option><option value="price-asc">Menor preço</option><option value="price-desc">Maior preço</option></select></label>
           </div>
           <div id="loading" class="empty-state"><div class="skeleton loading-skeleton"></div></div>
           <div id="products-grid" class="products-grid"></div>
@@ -89,6 +89,7 @@
           </div>
         </div>
         <div id="new-products-grid" class="new-products-grid"></div>
+        <div class="new-products-end" aria-hidden="true"><span>Fim das novidades</span></div>
       </section>
       <section id="product-detail" class="product-detail is-hidden"></section>
       <div id="admin-shell" class="admin-shell is-hidden">

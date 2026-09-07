@@ -13,6 +13,7 @@ const esquemaConsulta = z.object({
 	precoMin: z.coerce.number().nonnegative().optional(),
 	precoMax: z.coerce.number().nonnegative().optional(),
 	ativo: z.enum(["true", "false"]).transform((valor) => valor === "true").optional(),
+	ordenacao: z.enum(["desconto", "recente", "preco-asc", "preco-desc"]).default("desconto"),
 });
 
 export class ControladorItem {

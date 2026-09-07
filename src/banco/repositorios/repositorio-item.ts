@@ -14,6 +14,7 @@ export interface ConsultaItens {
 	precoMin?: number;
 	precoMax?: number;
 	ativo?: boolean;
+	ordenacao?: "desconto" | "recente" | "preco-asc" | "preco-desc";
 }
 
 export interface ResultadoConsultaItens {
@@ -78,6 +79,7 @@ export class RepositorioItem {
 		);
 
 		const agora = new Date();
+		const chavesDosItens = itensUnicos.map((item) => gerarChaveItem(item));
 		const operacoes = itensUnicos.map((item) => ({
 			updateOne: {
 				filter: { chave: gerarChaveItem(item) },
@@ -94,6 +96,7 @@ export class RepositorioItem {
 					},
 					$setOnInsert: {
 						chave: gerarChaveItem(item),
+						grupoProdutoId: `grupo-${gerarChaveItem(item)}`,
 						primeiraColetaEm: agora,
 						novaNaUltimaColeta: true,
 					},
@@ -103,6 +106,7 @@ export class RepositorioItem {
 		}));
 
 		await ModeloItemBanco.bulkWrite(operacoes, { ordered: false });
+		await this.garantirGruposIndividuais(chavesDosItens);
 
 		const chavesComPreco = itensUnicos.filter((item) => item.preco !== undefined).map((item) => gerarChaveItem(item));
 		const historicosRecentes = await ModeloHistoricoPreco.find({ chaveProduto: { $in: chavesComPreco } }).sort({ coletadoEm: -1 }).select("chaveProduto preco precoAntigo").lean().exec();
@@ -114,10 +118,25 @@ export class RepositorioItem {
 				const anterior = ultimoHistorico.get(gerarChaveItem(item));
 				return !anterior || anterior.preco !== item.preco || anterior.precoAntigo !== item.precoAntigo;
 			})
-			.map((item) => ({ chaveProduto: gerarChaveItem(item), fonte: item.fonte, preco: item.preco!, precoAntigo: item.precoAntigo, coletadoEm: agora }));
+			.map((item) => ({ chaveProduto: gerarChaveItem(item), grupoProdutoId: `grupo-${gerarChaveItem(item)}`, fonte: item.fonte, preco: item.preco!, precoAntigo: item.precoAntigo, coletadoEm: agora }));
 		if (historicos.length > 0) {
 			await ModeloHistoricoPreco.insertMany(historicos, { ordered: false });
 		}
+	}
+
+	async garantirGruposIndividuais(chaves?: string[]): Promise<number> {
+		const filtroItens = chaves ? { chave: { $in: chaves }, $or: [{ grupoProdutoId: { $exists: false } }, { grupoProdutoId: null }, { grupoProdutoId: "" }] } : { $or: [{ grupoProdutoId: { $exists: false } }, { grupoProdutoId: null }, { grupoProdutoId: "" }] };
+		const itens = await ModeloItemBanco.find(filtroItens).select("chave").lean().exec();
+		const grupos = new Map(itens.map((item) => [item.chave, `grupo-${item.chave}`]));
+		await Promise.all([...grupos].map(async ([chave, grupoProdutoId]) => {
+			await ModeloItemBanco.updateOne({ chave }, { $set: { grupoProdutoId } }).exec();
+			await ModeloHistoricoPreco.updateMany({ chaveProduto: chave, $or: [{ grupoProdutoId: { $exists: false } }, { grupoProdutoId: null }, { grupoProdutoId: "" }] }, { $set: { grupoProdutoId } }).exec();
+		}));
+		if (!chaves) {
+			const itensComGrupo = await ModeloItemBanco.find({ grupoProdutoId: { $exists: true, $nin: [null, ""] } }).select("chave grupoProdutoId").lean().exec();
+			await ModeloHistoricoPreco.bulkWrite(itensComGrupo.map((item) => ({ updateMany: { filter: { chaveProduto: item.chave, $or: [{ grupoProdutoId: { $exists: false } }, { grupoProdutoId: null }, { grupoProdutoId: "" }] }, update: { $set: { grupoProdutoId: item.grupoProdutoId } } } })), { ordered: false });
+		}
+		return grupos.size;
 	}
 
 	async removerHistoricoAntigo(dias: number): Promise<number> {
@@ -125,6 +144,14 @@ export class RepositorioItem {
 		const limite = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
 		const resultado = await ModeloHistoricoPreco.deleteMany({ coletadoEm: { $lt: limite } }).exec();
 		return resultado.deletedCount ?? 0;
+	}
+
+	async limparProdutos(): Promise<{ itens: number; historico: number }> {
+		const [itens, historico] = await Promise.all([
+			ModeloItemBanco.deleteMany({}).exec(),
+			ModeloHistoricoPreco.deleteMany({}).exec(),
+		]);
+		return { itens: itens.deletedCount ?? 0, historico: historico.deletedCount ?? 0 };
 	}
 
 	async iniciarRodadaColeta(): Promise<void> {
@@ -188,8 +215,9 @@ export class RepositorioItem {
 		categoria,
 		fonte,
 		precoMin,
-		precoMax,
-		ativo,
+	precoMax,
+	ativo,
+	ordenacao = "desconto",
 	}: ConsultaItens): Promise<ResultadoConsultaItens> {
 		const filtro: Record<string, unknown> = {};
 
@@ -216,15 +244,25 @@ export class RepositorioItem {
 		}
 
 		const deslocamento = (pagina - 1) * limite;
-		const campos = "fonte titulo preco precoAntigo ativo imagemUrl url grupoProdutoId categoriaOriginal categoriaNormalizada categoria subcategoria tipoProduto confiancaCategoria classificacaoVersao primeiraColetaEm ultimaColetaEm";
+		const ordenacaoMongo: Record<string, 1 | -1> = ordenacao === "preco-asc"
+			? { precoHistorico: -1, ativo: -1, preco: 1, ultimaColetaEm: -1 }
+			: ordenacao === "preco-desc"
+				? { precoHistorico: -1, ativo: -1, preco: -1, ultimaColetaEm: -1 }
+				: ordenacao === "recente"
+					? { precoHistorico: -1, ativo: -1, ultimaColetaEm: -1 }
+					: { precoHistorico: -1, ativo: -1, descontoPercentual: -1, ultimaColetaEm: -1 };
 		const [itens, total] = await Promise.all([
-			ModeloItemBanco.find(filtro)
-				.select(campos)
-				.sort({ ativo: -1, ultimaColetaEm: -1 })
-				.skip(deslocamento)
-				.limit(limite)
-				.lean()
-				.exec(),
+			ModeloItemBanco.aggregate([
+				{ $match: filtro },
+				{ $lookup: { from: "historicoprecos", localField: "grupoProdutoId", foreignField: "grupoProdutoId", as: "historicoGrupo" } },
+				{ $set: { menorPrecoHistorico: { $min: "$historicoGrupo.preco" }, totalRegistrosHistorico: { $size: "$historicoGrupo" } } },
+				{ $set: { precoHistorico: { $and: [{ $ne: ["$grupoProdutoId", null] }, { $ne: ["$grupoProdutoId", ""] }, { $gt: ["$totalRegistrosHistorico", 1] }, { $eq: ["$preco", "$menorPrecoHistorico"] }] } } },
+				{ $set: { descontoPercentual: { $cond: [{ $and: [{ $gt: ["$precoAntigo", 0] }, { $lt: ["$preco", "$precoAntigo"] }] }, { $multiply: [{ $subtract: [1, { $divide: ["$preco", "$precoAntigo"] }] }, 100] }, 0] } } },
+				{ $sort: ordenacaoMongo },
+				{ $skip: deslocamento },
+				{ $limit: limite },
+				{ $project: { _id: 1, fonte: 1, titulo: 1, preco: 1, precoAntigo: 1, ativo: 1, imagemUrl: 1, url: 1, grupoProdutoId: 1, categoriaOriginal: 1, categoriaNormalizada: 1, categoria: 1, subcategoria: 1, tipoProduto: 1, confiancaCategoria: 1, classificacaoVersao: 1, primeiraColetaEm: 1, ultimaColetaEm: 1, menorPrecoHistorico: 1, precoHistorico: 1, descontoPercentual: 1 } },
+			]).exec(),
 			ModeloItemBanco.countDocuments(filtro).exec(),
 		]);
 
@@ -254,6 +292,8 @@ export class RepositorioItem {
 			.sort({ coletadoEm: 1 })
 			.lean()
 			.exec();
+		const menorPrecoHistorico = historico.reduce<number | undefined>((menor, registro) => menor === undefined || registro.preco < menor ? registro.preco : menor, undefined);
+		Object.assign(produto, { menorPrecoHistorico, precoHistorico: Boolean(produto.grupoProdutoId) && historico.length > 1 && produto.preco === menorPrecoHistorico });
 		const ofertas = produto.grupoProdutoId
 			? await ModeloItemBanco.find({ grupoProdutoId: produto.grupoProdutoId })
 				.select("fonte titulo preco precoAntigo ativo imagemUrl url")

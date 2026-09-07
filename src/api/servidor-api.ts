@@ -19,6 +19,8 @@ import type { ServicoBuscaManual } from "../servicos/servico-busca-manual.js";
 import { ControladorBuscaManual } from "./controladores/controlador-busca-manual.js";
 import { criarRotasBuscaManual } from "./rotas/rotas-busca-manual.js";
 import type { RepositorioIndiceProdutos } from "../elasticsearch/repositorio-indice-produtos.js";
+import type { ServicoLimpezaProdutos } from "../servicos/servico-limpeza-produtos.js";
+import type { ServicoColeta } from "../servicos/servico-coleta.js";
 
 export class ServidorApi {
 	private readonly aplicacao: Express;
@@ -33,6 +35,8 @@ export class ServidorApi {
 		private readonly obterProximaExecucao: () => Date | null,
 		private readonly servicoBuscaManual: ServicoBuscaManual,
 		private readonly repositorioIndice?: RepositorioIndiceProdutos,
+		private readonly servicoColeta?: ServicoColeta,
+		private readonly limpezaProdutos?: ServicoLimpezaProdutos,
 	) {
 		this.aplicacao = express();
 		this.configurar();
@@ -57,8 +61,10 @@ export class ServidorApi {
 	private configurar(): void {
 		const controladorItem = new ControladorItem(this.repositorioItem, this.repositorioIndice);
 		const controladorAutenticacao = new ControladorAutenticacao(this.autenticacao);
-		const controladorConfiguracao = new ControladorConfiguracaoScraping(this.configuracaoScraping);
-		const controladorMonitoramento = new ControladorMonitoramentoScraping(this.eventosScraping, this.obterProximaExecucao);
+		if (!this.limpezaProdutos) throw new Error("Serviço de limpeza de produtos não configurado");
+		const controladorConfiguracao = new ControladorConfiguracaoScraping(this.configuracaoScraping, this.limpezaProdutos);
+		if (!this.servicoColeta) throw new Error("Serviço de coleta não configurado");
+		const controladorMonitoramento = new ControladorMonitoramentoScraping(this.eventosScraping, this.obterProximaExecucao, this.servicoColeta);
 		const controladorBuscaManual = new ControladorBuscaManual(this.servicoBuscaManual);
 
 		this.aplicacao.disable("x-powered-by");

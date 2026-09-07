@@ -81,6 +81,18 @@ export class RepositorioIndiceProdutos {
 		}
 	}
 
+	async limparProdutos(): Promise<number> {
+		const existe = await this.client.indices.exists({ index: this.indice });
+		if (!existe) return 0;
+		const resultado = await this.client.deleteByQuery({
+			index: this.indice,
+			query: { match_all: {} },
+			conflicts: "proceed",
+			refresh: true,
+		});
+		return resultado.deleted ?? 0;
+	}
+
 	async ativarPresentesDaFonte(fonte: string, chavesAtivas: string[]): Promise<void> {
 		if (chavesAtivas.length === 0) return;
 		await this.client.updateByQuery({
@@ -108,16 +120,19 @@ export class RepositorioIndiceProdutos {
 		});
 	}
 
-	async buscarCandidatos(texto: string, embedding: number[], limite: number, chaveIgnorada?: string): Promise<ProdutoCandidato[]> {
-		const filtroTexto = [{ term: { ativo: true } }, ...(chaveIgnorada ? [{ bool: { must_not: [{ term: { id: chaveIgnorada } }] } }] : [])];
-		const filtroVetor = chaveIgnorada
-			? { bool: { filter: [{ term: { ativo: true } }], must_not: [{ term: { id: chaveIgnorada } }] } }
-			: { term: { ativo: true } };
+	async buscarCandidatos(texto: string, embedding: number[], limite: number, chaveIgnorada?: string, fonteIgnorada?: string): Promise<ProdutoCandidato[]> {
+		const exclusoes = [
+			...(chaveIgnorada ? [{ term: { id: chaveIgnorada } }] : []),
+			...(fonteIgnorada ? [{ term: { fonte: fonteIgnorada } }] : []),
+		];
+		const filtroTexto = [{ term: { ativo: true } }];
+		const filtroVetor = { bool: { filter: [{ term: { ativo: true } }], ...(exclusoes.length ? { must_not: exclusoes } : {}) } };
+		const consultaTexto = { bool: { must: [{ multi_match: { query: texto, fields: ["titulo^2", "tituloNormalizado"], fuzziness: "AUTO" } }], filter: filtroTexto, ...(exclusoes.length ? { must_not: exclusoes } : {}) } };
 		const [resultadoTexto, resultadoVetor] = await Promise.all([
 			this.client.search<ProdutoIndexado>({
 				index: this.indice,
 				size: limite,
-				query: { bool: { must: [{ multi_match: { query: texto, fields: ["titulo^2", "tituloNormalizado"], fuzziness: "AUTO" } }], filter: filtroTexto } },
+				query: consultaTexto,
 			}),
 			this.client.search<ProdutoIndexado>({
 				index: this.indice,

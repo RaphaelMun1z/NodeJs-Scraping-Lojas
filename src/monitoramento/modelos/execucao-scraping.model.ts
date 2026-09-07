@@ -12,6 +12,13 @@ const esquemaExecucao = new Schema(
 		produtosNovos: { type: Number, default: 0 },
 		produtosAtualizados: { type: Number, default: 0 },
 		produtosInativados: { type: Number, default: 0 },
+		progresso: {
+			coleta: { type: Number, default: 0 },
+			classificacao: { type: Number, default: 0 },
+			embeddings: { type: Number, default: 0 },
+			indexacao: { type: Number, default: 0 },
+			geral: { type: Number, default: 0 },
+		},
 		ultimaMensagem: String,
 		erro: String,
 	},

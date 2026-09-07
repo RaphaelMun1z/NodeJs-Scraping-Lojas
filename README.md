@@ -54,14 +54,6 @@ npm run build
 npm start
 ```
 
-Para gerar um CSV sem iniciar a API:
-
-```bash
-npm run scraping:test
-```
-
-O arquivo pode ser definido com `CSV_SAIDA`.
-
 ## API
 
 | Método | Rota | Uso |

@@ -4,7 +4,7 @@ const esquemaItemBanco = new Schema(
 	{
 		fonte: { type: String, required: true, index: true },
 		chave: { type: String, required: true, unique: true, index: true },
-		grupoProdutoId: { type: String, index: true },
+		grupoProdutoId: { type: String, required: true, index: true },
 		categoriaOriginal: { type: String, index: true },
 		categoriaNormalizada: { type: String, index: true },
 		tipoProduto: { type: String, index: true },

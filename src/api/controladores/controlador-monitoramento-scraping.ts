@@ -2,9 +2,15 @@ import type { Request, Response } from "express";
 import { isValidObjectId } from "mongoose";
 import { z } from "zod";
 import type { NivelLogScraping, ServicoEventosScraping } from "../../monitoramento/servico-eventos-scraping.js";
+import type { ServicoColeta } from "../../servicos/servico-coleta.js";
 
 export class ControladorMonitoramentoScraping {
-	constructor(private readonly servicoEventos: ServicoEventosScraping, private readonly obterProximaExecucao: () => Date | null) {}
+	constructor(private readonly servicoEventos: ServicoEventosScraping, private readonly obterProximaExecucao: () => Date | null, private readonly servicoColeta: ServicoColeta) {}
+
+	iniciarAgora = async (_requisicao: Request, resposta: Response): Promise<void> => {
+		void this.servicoColeta.executar().catch(() => undefined);
+		resposta.status(202).json({ mensagem: "Busca iniciada. Acompanhe o andamento nesta página." });
+	};
 
 	status = async (_requisicao: Request, resposta: Response): Promise<void> => {
 		resposta.json({ dados: await this.servicoEventos.obterStatus(), resumo: { ...await this.servicoEventos.obterResumo(), proximaBusca: this.obterProximaExecucao() } });

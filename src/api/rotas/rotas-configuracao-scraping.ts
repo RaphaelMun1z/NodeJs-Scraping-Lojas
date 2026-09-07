@@ -7,5 +7,6 @@ export function criarRotasConfiguracaoScraping(controlador: ControladorConfigura
 	roteador.use(autenticacao.middlewareAdministrador());
 	roteador.get("/", controlador.obter);
 	roteador.put("/", autenticacao.middlewareCsrf(), controlador.atualizar);
+	roteador.post("/limpar-produtos", autenticacao.middlewareCsrf(), controlador.limparProdutos);
 	return roteador;
 }

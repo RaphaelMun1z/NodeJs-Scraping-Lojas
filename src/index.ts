@@ -20,6 +20,7 @@ import { ServicoConfiguracaoScraping } from "./configuracoes/servico-configuraca
 import { ServicoEventosScraping } from "./monitoramento/servico-eventos-scraping.js";
 import { ServicoBuscaManual } from "./servicos/servico-busca-manual.js";
 import { ProvedorClassificacaoOllama } from "./classificacao/provedor-classificacao-ollama.js";
+import { ServicoLimpezaProdutos } from "./servicos/servico-limpeza-produtos.js";
 
 async function iniciarAplicacao(): Promise<void> {
 	// Centraliza a composição das dependências compartilhadas pela aplicação.
@@ -32,6 +33,7 @@ async function iniciarAplicacao(): Promise<void> {
 	);
 
 	const repositorioItem = new RepositorioItem();
+	await repositorioItem.garantirGruposIndividuais();
 	await repositorioItem.removerHistoricoAntigo(configuracaoAplicacao.coleta.historicoRetencaoDias);
 	const autenticacao = new ServicoAutenticacao();
 	const configuracaoScraping = new ServicoConfiguracaoScraping();
@@ -92,7 +94,8 @@ async function iniciarAplicacao(): Promise<void> {
 		configuracaoAplicacao.agendamento.fusoHorario,
 	);
 
-	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco, autenticacao, configuracaoScraping, eventosScraping, () => agendador.obterProximaExecucao(), servicoBuscaManual, repositorioIndiceProdutos);
+	const limpezaProdutos = new ServicoLimpezaProdutos(repositorioItem, repositorioIndiceProdutos);
+	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco, autenticacao, configuracaoScraping, eventosScraping, () => agendador.obterProximaExecucao(), servicoBuscaManual, repositorioIndiceProdutos, servicoColeta, limpezaProdutos);
 
 	servidorApi.iniciar(configuracaoAplicacao.api.porta);
 	agendador.iniciar();
