@@ -12,12 +12,14 @@ export class ServicoBuscaManual {
 	constructor(
 		private readonly fontes: FonteProdutos[],
 		private readonly obterFontesAtivas?: () => Promise<string[]>,
+		private readonly obterFontesConfiguradas?: () => Promise<FonteProdutos[]>,
 	) {}
 
 	async executar(fontesSelecionadas: string[] = []): Promise<ResultadoBuscaManual> {
 		const iniciadaEm = new Date();
+		const fontesDisponiveis = this.obterFontesConfiguradas ? await this.obterFontesConfiguradas() : this.fontes;
 		const fontesAtivas = this.obterFontesAtivas ? new Set(await this.obterFontesAtivas()) : undefined;
-		const fontes = this.fontes.filter((fonte) =>
+		const fontes = fontesDisponiveis.filter((fonte) =>
 			(!fontesAtivas || fontesAtivas.has(fonte.nome)) && (fontesSelecionadas.length === 0 || fontesSelecionadas.includes(fonte.nome)),
 		);
 		const itens: ItemColetado[] = [];

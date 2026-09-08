@@ -13,24 +13,28 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 		private readonly clienteHttp: ClienteHttp,
 		private readonly analisador: AnalisadorSite,
 		private readonly seletores: SeletoresSite,
+		private readonly obterConfiguracaoAtual?: () => Promise<{ url: string; seletores: SeletoresSite } | undefined>,
 	) {
 		super();
 	}
 
 	async coletar(): Promise<ItemColetado[]> {
-		const html = await this.clienteHttp.obterHtml(this.url, {
-			seletorItens: this.seletores.paginaVirtualizada
-				? this.seletores.item
+		const configuracaoAtual = await this.obterConfiguracaoAtual?.();
+		const url = configuracaoAtual?.url ?? this.url;
+		const seletores = configuracaoAtual?.seletores ?? this.seletores;
+		const html = await this.clienteHttp.obterHtml(url, {
+			seletorItens: seletores.paginaVirtualizada
+				? seletores.item
 				: undefined,
-			seletorAguardar: this.seletores.item,
-			seletorCarregarMais: this.seletores.carregarMais,
+			seletorAguardar: seletores.item,
+			seletorCarregarMais: seletores.carregarMais,
 		});
 
 		const possuiSinaisDeBloqueio =
 			/Just a moment|Performing security verification|cf-chl-|challenge-platform|challenge-running|Verify you are human/i.test(
 				html,
 			);
-		const quantidadeDeProdutos = load(html)(this.seletores.item).length;
+		const quantidadeDeProdutos = load(html)(seletores.item).length;
 
 		// Scripts da protecao podem permanecer no HTML mesmo com os produtos
 		// carregados. So interrompemos quando nao ha nenhum card disponivel.
@@ -38,6 +42,6 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 			throw new Error("A fonte retornou uma página de verificação/bloqueio");
 		}
 
-		return this.analisador.analisar(html, this.url, this.nome, this.seletores);
+		return this.analisador.analisar(html, url, this.nome, seletores);
 	}
 }

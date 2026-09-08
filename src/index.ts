@@ -62,19 +62,24 @@ async function iniciarAplicacao(): Promise<void> {
 			configuracaoAplicacao.coleta.classificacao.habilitada ? new ProvedorClassificacaoOllama(configuracaoAplicacao.coleta.classificacao.url, configuracaoAplicacao.coleta.classificacao.modelo) : undefined,
 		);
 	}
-	const fontes = configuracaoPersistida.fontes.map((configuracaoFonte) => {
+	const criarFontesConfiguradas = (fontesConfiguradas: typeof configuracaoPersistida.fontes) => fontesConfiguradas.filter((configuracaoFonte) => Boolean(configuracaoFonte.url)).map((configuracaoFonte) => {
 		const { fonte: nome, url } = configuracaoFonte;
-
 		if (!url) throw new Error(`URL não configurada para a fonte ${nome}`);
-
 		return new ColetorFonteSite(
 			nome,
 			url,
 			clienteHttp,
 			new AnalisadorSite(),
-			seletoresPorFonte[nome],
+			configuracaoFonte.seletores ?? seletoresPorFonte[nome],
+			async () => {
+				const atualizada = await configuracaoScraping.obterOuCriarPadrao();
+				const fonteAtual = atualizada.fontes.find((fonte) => fonte.fonte === nome);
+				return fonteAtual ? { url: fonteAtual.url, seletores: fonteAtual.seletores } : undefined;
+			},
 		);
 	});
+	const fontes = criarFontesConfiguradas(configuracaoPersistida.fontes);
+	const obterFontesConfiguradas = async () => criarFontesConfiguradas((await configuracaoScraping.obterOuCriarPadrao()).fontes);
 	const servicoColeta = new ServicoColeta(
 		fontes,
 		repositorioItem,
@@ -82,10 +87,12 @@ async function iniciarAplicacao(): Promise<void> {
 		servicoMatchingCatalogo,
 		eventosScraping,
 		() => configuracaoScraping.obterFontesAtivas().then((fontes) => fontes.map((fonte) => fonte.fonte)),
+		obterFontesConfiguradas,
 	);
 	const servicoBuscaManual = new ServicoBuscaManual(
 		fontes,
 		() => configuracaoScraping.obterFontesAtivas().then((fontesAtivas) => fontesAtivas.map((fonte) => fonte.fonte)),
+		obterFontesConfiguradas,
 	);
 
 	const agendador = new AgendadorColeta(
@@ -116,6 +123,7 @@ async function iniciarAplicacao(): Promise<void> {
 		logger.info("Encerrando aplicação");
 		agendador.parar();
 		await servidorApi.parar();
+		await clienteHttp.fechar();
 		await clienteElasticsearch?.close();
 		await conexaoBanco.desconectar();
 	};

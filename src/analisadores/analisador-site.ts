@@ -32,7 +32,7 @@ export class AnalisadorSite {
 						.join(" ")
 				: "";
 			const href = seletores.url
-				? itemAtual.find(seletores.url).first().attr("href")
+				? (itemAtual.is(seletores.url) ? itemAtual.attr("href") : itemAtual.find(seletores.url).first().attr("href"))
 				: itemAtual.attr("href");
 			const imagemUrl = itemAtual
 				.find(seletores.imagem)

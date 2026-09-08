@@ -31,10 +31,6 @@ services:
             NODE_ENV: production
             PORTA_API: 3000
             MONGODB_URI: mongodb://mongodb:27017/scraping_lojas
-            SCRAPER_URL: ${SCRAPER_URL:-https://example.com}
-            AMAZON_URL: ${AMAZON_URL:-https://www.amazon.com.br}
-            TERABYTESHOP_URL: ${TERABYTESHOP_URL:-https://www.terabyteshop.com.br/promocoes}
-            FONTES_ATIVAS: ${FONTES_ATIVAS:-kabum,amazon,terabyteshop}
             SALVAR_COLETA: ${SALVAR_COLETA:-false}
             REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
             USER_AGENT: ${USER_AGENT:-Mozilla/5.0 (compatible; ScrapingLojas/2.0)}
@@ -50,6 +46,7 @@ services:
             CLASSIFICACAO_HABILITADA: ${CLASSIFICACAO_HABILITADA:-false}
             CLASSIFICADOR_URL: ${CLASSIFICADOR_URL:-http://ollama:11434/api/generate}
             CLASSIFICADOR_MODELO: ${CLASSIFICADOR_MODELO:-llama3.2:3b}
+            ANALISADOR_SELETORES_MODELO: ${ANALISADOR_SELETORES_MODELO:-gemma3:1b}
             ELASTICSEARCH_HABILITADO: ${ELASTICSEARCH_HABILITADO:-false}
             ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
             ELASTICSEARCH_INDICE: ${ELASTICSEARCH_INDICE:-produtos}

@@ -43,9 +43,6 @@
             <h2>Fonte</h2>
             <div class="radio-list" id="source-filter">
               <label class="radio-row"><input type="radio" name="source" value="" checked /> Todas as fontes</label>
-              <label class="radio-row"><input type="radio" name="source" value="kabum" /><img src="/kabum-logo.png" alt="" aria-hidden="true" /> KaBuM!</label>
-              <label class="radio-row"><input type="radio" name="source" value="amazon" /><img src="/amazon-logo.png" alt="" aria-hidden="true" /> Amazon</label>
-              <label class="radio-row"><input type="radio" name="source" value="terabyteshop" /><img src="/terabyte-logo.png" alt="" aria-hidden="true" /> Terabyte Shop</label>
             </div>
           </section>
 
@@ -97,9 +94,10 @@
           <div class="admin-sidebar-heading"><strong>Administração</strong></div>
           <nav class="admin-sidebar-nav">
             <a href="#admin" data-admin-nav="admin"><span aria-hidden="true">⚙</span> Configurações</a>
-            <a href="#admin/scraping" data-admin-nav="admin/scraping"><span aria-hidden="true">▤</span> Monitoramento</a>
+            <a href="#admin/scraping" data-admin-nav="admin/scraping" data-requer-fonte><span aria-hidden="true">▤</span> Monitoramento</a>
             <a href="#admin/autenticacao" data-admin-nav="admin/autenticacao"><span aria-hidden="true">♙</span> Autenticação</a>
-            <a href="#admin/busca" data-admin-nav="admin/busca"><span aria-hidden="true">⌕</span> Busca manual</a>
+            <a href="#admin/busca" data-admin-nav="admin/busca" data-requer-fonte><span aria-hidden="true">⌕</span> Busca manual</a>
+            <a href="#admin/sistema" data-admin-nav="admin/sistema" data-requer-fonte><span aria-hidden="true"><i data-lucide="server-cog"></i></span> Sistema</a>
           </nav>
           <a class="admin-sidebar-back" href="#"><span aria-hidden="true">←</span> Voltar aos produtos</a>
           <button id="admin-sidebar-logout" class="admin-sidebar-logout" type="button"><span aria-hidden="true">↪</span> Sair</button>

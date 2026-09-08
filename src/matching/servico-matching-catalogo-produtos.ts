@@ -13,6 +13,7 @@ export interface ProgressoMatching {
 	embeddings?: number;
 	indexacao?: number;
 }
+export type EventoEtapaMatching = (etapa: "classificacao" | "embeddings" | "indexacao", estado: "inicio" | "fim") => Promise<void> | void;
 
 export class ServicoMatchingCatalogoProdutos {
 	private readonly cacheEmbeddings = new Map<string, number[]>();
@@ -27,13 +28,13 @@ export class ServicoMatchingCatalogoProdutos {
 		private readonly classificador?: ProvedorClassificacaoProduto,
 	) {}
 
-	async processarProdutosColetados(itens: ItemColetado[], atualizarProgresso?: (progresso: ProgressoMatching) => Promise<void> | void): Promise<void> {
-		const tarefa = this.filaIndexacao.then(() => this.processarProdutosColetadosInterno(itens, atualizarProgresso));
+	async processarProdutosColetados(itens: ItemColetado[], atualizarProgresso?: (progresso: ProgressoMatching) => Promise<void> | void, registrarEtapa?: EventoEtapaMatching): Promise<void> {
+		const tarefa = this.filaIndexacao.then(() => this.processarProdutosColetadosInterno(itens, atualizarProgresso, registrarEtapa));
 		this.filaIndexacao = tarefa.catch(() => undefined);
 		return tarefa;
 	}
 
-	private async processarProdutosColetadosInterno(itens: ItemColetado[], atualizarProgresso?: (progresso: ProgressoMatching) => Promise<void> | void): Promise<void> {
+	private async processarProdutosColetadosInterno(itens: ItemColetado[], atualizarProgresso?: (progresso: ProgressoMatching) => Promise<void> | void, registrarEtapa?: EventoEtapaMatching): Promise<void> {
 		const itensUnicos = Array.from(new Map(itens.map((item) => [gerarChaveItem(item), item])).values());
 		const chaves = itensUnicos.map((item) => gerarChaveItem(item));
 		const estados = await this.repositorioItem.consultarEstadosIndexacao(chaves);
@@ -42,8 +43,12 @@ export class ServicoMatchingCatalogoProdutos {
 			return !estado || estado.titulo !== item.titulo || !estado.grupoProdutoId || !estado.classificacaoProcessada || estado.classificacaoVersao !== VERSAO_CLASSIFICACAO_PRODUTO;
 		});
 		await atualizarProgresso?.({ classificacao: 0, embeddings: 0, indexacao: 0 });
-		const classificacoes = await this.classificarPendentes(pendentes, async (classificacao) => atualizarProgresso?.({ classificacao }));
-		const embeddings = await this.gerarEmbeddingsPendentes(pendentes);
+		await registrarEtapa?.("classificacao", "inicio");
+		let classificacoes: Map<string, ResultadoClassificacaoProduto>;
+		try { classificacoes = await this.classificarPendentes(pendentes, async (classificacao) => atualizarProgresso?.({ classificacao })); } finally { await registrarEtapa?.("classificacao", "fim"); }
+		await registrarEtapa?.("embeddings", "inicio");
+		let embeddings: Map<string, number[]>;
+		try { embeddings = await this.gerarEmbeddingsPendentes(pendentes); } finally { await registrarEtapa?.("embeddings", "fim"); }
 		await atualizarProgresso?.({ embeddings: 100 });
 		const documentos: ProdutoIndexado[] = [];
 
@@ -65,7 +70,8 @@ export class ServicoMatchingCatalogoProdutos {
 		}
 
 		await atualizarProgresso?.({ indexacao: 0 });
-		await this.indice.indexarProdutos(documentos);
+		await registrarEtapa?.("indexacao", "inicio");
+		try { await this.indice.indexarProdutos(documentos); } finally { await registrarEtapa?.("indexacao", "fim"); }
 		await atualizarProgresso?.({ indexacao: 100 });
 		await this.indice.ativarPresentesDaFonte(itensUnicos[0]?.fonte ?? "", chaves);
 		await this.indice.inativarAusentesDaFonte(itensUnicos[0]?.fonte ?? "", chaves);

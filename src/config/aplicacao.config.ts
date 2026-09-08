@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { z } from "zod";
-import type { NomeFonte } from "./fontes.js";
 
 const esquemaConfiguracao = z.object({
 	PORTA_API: z.coerce.number().int().positive().default(3000),
@@ -8,10 +7,6 @@ const esquemaConfiguracao = z.object({
 		.string()
 		.min(1)
 		.default("mongodb://127.0.0.1:27017/scraping_lojas"),
-	SCRAPER_URL: z.string().url().optional(),
-	AMAZON_URL: z.string().url().optional(),
-	TERABYTESHOP_URL: z.string().url().optional(),
-	FONTES_ATIVAS: z.string().default("kabum,amazon,terabyteshop"),
 	REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
 	USER_AGENT: z
 		.string()
@@ -33,6 +28,7 @@ const esquemaConfiguracao = z.object({
 	CLASSIFICACAO_HABILITADA: z.enum(["true", "false"]).default("false").transform((valor) => valor === "true"),
 	CLASSIFICADOR_URL: z.string().url().default("http://127.0.0.1:11434/api/generate"),
 	CLASSIFICADOR_MODELO: z.string().min(1).default("llama3.2:3b"),
+	ANALISADOR_SELETORES_MODELO: z.string().min(1).default("gemma3:1b"),
 });
 
 // Valida a configuração na inicialização para falhar cedo com uma mensagem clara.
@@ -46,22 +42,13 @@ export const configuracaoAplicacao = {
 		uri: ambiente.MONGODB_URI,
 	},
 	coleta: {
-		url: ambiente.SCRAPER_URL ?? "",
-		fontesAtivas: ambiente.FONTES_ATIVAS.split(",")
-			.map((fonte) => fonte.trim())
-			.filter((fonte): fonte is NomeFonte =>
-				["kabum", "amazon", "terabyteshop"].includes(fonte),
-			),
-		urls: {
-			amazon: ambiente.AMAZON_URL,
-			terabyteshop: ambiente.TERABYTESHOP_URL,
-		},
 		tempoLimiteMs: ambiente.REQUEST_TIMEOUT_MS,
 		agenteUsuario: ambiente.USER_AGENT,
 		salvarColeta: ambiente.SALVAR_COLETA,
 		executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
 		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
 		classificacao: { habilitada: ambiente.CLASSIFICACAO_HABILITADA, url: ambiente.CLASSIFICADOR_URL, modelo: ambiente.CLASSIFICADOR_MODELO },
+		analisadorSeletores: { modelo: ambiente.ANALISADOR_SELETORES_MODELO },
 	},
 	agendamento: {
 		expressao: ambiente.CRON_EXPRESSAO,

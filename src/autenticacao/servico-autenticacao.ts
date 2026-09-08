@@ -74,6 +74,12 @@ export class ServicoAutenticacao {
 		return administrador.mfaAtivo;
 	}
 
+	async validarSenhaAdministrador(id: string, senha: string): Promise<boolean> {
+		if (!senha) return false;
+		const administrador = await ModeloAdministrador.findById(id).select("senhaHash").lean().exec();
+		return Boolean(administrador && await argon2.verify(administrador.senhaHash, senha));
+	}
+
 	async encerrar(token: string | undefined): Promise<void> {
 		if (token) await ModeloSessaoAdministrador.deleteOne({ tokenHash: gerarHash(token) }).exec();
 	}

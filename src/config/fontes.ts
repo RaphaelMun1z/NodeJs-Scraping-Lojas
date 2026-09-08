@@ -1,6 +1,6 @@
 import type { SeletoresSite } from "./selectors.js";
 
-export type NomeFonte = "kabum" | "amazon" | "terabyteshop";
+export type NomeFonte = string;
 
 export const seletoresPorFonte: Record<NomeFonte, SeletoresSite> = {
 	kabum: {

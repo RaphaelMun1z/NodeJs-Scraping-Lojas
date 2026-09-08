@@ -160,11 +160,21 @@ export class ServicoEventosScraping {
 		else if (consulta.fonte) filtro.fonte = consulta.fonte;
 		if (consulta.dataInicio || consulta.dataFim) filtro.iniciadoEm = { ...(consulta.dataInicio ? { $gte: consulta.dataInicio } : {}), ...(consulta.dataFim ? { $lte: consulta.dataFim } : {}) };
 		const deslocamento = (consulta.pagina - 1) * consulta.limite;
-		const [itens, total] = await Promise.all([
-			ModeloExecucaoScraping.find(filtro).sort({ iniciadoEm: -1 }).skip(deslocamento).limit(consulta.limite).lean().exec(),
-			ModeloExecucaoScraping.countDocuments(filtro).exec(),
+		const agrupamento = { $ifNull: ["$rodadaId", { $toString: "$_id" }] };
+		const [rodadas, total] = await Promise.all([
+			ModeloExecucaoScraping.aggregate([{ $match: filtro }, { $group: { _id: agrupamento, iniciadoEm: { $max: "$iniciadoEm" } } }, { $sort: { iniciadoEm: -1 } }, { $skip: deslocamento }, { $limit: consulta.limite }]).exec(),
+			ModeloExecucaoScraping.aggregate([{ $match: filtro }, { $group: { _id: agrupamento } }, { $count: "total" }]).exec(),
 		]);
-		return { itens: itens as unknown as Record<string, unknown>[], total };
+		const chavesRodadas = rodadas.map((rodada) => rodada._id);
+		if (chavesRodadas.length === 0) return { itens: [], total: total[0]?.total ?? 0 };
+		const itens = await ModeloExecucaoScraping.aggregate([
+			{ $match: filtro },
+			{ $addFields: { _rodadaChave: agrupamento } },
+			{ $match: { _rodadaChave: { $in: chavesRodadas } } },
+			{ $sort: { iniciadoEm: 1 } },
+			{ $project: { _rodadaChave: 0 } },
+		]).exec();
+		return { itens: itens as Record<string, unknown>[], total: total[0]?.total ?? 0 };
 	}
 
 	async buscarExecucao(id: string): Promise<Record<string, unknown> | null> {

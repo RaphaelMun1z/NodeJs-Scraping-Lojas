@@ -7,6 +7,12 @@ export function criarRotasConfiguracaoScraping(controlador: ControladorConfigura
 	roteador.use(autenticacao.middlewareAdministrador());
 	roteador.get("/", controlador.obter);
 	roteador.put("/", autenticacao.middlewareCsrf(), controlador.atualizar);
+	roteador.post("/fontes", autenticacao.middlewareCsrf(), controlador.adicionar);
+	roteador.delete("/fontes/:fonte", autenticacao.middlewareCsrf(), controlador.remover);
+	roteador.post("/testar-seletores", autenticacao.middlewareCsrf(), controlador.testarSeletores);
+	roteador.post("/analisar-html", autenticacao.middlewareCsrf(), controlador.analisarHtml);
 	roteador.post("/limpar-produtos", autenticacao.middlewareCsrf(), controlador.limparProdutos);
+	roteador.post("/reset-total", autenticacao.middlewareCsrf(), controlador.resetTotal);
+	roteador.post("/reset-total/validar-senha", autenticacao.middlewareCsrf(), controlador.validarSenhaReset);
 	return roteador;
 }

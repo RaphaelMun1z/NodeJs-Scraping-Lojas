@@ -1,11 +1,27 @@
 import { Schema, model } from "mongoose";
 
+const esquemaSeletores = new Schema(
+	{
+		item: { type: String, default: "" },
+		titulo: { type: String, default: "" },
+		preco: { type: String, default: "" },
+		precoAntigo: { type: String, default: "" },
+		imagem: { type: String, default: "" },
+		url: { type: String, default: "" },
+		paginaVirtualizada: { type: Boolean, default: false },
+		carregarMais: { type: String, default: "" },
+	},
+	{ _id: false },
+);
+
 const esquemaFonte = new Schema(
 	{
-		fonte: { type: String, enum: ["kabum", "amazon", "terabyteshop"], required: true },
+		fonte: { type: String, required: true },
 		nome: { type: String, required: true },
-		url: { type: String, required: true },
-		ativa: { type: Boolean, default: true },
+		logo: { type: String, default: "" },
+		url: { type: String, default: "" },
+		ativa: { type: Boolean, default: false },
+		seletores: { type: esquemaSeletores, required: false },
 	},
 	{ _id: false },
 );

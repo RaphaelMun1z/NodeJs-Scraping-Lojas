@@ -1,8 +1,8 @@
-import { chromium } from "playwright";
-import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { chromium, type Browser } from "playwright";
 
 export class ClienteHttp {
+	private navegador?: Browser;
+	private inicializacaoNavegador?: Promise<Browser>;
 	constructor(
 		private readonly tempoLimiteMs = Number(
 			process.env.REQUEST_TIMEOUT_MS ?? 30_000,
@@ -10,6 +10,19 @@ export class ClienteHttp {
 		private readonly agenteUsuario = process.env.USER_AGENT ??
 			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36",
 	) {}
+
+	async fechar(): Promise<void> {
+		await this.navegador?.close();
+		this.navegador = undefined;
+		this.inicializacaoNavegador = undefined;
+	}
+
+	private async obterNavegador(): Promise<Browser> {
+		if (this.navegador) return this.navegador;
+		this.inicializacaoNavegador ??= chromium.launch({ headless: process.env.NAVEGADOR_VISIVEL !== "true" });
+		this.navegador = await this.inicializacaoNavegador;
+		return this.navegador;
+	}
 
 	async obterHtml(
 		url: string,
@@ -33,16 +46,9 @@ export class ClienteHttp {
 		seletorAguardar?: string,
 		seletorCarregarMais?: string,
 	): Promise<string> {
-		const hostname = new URL(url).hostname.replace(/[^a-z0-9.-]/gi, "_");
-		const perfilBase = process.env.NAVEGADOR_PERFIL ?? ".dados/navegador";
-		const perfil = resolve(perfilBase, hostname);
-		mkdirSync(perfil, { recursive: true });
-		const navegador = await chromium.launchPersistentContext(perfil, {
-			headless: process.env.NAVEGADOR_VISIVEL !== "true",
-			userAgent: this.agenteUsuario,
-		});
-		const pagina = await navegador.newPage();
-
+		const navegador = await this.obterNavegador();
+		const contexto = await navegador.newContext({ userAgent: this.agenteUsuario });
+		const pagina = await contexto.newPage();
 		try {
 			await pagina.goto(url, {
 				waitUntil: "domcontentloaded",
@@ -83,10 +89,11 @@ export class ClienteHttp {
 						.first();
 					if (await botao.count() === 0 || !(await botao.isVisible())) break;
 
-					const quantidadeAntes = await pagina.locator(".products-grid .product-item").count();
+					const seletorContagem = seletorAguardar ?? ".products-grid .product-item";
+					const quantidadeAntes = await pagina.locator(seletorContagem).count();
 					await botao.click({ force: true, timeout: 5_000 });
 					await pagina.waitForTimeout(900);
-					const quantidadeDepois = await pagina.locator(".products-grid .product-item").count();
+					const quantidadeDepois = await pagina.locator(seletorContagem).count();
 
 					if (quantidadeDepois <= quantidadeAntes) tentativasSemNovosItens += 1;
 					else tentativasSemNovosItens = 0;
@@ -143,7 +150,7 @@ export class ClienteHttp {
 
 			return await pagina.content();
 		} finally {
-			await navegador.close();
+			await contexto.close();
 		}
 	}
 
