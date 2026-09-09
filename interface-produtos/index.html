@@ -11,8 +11,7 @@
       <header class="topbar">
         <a class="brand" href="/">Live Promo</a>
         <form class="searchbar" id="search-form">
-          <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="search-input" type="search" placeholder="Buscar produtos" autocomplete="off" />
+          <input id="search-input" type="search" placeholder="iPhone 17 Pro Max..." autocomplete="off" />
           <button type="submit">Buscar</button>
           <div id="search-suggestions" class="search-suggestions is-hidden" role="listbox" aria-label="Sugestões de produtos"></div>
         </form>
@@ -80,9 +79,9 @@
         <div class="section-heading">
           <div><span class="section-kicker">Destaque</span><h2 id="new-products-title">Novidades</h2></div>
           <div class="new-products-controls" aria-label="Paginação das novidades">
-            <button id="new-products-previous" class="page-button" type="button" aria-label="Novidades anteriores">‹</button>
+            <button id="new-products-previous" class="page-button" type="button" aria-label="Novidades anteriores"><i data-lucide="chevron-left" aria-hidden="true"></i></button>
             <span id="new-products-page" class="new-products-page"></span>
-            <button id="new-products-next" class="page-button" type="button" aria-label="Próximas novidades">›</button>
+            <button id="new-products-next" class="page-button" type="button" aria-label="Próximas novidades"><i data-lucide="chevron-right" aria-hidden="true"></i></button>
           </div>
         </div>
         <div id="new-products-grid" class="new-products-grid"></div>
@@ -93,14 +92,14 @@
         <aside id="admin-sidebar" class="admin-sidebar" aria-label="Navegação administrativa">
           <div class="admin-sidebar-heading"><strong>Administração</strong></div>
           <nav class="admin-sidebar-nav">
-            <a href="#admin" data-admin-nav="admin"><span aria-hidden="true">⚙</span> Configurações</a>
-            <a href="#admin/scraping" data-admin-nav="admin/scraping" data-requer-fonte><span aria-hidden="true">▤</span> Monitoramento</a>
-            <a href="#admin/autenticacao" data-admin-nav="admin/autenticacao"><span aria-hidden="true">♙</span> Autenticação</a>
-            <a href="#admin/busca" data-admin-nav="admin/busca" data-requer-fonte><span aria-hidden="true">⌕</span> Busca manual</a>
+            <a href="#admin" data-admin-nav="admin"><span aria-hidden="true"><i data-lucide="settings"></i></span> Configurações</a>
+            <a href="#admin/scraping" data-admin-nav="admin/scraping" data-requer-fonte><span aria-hidden="true"><i data-lucide="monitor"></i></span> Monitoramento</a>
+            <a href="#admin/autenticacao" data-admin-nav="admin/autenticacao"><span aria-hidden="true"><i data-lucide="shield-check"></i></span> Autenticação</a>
+            <a href="#admin/busca" data-admin-nav="admin/busca" data-requer-fonte><span aria-hidden="true"><i data-lucide="search"></i></span> Busca manual</a>
             <a href="#admin/sistema" data-admin-nav="admin/sistema" data-requer-fonte><span aria-hidden="true"><i data-lucide="server-cog"></i></span> Sistema</a>
           </nav>
-          <a class="admin-sidebar-back" href="#"><span aria-hidden="true">←</span> Voltar aos produtos</a>
-          <button id="admin-sidebar-logout" class="admin-sidebar-logout" type="button"><span aria-hidden="true">↪</span> Sair</button>
+          <a class="admin-sidebar-back" href="#"><span aria-hidden="true"><i data-lucide="arrow-left"></i></span> Voltar aos produtos</a>
+          <button id="admin-sidebar-logout" class="admin-sidebar-logout" type="button"><span aria-hidden="true"><i data-lucide="log-out"></i></span> Sair</button>
         </aside>
         <section id="admin-page" class="admin-page"></section>
       </div>

@@ -40,6 +40,45 @@ export class ClienteHttp {
 		);
 	}
 
+	async obterCaptura(
+		url: string,
+		seletorAguardar?: string,
+	): Promise<string> {
+		const navegador = await this.obterNavegador();
+		const contexto = await navegador.newContext({ userAgent: this.agenteUsuario });
+		const pagina = await contexto.newPage();
+		try {
+			await pagina.setViewportSize({ width: 1440, height: 900 });
+			await pagina.goto(url, {
+				waitUntil: "domcontentloaded",
+				timeout: this.tempoLimiteMs,
+			});
+			try {
+				await pagina.waitForLoadState("networkidle", {
+					timeout: this.tempoLimiteMs,
+				});
+			} catch {
+				// Algumas lojas mantêm requisições abertas continuamente.
+			}
+			const pausaMs = Number(process.env.NAVEGADOR_PAUSA_MS ?? 3_000);
+			if (pausaMs > 0) await pagina.waitForTimeout(pausaMs);
+			if (seletorAguardar) {
+				try {
+					await pagina.locator(seletorAguardar).first().waitFor({
+						state: "attached",
+						timeout: Number(process.env.NAVEGADOR_ESPERA_VERIFICACAO_MS ?? 60_000),
+					});
+				} catch {
+					// A captura ainda pode ajudar a identificar uma página de bloqueio.
+				}
+			}
+			const captura = await pagina.screenshot({ type: "jpeg", quality: 70, fullPage: false });
+			return `data:image/jpeg;base64,${captura.toString("base64")}`;
+		} finally {
+			await contexto.close();
+		}
+	}
+
 	private async obterHtmlComNavegador(
 		url: string,
 		seletorItens?: string,
@@ -154,36 +193,4 @@ export class ClienteHttp {
 		}
 	}
 
-	private async obterHtmlPorHttp(url: string): Promise<string> {
-		const controlador = new AbortController();
-		const timeout = setTimeout(
-			() => controlador.abort(),
-			this.tempoLimiteMs,
-		);
-
-		try {
-			const resposta = await fetch(url, {
-				signal: controlador.signal,
-				headers: {
-					"User-Agent": this.agenteUsuario,
-					Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-					"Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-				},
-			});
-
-			if (!resposta.ok) {
-				throw new Error(`Erro HTTP ${resposta.status} ao acessar ${url}`);
-			}
-			return await resposta.text();
-		} catch (erro) {
-			if (erro instanceof DOMException && erro.name === "AbortError") {
-				throw new Error(
-					`Tempo limite de ${this.tempoLimiteMs}ms excedido ao acessar ${url}`,
-				);
-			}
-			throw erro;
-		} finally {
-			clearTimeout(timeout);
-		}
-	}
 }

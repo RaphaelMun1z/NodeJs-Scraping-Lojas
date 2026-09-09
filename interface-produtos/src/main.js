@@ -1,5 +1,82 @@
 import "./styles.css";
-import { createIcons, icons } from "lucide";
+import {
+	ArrowLeft,
+	ArrowRight,
+	Braces,
+	ChartNoAxesCombined,
+	Check,
+	ChevronLeft,
+	ChevronRight,
+	Clock3,
+	Download,
+	ExternalLink,
+	Filter,
+	Globe2,
+	Info,
+	KeyRound,
+	List,
+	LogOut,
+	Monitor,
+	Package,
+	Pencil,
+	Plus,
+	Printer,
+	RotateCcw,
+	Save,
+	ScanSearch,
+	Search,
+	SearchCheck,
+	ServerCog,
+	Settings,
+	ShieldCheck,
+	Sparkles,
+	Store,
+	Timer,
+	Trash2,
+	TriangleAlert,
+	Upload,
+	X,
+	createIcons,
+} from "lucide";
+
+const iconesLucide = {
+	ArrowLeft,
+	ArrowRight,
+	Braces,
+	ChartNoAxesCombined,
+	Check,
+	ChevronLeft,
+	ChevronRight,
+	Clock3,
+	Download,
+	ExternalLink,
+	Filter,
+	Globe2,
+	Info,
+	KeyRound,
+	List,
+	LogOut,
+	Monitor,
+	Package,
+	Pencil,
+	Plus,
+	Printer,
+	RotateCcw,
+	Save,
+	ScanSearch,
+	Search,
+	SearchCheck,
+	ServerCog,
+	Settings,
+	ShieldCheck,
+	Sparkles,
+	Store,
+	Timer,
+	Trash2,
+	TriangleAlert,
+	Upload,
+	X,
+};
 
 const estado = {
 	pagina: 1,
@@ -43,7 +120,7 @@ function abrirDialogoPersonalizado({
 	return new Promise((resolver) => {
 		const camada = document.createElement("div");
 		camada.className = "custom-dialog-layer";
-		camada.innerHTML = `<section class="custom-dialog ${variante === "danger" ? "custom-dialog-danger" : ""}" role="dialog" aria-modal="true" aria-labelledby="custom-dialog-title"><div class="custom-dialog-header"><div><h2 id="custom-dialog-title">${escaparHtml(titulo)}</h2>${descricao ? `<p>${escaparHtml(descricao)}</p>` : ""}</div><button type="button" class="custom-dialog-close" aria-label="Fechar">×</button></div><form class="custom-dialog-form"><div class="custom-dialog-fields">${campos.map((campo) => `<label>${escaparHtml(campo.rotulo)}<input name="${escaparHtml(campo.nome)}" type="${campo.tipo ?? "text"}" value="${escaparHtml(campo.valor ?? "")}" ${campo.autofocus ? "autofocus" : ""} ${campo.required ? "required" : ""} /></label>`).join("")}</div><div class="custom-dialog-feedback" aria-live="polite"></div><div class="custom-dialog-actions"><button type="button" class="secondary-button custom-dialog-cancel">Cancelar</button><button type="submit" class="${variante === "danger" ? "danger-button" : "primary-button"}">${escaparHtml(confirmar)}</button></div></form></section>`;
+	camada.innerHTML = `<section class="custom-dialog ${variante === "danger" ? "custom-dialog-danger" : ""}" role="dialog" aria-modal="true" aria-labelledby="custom-dialog-title"><div class="custom-dialog-header"><div><h2 id="custom-dialog-title">${escaparHtml(titulo)}</h2>${descricao ? `<p>${escaparHtml(descricao)}</p>` : ""}</div><button type="button" class="custom-dialog-close" aria-label="Fechar"><i data-lucide="x" aria-hidden="true"></i></button></div><form class="custom-dialog-form"><div class="custom-dialog-fields">${campos.map((campo) => `<label>${escaparHtml(campo.rotulo)}<input name="${escaparHtml(campo.nome)}" type="${campo.tipo ?? "text"}" value="${escaparHtml(campo.valor ?? "")}" ${campo.autofocus ? "autofocus" : ""} ${campo.required ? "required" : ""} /></label>`).join("")}</div><div class="custom-dialog-feedback" aria-live="polite"></div><div class="custom-dialog-actions"><button type="button" class="secondary-button custom-dialog-cancel">Cancelar</button><button type="submit" class="${variante === "danger" ? "danger-button" : "primary-button"}">${escaparHtml(confirmar)}</button></div></form></section>`;
 		document.body.append(camada);
 		const formulario = camada.querySelector("form");
 		const fechar = (valor = null) => {
@@ -219,35 +296,6 @@ async function executarResetTotalComSenha(zona) {
 		if (botao) botao.disabled = false;
 	}
 }
-document.addEventListener(
-	"click",
-	(evento) => {
-		const botao =
-			evento.target instanceof Element
-				? evento.target.closest("#reset-system")
-				: null;
-		if (!botao) return;
-		evento.preventDefault();
-		evento.stopImmediatePropagation();
-		const zona = botao.closest(".system-reset-zone");
-		if (zona) void executarResetTotalComSenha(zona);
-	},
-	true,
-);
-document.addEventListener(
-	"click",
-	(evento) => {
-		const botao =
-			evento.target instanceof Element
-				? evento.target.closest("#reset-products")
-				: null;
-		if (!botao) return;
-		evento.preventDefault();
-		evento.stopImmediatePropagation();
-		void confirmarLimpezaProdutosPersonalizada();
-	},
-	true,
-);
 async function confirmarLimpezaProdutosPersonalizada() {
 	const confirmacao = await abrirDialogoPersonalizado({
 		titulo: "Limpar produtos",
@@ -312,12 +360,16 @@ async function carregarSistema() {
 	mostrarPaginaAdministracao();
 	const pagina = $("#admin-page");
 	pagina.innerHTML =
-		'<div class="admin-header"><div><span class="detail-source">Área protegida</span><h1>Sistema</h1><p class="admin-description">Ações operacionais e de manutenção do sistema.</p></div></div><section class="admin-danger-zone"><div><h2>Limpeza dos produtos</h2><p>Remove os produtos, o histórico de preços e os documentos indexados no Elasticsearch.</p></div><button id="reset-products" class="danger-button" type="button">Limpar produtos</button></section><section class="admin-action-zone"><div><h2>Busca manual</h2><p>Inicie uma coleta agora sem esperar o próximo horário agendado.</p></div><button id="run-scraping-now" class="primary-button" type="button">Iniciar busca</button></section>';
-	$("#reset-products").addEventListener("click", confirmarLimpezaProdutos);
+		'<div class="admin-header"><div><h1>Sistema</h1><p class="admin-description">Ações operacionais e de manutenção do sistema.</p></div></div><section class="admin-danger-zone"><div><h2>Limpeza dos produtos</h2><p>Remove os produtos, o histórico de preços e os documentos indexados no Elasticsearch.</p></div><button id="reset-products" class="danger-button" type="button">Limpar produtos</button></section><section class="admin-action-zone"><div><h2>Busca manual</h2><p>Inicie uma coleta agora sem esperar o próximo horário agendado.</p></div><button id="run-scraping-now" class="primary-button" type="button">Iniciar busca</button></section>';
+	$("#reset-products").addEventListener("click", () =>
+		void confirmarLimpezaProdutosPersonalizada(),
+	);
 	$("#run-scraping-now").addEventListener("click", iniciarBuscaAgora);
 	configurarResetTotal();
+	organizarPaginaSistema();
+	agendarAtualizacaoIcones();
 }
-async function salvarNovaFonteBasica(linha) {
+async function salvarNovaFonteBasicaInterna(linha) {
 	const nome = linha
 		.querySelector("input[name='new-source-name']")
 		?.value.trim();
@@ -343,11 +395,24 @@ async function salvarNovaFonteBasica(linha) {
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-|-$/g, "");
 	if (!fonte) {
-		feedback("Informe um nome vÃ¡lido para a fonte.");
+		feedback("Informe um nome válido para a fonte.");
 		return;
 	}
 	const arquivo = linha.querySelector("input[name='new-source-logo']")
 		?.files?.[0];
+	if (arquivo && arquivo.size > 700 * 1024) {
+		feedback("A logo deve ter no máximo 700 KB.");
+		return;
+	}
+	if (
+		arquivo &&
+		!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(
+			arquivo.type,
+		)
+	) {
+		feedback("Use uma logo PNG, JPEG, WebP ou SVG.");
+		return;
+	}
 	const logo = arquivo
 		? await new Promise((resolver) => {
 				const leitor = new FileReader();
@@ -382,36 +447,41 @@ async function salvarNovaFonteBasica(linha) {
 	const dados = await resposta.json();
 	if (!resposta.ok) {
 		feedback(
-			formatarErroApi(dados, "NÃ£o foi possÃ­vel adicionar a fonte."),
+				formatarErroApi(dados, "Não foi possível adicionar a fonte."),
 		);
 		return;
 	}
 	window.location.hash = `#admin/fontes/${fonte}`;
 }
-const salvarNovaFonteBasicaOriginal = salvarNovaFonteBasica;
-salvarNovaFonteBasica = async function (linha) {
+async function salvarNovaFonteBasica(linha) {
 	linha.classList.add("is-saving");
 	const botao = linha.querySelector(".confirm-new-source");
 	if (botao) botao.disabled = true;
 	try {
-		return await salvarNovaFonteBasicaOriginal(linha);
+		return await salvarNovaFonteBasicaInterna(linha);
+	} catch (erro) {
+		let feedback = linha.querySelector(".new-source-feedback");
+		if (!feedback) {
+			feedback = document.createElement("div");
+			linha.querySelector(".new-source-actions")?.before(feedback);
+		}
+		feedback.className = "new-source-feedback error";
+		feedback.textContent = erro.message;
 	} finally {
 		linha.classList.remove("is-saving");
 		if (botao) botao.disabled = false;
 	}
-};
-const salvarStatusFonteOriginal = salvarStatusFonte;
-salvarStatusFonte = async function (evento) {
+}
+async function salvarStatusFonte(evento) {
 	const linha = evento.currentTarget.closest(".admin-source");
 	linha?.classList.add("is-saving");
 	try {
-		return await salvarStatusFonteOriginal(evento);
+		return await salvarStatusFonteInterno(evento);
 	} finally {
 		linha?.classList.remove("is-saving");
 	}
-};
-const executarBuscaManualOriginal = executarBuscaManual;
-executarBuscaManual = async function () {
+}
+async function executarBuscaManual() {
 	const container = $(".manual-search-page");
 	const tabela = $("#manual-search-body");
 	container?.classList.add("is-saving");
@@ -422,24 +492,14 @@ executarBuscaManual = async function () {
 				'<tr class="manual-search-skeleton-row"><td><span class="skeleton skeleton-line short"></span></td><td><span class="skeleton skeleton-line"></span></td><td><span class="skeleton skeleton-line price"></span></td><td><span class="skeleton skeleton-line price"></span></td><td><span class="skeleton skeleton-line short"></span></td></tr>',
 		).join("");
 	try {
-		return await executarBuscaManualOriginal();
+		return await executarBuscaManualInterna();
 	} finally {
 		container?.classList.remove("is-saving");
 	}
-};
-const renderizarRotaOriginal = renderizarRota;
-renderizarRota = function () {
-	if (window.location.hash === "#admin/sistema") {
-		fecharEventosScraping();
-		$("#new-products").classList.add("is-hidden");
-		void carregarSistema();
-		return;
-	}
-	renderizarRotaOriginal();
-};
+}
 function renderizarCardPreviewProduto(item) {
 	const desconto = calcularDesconto(item.precoAntigo, item.preco);
-	return `<article class="product-card selector-preview-card"><div class="product-image">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="" loading="lazy" />` : '<span class="image-placeholder">Sem imagem</span>'}</div><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte, nomesFontesConfiguradas[item.fonte])}<span>\u2022</span><span class="listing-age is-new">\u2728 Novo</span></div><h2>${escaparHtml(item.titulo || "Produto sem t\u00edtulo")}</h2><div class="product-prices">${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div></div></article>`;
+	return `<article class="product-card selector-preview-card"><div class="product-image">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="" loading="lazy" />` : '<span class="image-placeholder">Sem imagem</span>'}</div><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte, nomesFontesConfiguradas[item.fonte])}<span>•</span><span class="listing-age is-new"><i data-lucide="sparkles" aria-hidden="true"></i>Novo</span></div><h2>${escaparHtml(item.titulo || "Produto sem título")}</h2><div class="product-prices">${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div></div></article>`;
 }
 function atualizarEstadoBotoesTeste() {
 	document.querySelectorAll("[data-test-selectors]").forEach((botao) => {
@@ -464,7 +524,20 @@ function atualizarEstadoBotoesTeste() {
 		botao.setAttribute("aria-disabled", String(!pronto));
 	});
 }
-async function testarSeletoresComPrevia(fonte) {
+
+function abrirPreviewPagina(imagem, url) {
+	const modal = document.createElement("div");
+	modal.className = "selector-page-preview-modal";
+	modal.innerHTML = `<div class="selector-page-preview-backdrop"></div><section class="selector-page-preview-dialog" role="dialog" aria-modal="true" aria-label="Prévia da página da loja"><header class="selector-page-preview-header"><div><h2>Prévia da página</h2><p>${escaparHtml(url)}</p></div><button class="icon-button" type="button" data-close-page-preview aria-label="Fechar"><i data-lucide="x" aria-hidden="true"></i></button></header><div class="selector-page-preview-body"><img alt="Captura da página da loja" /></div></section>`;
+	modal.querySelector("img").src = imagem;
+	const fechar = () => modal.remove();
+	modal.querySelector("[data-close-page-preview]").addEventListener("click", fechar);
+	modal.querySelector(".selector-page-preview-backdrop").addEventListener("click", fechar);
+	document.body.append(modal);
+	agendarAtualizacaoIcones();
+}
+
+async function testarSeletoresFonte(fonte) {
 	const resultado = $(`[data-selector-result="${fonte}"]`);
 	const botao = document.querySelector(`[data-test-selectors="${fonte}"]`);
 	const url =
@@ -502,6 +575,14 @@ async function testarSeletoresComPrevia(fonte) {
 		const produtos = dados.dados?.produtos ?? [];
 		resultado.className = "selector-test-result success";
 		resultado.innerHTML = `<strong>${dados.dados?.quantidadeProdutos ?? produtos.length} produto(s) encontrado(s)</strong>${produtos.length ? `<div class="selector-preview-grid">${produtos.map(renderizarCardPreviewProduto).join("")}</div>` : '<p class="selector-preview-empty">Nenhum produto foi encontrado com os seletores informados.</p>'}`;
+		if (dados.dados?.previewImagem) {
+			const preview = document.createElement("button");
+			preview.className = "secondary-button selector-page-preview-button";
+			preview.type = "button";
+			preview.textContent = "Visualizar página capturada";
+			preview.addEventListener("click", () => abrirPreviewPagina(dados.dados.previewImagem, url));
+			resultado.append(preview);
+		}
 	} catch (erro) {
 		resultado.className = "selector-test-result error";
 		resultado.textContent =
@@ -526,7 +607,7 @@ document.addEventListener(
 		if (!alvo) return;
 		evento.preventDefault();
 		evento.stopImmediatePropagation();
-		void testarSeletoresComPrevia(alvo.dataset.testSelectors);
+		void testarSeletoresFonte(alvo.dataset.testSelectors);
 	},
 	true,
 );
@@ -542,14 +623,25 @@ document.addEventListener("input", (evento) => {
 function abrirAnalisadorHtml(fonte) {
 	const modal = document.createElement("div");
 	modal.className = "selector-analyzer-modal";
-	modal.innerHTML = `<div class="selector-analyzer-backdrop"></div><section class="selector-analyzer-dialog" role="dialog" aria-modal="true" aria-labelledby="selector-analyzer-title"><header class="selector-analyzer-header"><div><h2 id="selector-analyzer-title">Analisar HTML do produto</h2><p>Cole dois ou três cards para a IA identificar os seletores CSS.</p></div><button class="icon-button" type="button" data-close-selector-analyzer aria-label="Fechar"><i data-lucide="x"></i></button></header><div class="selector-analyzer-body"><div class="selector-html-toolbar"><label class="selector-html-label" for="selector-html-input">HTML dos cards <span class="required-mark">*</span></label><button class="text-button selector-format-button" type="button" data-format-selector-html><i data-lucide="braces"></i>Formatar HTML</button></div><textarea id="selector-html-input" class="selector-html-editor" placeholder="Cole aqui o HTML de um ou mais cards de produto..." spellcheck="false" wrap="off"></textarea><div class="selector-analyzer-actions"><button class="secondary-button" type="button" data-analyze-selector-html><i data-lucide="sparkles"></i>Analisar HTML</button><span class="selector-analyzer-status" aria-live="polite"></span></div><div class="selector-analyzer-result" aria-live="polite"></div></div></section>`;
+	modal.innerHTML = `<div class="selector-analyzer-backdrop"></div><section class="selector-analyzer-dialog" role="dialog" aria-modal="true" aria-labelledby="selector-analyzer-title"><header class="selector-analyzer-header"><div><h2 id="selector-analyzer-title">Analisar HTML do produto</h2><p>Cole dois ou três cards para a IA identificar os seletores CSS.</p></div><button class="icon-button" type="button" data-close-selector-analyzer aria-label="Fechar"><i data-lucide="x"></i></button></header><div class="selector-analyzer-body"><div class="selector-html-toolbar"><label class="selector-html-label" for="selector-html-input">HTML dos cards <span class="required-mark">*</span></label><button class="text-button selector-format-button" type="button" data-format-selector-html><i data-lucide="braces"></i>Formatar HTML</button></div><div class="selector-code-editor"><div class="selector-code-gutter" aria-hidden="true"><pre></pre></div><textarea id="selector-html-input" class="selector-html-editor" placeholder="Cole aqui o HTML de um ou mais cards de produto..." spellcheck="false" wrap="off"></textarea></div><div class="selector-analyzer-actions"><button class="secondary-button" type="button" data-analyze-selector-html><i data-lucide="sparkles"></i>Analisar HTML</button><span class="selector-analyzer-status" aria-live="polite"></span></div><div class="selector-analyzer-result" aria-live="polite"></div></div></section>`;
 	document.body.append(modal);
-	createIcons({ icons });
+	createIcons({ icons: iconesLucide });
 	const fechar = () => modal.remove();
 	const editor = modal.querySelector("#selector-html-input");
+	const linhas = modal.querySelector(".selector-code-gutter pre");
+	const atualizarLinhas = () => {
+		const quantidade = Math.max(1, editor.value.split("\n").length);
+		linhas.textContent = Array.from({ length: quantidade }, (_, indice) => indice + 1).join("\n");
+	};
+	editor.addEventListener("input", atualizarLinhas);
+	editor.addEventListener("scroll", () => {
+		modal.querySelector(".selector-code-gutter").scrollTop = editor.scrollTop;
+	});
+	atualizarLinhas();
 	const formatar = () => {
 		const inicio = editor.selectionStart;
 		editor.value = formatarHtmlParaEdicao(editor.value);
+		atualizarLinhas();
 		editor.selectionStart = editor.selectionEnd = Math.min(
 			inicio,
 			editor.value.length,
@@ -566,6 +658,7 @@ function abrirAnalisadorHtml(fonte) {
 			editor.selectionEnd,
 			"end",
 		);
+		atualizarLinhas();
 	});
 	editor.addEventListener("keydown", (evento) => {
 		if (
@@ -695,7 +788,7 @@ function abrirAnalisadorHtml(fonte) {
 						: "";
 				resultado.className = "selector-analyzer-result success";
 				resultado.innerHTML = `<h3>Seletores sugeridos</h3><div class="selector-analysis-table">${linhas}</div>${observacoes}<button class="primary-button selector-apply-button" type="button" data-apply-selector-analysis><i data-lucide="check"></i>Aplicar seletores</button>`;
-				createIcons({ icons });
+				createIcons({ icons: iconesLucide });
 				status.textContent =
 					"Revise as sugestões ou aplique-as aos campos da fonte.";
 				resultado
@@ -785,82 +878,16 @@ document.addEventListener(
 	(evento) => {
 		const alvo =
 			evento.target instanceof Element
-				? evento.target.closest("[data-visual-selectors]")
+				? evento.target.closest("[data-analyze-html]")
 				: null;
 		if (!alvo) return;
 		evento.preventDefault();
 		evento.stopImmediatePropagation();
-		abrirAnalisadorHtml(alvo.dataset.visualSelectors);
-	},
-	true,
-);
-document.addEventListener(
-	"click",
-	(evento) => {
-		const alvo =
-			evento.target instanceof Element
-				? evento.target.closest(".confirm-new-source")
-				: null;
-		if (!alvo) return;
-		evento.preventDefault();
-		evento.stopImmediatePropagation();
-		const linha = alvo.closest("[data-new-source-row]");
-		if (linha) void salvarNovaFonteBasica(linha);
+		abrirAnalisadorHtml(alvo.dataset.analyzeHtml);
 	},
 	true,
 );
 function atualizarIconesLucide() {
-	const mapa = {
-		"⌕": "search",
-		"↺": "rotate-ccw",
-		"→": "arrow-right",
-		"⚿": "key-round",
-		"✓": "check",
-		"▣": "save",
-		"▶": "play",
-		"⇩": "download",
-		"▤": "monitor",
-		"⧨": "filter",
-		"‹": "chevron-left",
-		"›": "chevron-right",
-		"⚙": "settings",
-		"♙": "shield-check",
-		"←": "arrow-left",
-		"↪": "log-out",
-		"☷": "list",
-		"◷": "clock-3",
-		"▦": "package",
-		"⏱": "timer",
-		"×": "x",
-		"＋": "plus",
-		"✎": "pencil",
-		"⌫": "trash-2",
-		"🗑": "trash-2",
-		"✦": "sparkles",
-		"◎": "circle-dot",
-	};
-	document
-		.querySelectorAll(
-			"span[aria-hidden='true'], .status-icon, .monitor-stat-icon, .history-details-button span, .edit-source-button, .delete-source-button",
-		)
-		.forEach((elemento) => {
-			if (elemento.querySelector("svg, i[data-lucide]")) return;
-			const nome = mapa[elemento.textContent.trim()];
-			if (!nome) return;
-			elemento.textContent = "";
-			const icone = document.createElement("i");
-			icone.setAttribute("data-lucide", nome);
-			elemento.append(icone);
-		});
-	document.querySelectorAll(".back-link").forEach((link) => {
-		if (link.querySelector("svg, i[data-lucide]")) return;
-		for (const no of [...link.childNodes])
-			if (no.nodeType === Node.TEXT_NODE)
-				no.textContent = no.textContent.replace(/^\s*←\s*/, "");
-		const icone = document.createElement("i");
-		icone.setAttribute("data-lucide", "arrow-left");
-		link.prepend(icone);
-	});
 	const botoes = [
 		["#search-form button", "search"],
 		["#clear-filters", "rotate-ccw"],
@@ -876,7 +903,7 @@ function atualizarIconesLucide() {
 		["#run-scraping-now", "search"],
 		["#add-source-button", "plus"],
 		["[data-test-selectors]", "search-check"],
-		["[data-visual-selectors]", "scan-search"],
+		["[data-analyze-html]", "scan-search"],
 		[".edit-source-button", "pencil"],
 		[".delete-source-button", "trash-2"],
 		[".edit-fields-button", "pencil"],
@@ -894,18 +921,10 @@ function atualizarIconesLucide() {
 			botao.append(icone);
 		}),
 	);
-	createIcons({ icons });
+	createIcons({ icons: iconesLucide });
 }
 
 let atualizacaoIconesAgendada = false;
-function removerIconeLegadoAdicionarFonte() {
-	document.querySelectorAll("#add-source-button").forEach((botao) => {
-		for (const no of [...botao.childNodes]) {
-			if (no.nodeType === Node.TEXT_NODE)
-				no.textContent = no.textContent.replace(/＋/g, "");
-		}
-	});
-}
 function agendarAtualizacaoIcones() {
 	if (atualizacaoIconesAgendada) return;
 	atualizacaoIconesAgendada = true;
@@ -913,7 +932,6 @@ function agendarAtualizacaoIcones() {
 		atualizacaoIconesAgendada = false;
 		observadorIcones.takeRecords();
 		observadorIcones.disconnect();
-		removerIconeLegadoAdicionarFonte();
 		atualizarIconesLucide();
 		configurarTooltipsInformativos();
 		observadorIcones.observe(document.body, {
@@ -924,12 +942,6 @@ function agendarAtualizacaoIcones() {
 }
 const observadorIcones = new MutationObserver(agendarAtualizacaoIcones);
 observadorIcones.observe(document.body, { childList: true, subtree: true });
-function atualizarIconesInfo() {
-	atualizarIconesLucide();
-}
-function atualizarIconesAcoes() {
-	atualizarIconesLucide();
-}
 const grade = $("#products-grid");
 const gradeNovidades = $("#new-products-grid");
 // Mantém os filtros no topo e os destaques antes da grade de produtos.
@@ -938,6 +950,7 @@ const carregando = $("#loading");
 const vazio = $("#empty");
 let temporizadorFiltros;
 let temporizadorSugestoes;
+let controladorSugestoes;
 let graficoHistorico;
 const estadoNovidades = { itens: [], pagina: 1, porPagina: 4 };
 
@@ -963,6 +976,10 @@ function formatarFonte(fonte, nomeExibicao = "") {
 function renderizarFonteComLogo(fonte, nomeExibicao = "") {
 	const logo = logosFontesConfiguradas[fonte];
 	return `<span class="source-identity">${logo ? `<img src="${escaparHtml(logo)}" alt="" aria-hidden="true" />` : '<i data-lucide="store" class="source-generic-icon" aria-hidden="true"></i>'}${escaparHtml(formatarFonte(fonte, nomeExibicao))}</span>`;
+}
+function removerLogoDaAtualizacao(fonte) {
+	const { logo: _logo, ...dados } = fonte;
+	return dados;
 }
 async function carregarFontesParaFiltros() {
 	try {
@@ -1027,58 +1044,9 @@ function configurarResetTotal() {
 	zona.innerHTML =
 		'<div><h2>Reset total do sistema</h2><p>Remove todos os dados operacionais e mantém somente o usuário administrador.</p></div><button id="reset-system" class="danger-button" type="button">Resetar sistema</button><div class="admin-feedback"></div>';
 	zonaProdutos.after(zona);
-	zona.querySelector("#reset-system").addEventListener("click", async () => {
-		const senha = window.prompt(
-			"Informe a senha do administrador para continuar:",
-		);
-		if (senha === null) return;
-		const confirmacao = window.prompt(
-			"Esta ação não pode ser desfeita. Digite RESETAR SISTEMA para confirmar:",
-		);
-		if (confirmacao !== "RESETAR SISTEMA") return;
-		const botao = zona.querySelector("#reset-system");
-		const feedback = zona.querySelector(".admin-feedback");
-		botao.disabled = true;
-		zona.classList.add("is-saving");
-		feedback.textContent = "";
-		try {
-			const resposta = await fetch(
-				"/api/admin/configuracoes/scraping/reset-total",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						"X-CSRF-Token": obterTokenCsrf(),
-					},
-					body: JSON.stringify({ senha, confirmacao }),
-				},
-			);
-			const dados = await resposta.json();
-			if (!resposta.ok)
-				throw new Error(
-					formatarErroApi(
-						dados,
-						"Não foi possível resetar o sistema.",
-					),
-				);
-			feedback.className = "admin-feedback success";
-			feedback.textContent = "Reset concluído. A sessão será encerrada.";
-			setTimeout(() => {
-				document.cookie = "csrf-token=; Max-Age=0; path=/";
-				window.location.hash = "admin/login";
-				window.location.reload();
-			}, 900);
-		} catch (erro) {
-			feedback.className = "admin-feedback error";
-			feedback.textContent =
-				erro instanceof Error
-					? erro.message
-					: "Não foi possível resetar o sistema.";
-		} finally {
-			zona.classList.remove("is-saving");
-			botao.disabled = false;
-		}
-	});
+	zona.querySelector("#reset-system").addEventListener("click", () =>
+		void executarResetTotalComSenha(zona),
+	);
 }
 function organizarPaginaSistema() {
 	const pagina = $("#admin-page");
@@ -1123,7 +1091,7 @@ function renderizarSugestoes(titulos) {
 	area.innerHTML = titulos
 		.map(
 			(titulo) =>
-				`<button type="button" role="option" data-suggestion="${escaparHtml(titulo)}"><span aria-hidden="true">⌕</span>${escaparHtml(titulo)}</button>`,
+			`<button type="button" role="option" data-suggestion="${escaparHtml(titulo)}"><span aria-hidden="true"><i data-lucide="search"></i></span>${escaparHtml(titulo)}</button>`,
 		)
 		.join("");
 	area.classList.toggle("is-hidden", titulos.length === 0);
@@ -1139,18 +1107,22 @@ function renderizarSugestoes(titulos) {
 }
 async function carregarSugestoes(texto) {
 	clearTimeout(temporizadorSugestoes);
+	controladorSugestoes?.abort();
 	if (texto.trim().length < 2) {
 		ocultarSugestoes();
 		return;
 	}
 	temporizadorSugestoes = setTimeout(async () => {
+		controladorSugestoes = new AbortController();
 		try {
 			const resposta = await fetch(
 				`/api/itens/sugestoes?q=${encodeURIComponent(texto.trim())}`,
+				{ signal: controladorSugestoes.signal },
 			);
 			if (!resposta.ok) return ocultarSugestoes();
 			renderizarSugestoes((await resposta.json()).dados ?? []);
-		} catch {
+		} catch (erro) {
+			if (erro.name === "AbortError") return;
 			ocultarSugestoes();
 		}
 	}, 250);
@@ -1231,7 +1203,7 @@ function renderizarTempoListagem(item) {
 		(Date.now() - new Date(item.primeiraColetaEm).getTime()) / 86400000,
 	);
 	return dias < 1
-		? '<span class="listing-age is-new">★ Novo</span>'
+		? '<span class="listing-age is-new"><i data-lucide="sparkles" aria-hidden="true"></i>Novo</span>'
 		: `<span class="listing-age">Há ${dias} ${dias === 1 ? "dia" : "dias"}</span>`;
 }
 function resumirTituloOferta(titulo, limite = 125) {
@@ -1260,14 +1232,30 @@ function agruparPontosGrafico(pontos, periodo) {
 	}));
 }
 
+function renderizarFaixaPrecos(pontos, precoAtual) {
+	const precos = pontos
+		.map((ponto) => Number(ponto.preco))
+		.filter((preco) => Number.isFinite(preco));
+	const atual = Number(precoAtual);
+	if (!precos.length || !Number.isFinite(atual)) return "";
+
+	const menor = Math.min(...precos);
+	const maior = Math.max(...precos);
+	const posicaoAtual = menor === maior
+		? 50
+		: Math.min(100, Math.max(0, ((maior - atual) / (maior - menor)) * 100));
+
+	return `<div class="price-range" aria-label="Faixa de preços do período"><div class="price-range-heading"><strong>Faixa de preços</strong></div><div class="price-range-track"><span class="price-range-point price-range-high" style="left: 0%"><span class="price-range-value">${formatarPreco(maior)}</span><span class="price-range-dot" aria-hidden="true"></span></span><span class="price-range-point price-range-current" style="left: ${posicaoAtual}%"><span class="price-range-value">${formatarPreco(atual)}</span><span class="price-range-dot" aria-hidden="true"></span></span><span class="price-range-point price-range-low" style="left: 100%"><span class="price-range-value">${formatarPreco(menor)}</span><span class="price-range-dot" aria-hidden="true"></span></span></div><div class="price-range-labels"><span>Maior preço</span><span>Preço atual</span><span>Menor preço</span></div></div>`;
+}
+
 function renderizarPrecos(item) {
 	const desconto = calcularDesconto(item.precoAntigo, item.preco);
-	return `<div class="product-prices">${item.precoHistorico ? '<span class="historical-price-badge">★ Preço histórico</span>' : ""}${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div>`;
+	return `<div class="product-prices">${item.precoHistorico ? '<span class="historical-price-badge"><i data-lucide="sparkles" aria-hidden="true"></i>Preço histórico</span>' : ""}${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div>`;
 }
 
 function renderizarCardNovidade(item) {
 	const desconto = calcularDesconto(item.precoAntigo, item.preco);
-	return `<article class="product-card new-product-card"><a class="product-image" href="#produto/${escaparHtml(item._id)}">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="${escaparHtml(item.titulo)}" loading="lazy" />` : `<span class="image-placeholder">Sem imagem</span>`}</a><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte)}<span>•</span>${renderizarTempoListagem(item)}</div><h2><a href="#produto/${escaparHtml(item._id)}">${escaparHtml(item.titulo)}</a></h2><div class="product-prices">${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div><div class="product-footer"><span>Atualizado em ${new Date(item.ultimaColetaEm).toLocaleDateString("pt-BR")}</span><span class="external-link">↗</span></div></div></article>`;
+	return `<article class="product-card new-product-card"><a class="product-image" href="#produto/${escaparHtml(item._id)}">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="${escaparHtml(item.titulo)}" loading="lazy" />` : `<span class="image-placeholder">Sem imagem</span>`}</a><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte)}<span>•</span>${renderizarTempoListagem(item)}</div><h2><a href="#produto/${escaparHtml(item._id)}">${escaparHtml(item.titulo)}</a></h2><div class="product-prices">${item.precoAntigo > item.preco ? `<span class="old-price">${formatarPreco(item.precoAntigo)}</span>` : ""}<div class="current-price-row"><strong class="product-price">${formatarPreco(item.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}%</span>` : ""}</div></div><div class="product-footer"><span>Atualizado em ${new Date(item.ultimaColetaEm).toLocaleDateString("pt-BR")}</span><span class="external-link"><i data-lucide="external-link" aria-hidden="true"></i></span></div></div></article>`;
 }
 
 async function carregarNovidades() {
@@ -1304,7 +1292,7 @@ function renderizarNovidades() {
 			card.classList.add("is-historical-price");
 			card.querySelector(".product-prices")?.insertAdjacentHTML(
 				"afterbegin",
-				'<span class="historical-price-badge">★ Preço histórico</span>',
+				'<span class="historical-price-badge"><i data-lucide="sparkles" aria-hidden="true"></i>Preço histórico</span>',
 			);
 		}
 	});
@@ -1319,7 +1307,7 @@ function renderizarProdutos() {
 	grade.innerHTML = itens
 		.map(
 			(item) =>
-				`<article class="product-card ${item.ativo === false ? "is-inactive" : ""}"><a class="product-image" href="#produto/${escaparHtml(item._id)}">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="${escaparHtml(item.titulo)}" loading="lazy" />` : `<span class="image-placeholder">Sem imagem</span>`}</a><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte)}<span>●</span>${renderizarTempoListagem(item)}${item.ativo === false ? '<span class="inactive-label">Inativo</span>' : ""}</div><h2><a href="#produto/${escaparHtml(item._id)}">${escaparHtml(item.titulo)}</a></h2>${renderizarPrecos(item)}<div class="product-footer"><span>Atualizado em ${new Date(item.ultimaColetaEm).toLocaleDateString("pt-BR")}</span><span class="external-link">↗</span></div></div></article>`,
+				`<article class="product-card ${item.ativo === false ? "is-inactive" : ""}"><a class="product-image" href="#produto/${escaparHtml(item._id)}">${item.imagemUrl ? `<img src="${escaparHtml(item.imagemUrl)}" alt="${escaparHtml(item.titulo)}" loading="lazy" />` : `<span class="image-placeholder">Sem imagem</span>`}</a><div class="product-card-body"><div class="product-meta">${renderizarFonteComLogo(item.fonte)}<span>•</span>${renderizarTempoListagem(item)}${item.ativo === false ? '<span class="inactive-label">Inativo</span>' : ""}</div><h2><a href="#produto/${escaparHtml(item._id)}">${escaparHtml(item.titulo)}</a></h2>${renderizarPrecos(item)}<div class="product-footer"><span>Atualizado em ${new Date(item.ultimaColetaEm).toLocaleDateString("pt-BR")}</span><span class="external-link"><i data-lucide="external-link" aria-hidden="true"></i></span></div></div></article>`,
 		)
 		.join("");
 	grade.querySelectorAll(".product-card").forEach((card, indice) => {
@@ -1342,7 +1330,7 @@ function renderizarPaginacao() {
 		(_, indice) => inicio + indice,
 	);
 	$("#pagination").innerHTML =
-		`<button class="page-button" data-page="${estado.pagina - 1}" ${estado.pagina === 1 ? "disabled" : ""}>‹</button>${paginas.map((pagina) => `<button class="page-button ${pagina === estado.pagina ? "is-current" : ""}" data-page="${pagina}">${pagina}</button>`).join("")}<button class="page-button" data-page="${estado.pagina + 1}" ${estado.pagina === total ? "disabled" : ""}>›</button>`;
+		`<button class="page-button" data-page="${estado.pagina - 1}" aria-label="Página anterior" ${estado.pagina === 1 ? "disabled" : ""}><i data-lucide="chevron-left" aria-hidden="true"></i></button>${paginas.map((pagina) => `<button class="page-button ${pagina === estado.pagina ? "is-current" : ""}" data-page="${pagina}">${pagina}</button>`).join("")}<button class="page-button" data-page="${estado.pagina + 1}" aria-label="Próxima página" ${estado.pagina === total ? "disabled" : ""}><i data-lucide="chevron-right" aria-hidden="true"></i></button>`;
 	document.querySelectorAll("[data-page]").forEach((botao) =>
 		botao.addEventListener("click", () => {
 			estado.pagina = Number(botao.dataset.page);
@@ -1414,7 +1402,7 @@ function renderizarFiltrosAtivos() {
 	$("#active-filters").innerHTML = filtros
 		.map(
 			([rotulo, valor], indice) =>
-				`<button class="filter-chip" data-filter-index="${indice}">${escaparHtml(rotulo)}: ${escaparHtml(valor)} <span>×</span></button>`,
+			`<button class="filter-chip" data-filter-index="${indice}">${escaparHtml(rotulo)}: ${escaparHtml(valor)} <i data-lucide="x" aria-hidden="true"></i></button>`,
 		)
 		.join("");
 	document.querySelectorAll("[data-filter-index]").forEach((botao) =>
@@ -1489,34 +1477,30 @@ function prepararOfertasDetalhe(detalhe, ofertas) {
 		? ofertas.filter((oferta) => oferta.ativo !== false)
 		: [];
 	if (ofertasAtivas.length === 0) return;
-	const observador = new MutationObserver(() => {
-		const historico = detalhe.querySelector(".history-section");
-		if (!historico || detalhe.querySelector(".offers-section")) return;
-		const secao = document.createElement("section");
-		secao.className = "offers-section";
-		secao.innerHTML = `<div class="history-heading"><div><h2>Ofertas nas lojas</h2><span>${ofertasAtivas.length} oferta(s) ativa(s)</span></div></div><div class="offers-list">${ofertasAtivas
-			.map((oferta) => {
-				const titulo = String(oferta.titulo ?? "").trim();
-				const tituloResumido = resumirTituloOferta(titulo);
-				const possuiResumo = tituloResumido !== titulo;
-				return `<article class="offer-card">${oferta.imagemUrl ? `<div class="offer-card-image"><img src="${escaparHtml(oferta.imagemUrl)}" alt="${escaparHtml(titulo)}" loading="lazy" /></div>` : ""}<div class="offer-card-source">${renderizarFonteComLogo(oferta.fonte)}</div><div class="offer-card-title-wrap"><h3 class="offer-card-title" data-summary-title="${escaparHtml(tituloResumido)}" data-full-title="${escaparHtml(titulo)}">${escaparHtml(tituloResumido)}</h3>${possuiResumo ? '<button class="offer-title-toggle" type="button" aria-expanded="false">Ver título completo</button>' : ""}</div><strong class="offer-card-price">${formatarPreco(oferta.preco)}</strong>${oferta.precoAntigo > oferta.preco ? `<span class="old-price">${formatarPreco(oferta.precoAntigo)}</span>` : ""}${oferta.url ? `<a class="store-link" href="${escaparHtml(oferta.url)}" target="_blank" rel="noreferrer">Ver oferta ↗</a>` : ""}</article>`;
-			})
-			.join("")}</div>`;
-		secao.querySelectorAll(".offer-title-toggle").forEach((botao) =>
-			botao.addEventListener("click", () => {
-				const card = botao.closest(".offer-card");
-				const titulo = card?.querySelector(".offer-card-title");
-				if (!card || !titulo) return;
-				card.classList.add("is-title-expanded");
-				titulo.textContent = titulo.dataset.fullTitle;
-				botao.setAttribute("aria-expanded", "true");
-				botao.hidden = true;
-			}),
-		);
-		historico.before(secao);
-		observador.disconnect();
-	});
-	observador.observe(detalhe, { childList: true });
+	const historico = detalhe.querySelector(".history-section");
+	if (!historico || detalhe.querySelector(".offers-section")) return;
+	const secao = document.createElement("section");
+	secao.className = "offers-section";
+	secao.innerHTML = `<div class="history-heading"><div><h2>Ofertas nas lojas</h2><span>${ofertasAtivas.length} oferta(s) ativa(s)</span></div></div><div class="offers-list">${ofertasAtivas
+		.map((oferta) => {
+			const titulo = String(oferta.titulo ?? "").trim();
+			const tituloResumido = resumirTituloOferta(titulo);
+			const possuiResumo = tituloResumido !== titulo;
+			return `<article class="offer-card">${oferta.imagemUrl ? `<div class="offer-card-image"><img src="${escaparHtml(oferta.imagemUrl)}" alt="${escaparHtml(titulo)}" loading="lazy" /></div>` : ""}<div class="offer-card-source">${renderizarFonteComLogo(oferta.fonte)}</div><div class="offer-card-title-wrap"><h3 class="offer-card-title" data-summary-title="${escaparHtml(tituloResumido)}" data-full-title="${escaparHtml(titulo)}">${escaparHtml(tituloResumido)}</h3>${possuiResumo ? '<button class="offer-title-toggle" type="button" aria-expanded="false">Ver título completo</button>' : ""}</div><strong class="offer-card-price">${formatarPreco(oferta.preco)}</strong>${oferta.precoAntigo > oferta.preco ? `<span class="old-price">${formatarPreco(oferta.precoAntigo)}</span>` : ""}${oferta.url ? `<a class="store-link" href="${escaparHtml(oferta.url)}" target="_blank" rel="noreferrer">Ver oferta <i data-lucide="external-link" aria-hidden="true"></i></a>` : ""}</article>`;
+		})
+		.join("")}</div>`;
+	secao.querySelectorAll(".offer-title-toggle").forEach((botao) =>
+		botao.addEventListener("click", () => {
+			const card = botao.closest(".offer-card");
+			const titulo = card?.querySelector(".offer-card-title");
+			if (!card || !titulo) return;
+			card.classList.add("is-title-expanded");
+			titulo.textContent = titulo.dataset.fullTitle;
+			botao.setAttribute("aria-expanded", "true");
+			botao.hidden = true;
+		}),
+	);
+	historico.before(secao);
 }
 
 async function carregarDetalhe(id) {
@@ -1536,11 +1520,11 @@ async function carregarDetalhe(id) {
 		const historico = resultado.historico ?? [];
 		const ofertas = resultado.ofertas ?? [produto];
 		const desconto = calcularDesconto(produto.precoAntigo, produto.preco);
+		detalhe.innerHTML = `<a class="back-link" href="#"><i data-lucide="arrow-left" aria-hidden="true"></i>Voltar para produtos</a><div class="detail-header"><div class="detail-image">${produto.imagemUrl ? `<img src="${escaparHtml(produto.imagemUrl)}" alt="${escaparHtml(produto.titulo)}" />` : "Sem imagem"}</div><div class="detail-summary"><span class="detail-source">${renderizarFonteComLogo(produto.fonte)}${produto.ativo === false ? " · Inativo" : ""}</span><h1>${escaparHtml(produto.titulo)}</h1><div class="detail-prices">${produto.precoAntigo > produto.preco ? `<span class="old-price">${formatarPreco(produto.precoAntigo)}</span>` : ""}<div class="detail-current-price"><strong>${formatarPreco(produto.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}% de desconto</span>` : ""}</div></div>${produto.url ? `<a class="store-link" href="${escaparHtml(produto.url)}" target="_blank" rel="noreferrer">Ver na loja <i data-lucide="external-link" aria-hidden="true"></i></a>` : ""}</div></div><section class="history-section"><div class="history-heading"><div><h2>Histórico de preço</h2><span>${historico.length} registro(s)</span></div><div class="history-periods"><button class="period-button" data-period="day" type="button">Dia</button><button class="period-button" data-period="week" type="button">Semana</button><button class="period-button is-active" data-period="month" type="button">Mês</button><button class="period-button" data-period="3months" type="button">3 meses</button><button class="period-button" data-period="6months" type="button">6 meses</button><button class="period-button" data-period="year" type="button">Ano</button></div></div><div id="price-range" class="price-range-wrap">${renderizarFaixaPrecos(historico, produto.preco)}</div><div class="chart-wrap"><canvas id="price-chart"></canvas></div></section>`;
 		prepararOfertasDetalhe(detalhe, ofertas);
-		detalhe.innerHTML = `<a class="back-link" href="#">← Voltar para produtos</a><div class="detail-header"><div class="detail-image">${produto.imagemUrl ? `<img src="${escaparHtml(produto.imagemUrl)}" alt="${escaparHtml(produto.titulo)}" />` : "Sem imagem"}</div><div class="detail-summary"><span class="detail-source">${renderizarFonteComLogo(produto.fonte)}${produto.ativo === false ? " · Inativo" : ""}</span><h1>${escaparHtml(produto.titulo)}</h1><div class="detail-prices">${produto.precoAntigo > produto.preco ? `<span class="old-price">${formatarPreco(produto.precoAntigo)}</span>` : ""}<div class="detail-current-price"><strong>${formatarPreco(produto.preco)}</strong>${desconto ? `<span class="discount-badge">-${desconto}% de desconto</span>` : ""}</div></div>${produto.url ? `<a class="store-link" href="${escaparHtml(produto.url)}" target="_blank" rel="noreferrer">Ver na loja ↗</a>` : ""}</div></div><section class="history-section"><div class="history-heading"><div><h2>Histórico de preço</h2><span>${historico.length} registro(s)</span></div><div class="history-periods"><button class="period-button is-active" data-period="day" type="button">Dia</button><button class="period-button" data-period="week" type="button">Semana</button><button class="period-button" data-period="month" type="button">Mês</button><button class="period-button" data-period="3months" type="button">3 meses</button><button class="period-button" data-period="6months" type="button">6 meses</button><button class="period-button" data-period="year" type="button">Ano</button></div></div><div class="chart-wrap"><canvas id="price-chart"></canvas></div></section>`;
 		if (historico.length > 0 && window.Chart) {
 			graficoHistorico?.destroy();
-			const dadosIniciais = agruparPontosGrafico(historico, "day");
+			const dadosIniciais = agruparPontosGrafico(historico, "month");
 			graficoHistorico = new window.Chart($("#price-chart"), {
 				type: "line",
 				data: {
@@ -1604,7 +1588,7 @@ async function carregarDetalhe(id) {
 					graficoHistorico.update();
 				}),
 			);
-			$(".period-button").click();
+			$('.period-button[data-period="month"]')?.click();
 		}
 	} catch (erro) {
 		detalhe.innerHTML = `<div class="empty-state">Não foi possível carregar o histórico deste produto.</div>`;
@@ -1640,95 +1624,6 @@ function mostrarPaginaAdministracao() {
 	$("#admin-page").classList.remove("is-hidden");
 	atualizarNavegacaoAdministrativa();
 }
-function mostrarLoginAdministracaoAnterior(mensagem = "") {
-	mostrarPaginaAdministracao();
-	const pagina = $("#admin-page");
-	pagina.innerHTML = `<div class="admin-card admin-login"><h1>Administração</h1><p class="admin-description">Entre para configurar as fontes do scraping.</p>${mensagem ? `<div class="admin-error">${escaparHtml(mensagem)}</div>` : ""}<form id="admin-login-form"><label>E-mail<input name="email" type="email" required autocomplete="username" /></label><label>Senha<input name="senha" type="password" required autocomplete="current-password" /></label><label>Código MFA<input name="codigoTotp" inputmode="numeric" autocomplete="one-time-code" /></label><button class="primary-button full-button" type="submit">Entrar</button></form></div>`;
-	$("#admin-login-form").addEventListener("submit", async (evento) => {
-		evento.preventDefault();
-		const formulario = new FormData(evento.currentTarget);
-		try {
-			const resposta = await fetch("/api/autenticacao/login", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(Object.fromEntries(formulario)),
-			});
-			if (!resposta.ok)
-				throw new Error(
-					(await resposta.json()).erro ?? "Não foi possível entrar",
-				);
-			await carregarConfiguracaoAdministracao();
-		} catch (erro) {
-			mostrarLoginAdministracao(erro.message);
-		}
-	});
-}
-
-async function carregarConfiguracaoAdministracaoAnterior() {
-	mostrarPaginaAdministracao();
-	const pagina = $("#admin-page");
-	pagina.innerHTML =
-		'<div class="admin-card skeleton-admin"><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line title"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div></div>';
-	try {
-		const sessao = await fetch("/api/autenticacao/sessao");
-		if (!sessao.ok) {
-			mostrarLoginAdministracao();
-			return;
-		}
-		const resposta = await fetch("/api/admin/configuracoes/scraping");
-		if (!resposta.ok)
-			throw new Error("Não foi possível carregar as configurações");
-		const configuracao = (await resposta.json()).dados;
-		pagina.innerHTML = `<div class="admin-header"><div><span class="detail-source">Área protegida</span><h1>Configurações do scraping</h1><p class="admin-description">Ative fontes e altere as URLs usadas nas próximas coletas.</p></div><button id="admin-logout" class="text-button" type="button">Sair</button></div><form id="scraping-settings-form" class="admin-settings">${configuracao.fontes.map((fonte) => `<section class="admin-source"><div><h2>${escaparHtml(fonte.nome)}</h2><label class="check-row"><input type="checkbox" name="ativa-${fonte.fonte}" ${fonte.ativa ? "checked" : ""} /> Fonte ativa</label></div><label>URL da fonte<input name="url-${fonte.fonte}" type="url" value="${escaparHtml(fonte.url)}" required /></label></section>`).join("")}<div id="admin-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form><section class="admin-mfa"><h2>Autenticação em dois fatores</h2><p class="admin-description">Ative MFA com um aplicativo autenticador para proteger esta área.</p><button id="start-mfa" class="secondary-button" type="button">Configurar MFA</button></section></div>`;
-		$("#admin-logout").addEventListener("click", async () => {
-			await fetch("/api/autenticacao/logout", {
-				method: "POST",
-				headers: { "X-CSRF-Token": obterTokenCsrf() },
-			});
-			mostrarLoginAdministracao();
-		});
-		$("#scraping-settings-form").addEventListener(
-			"submit",
-			salvarConfiguracaoAdministracao,
-		);
-		$("#start-mfa").addEventListener("click", configurarMfa);
-	} catch (erro) {
-		pagina.innerHTML = `<div class="admin-card"><div class="admin-error">${escaparHtml(erro.message)}</div></div>`;
-	}
-}
-
-async function salvarConfiguracaoAdministracao(evento) {
-	evento.preventDefault();
-	const formulario = new FormData(evento.currentTarget);
-	const fontes = ["kabum", "amazon", "terabyteshop"].map((fonte) => ({
-		fonte,
-		url: formulario.get(`url-${fonte}`),
-		ativa: formulario.get(`ativa-${fonte}`) === "on",
-	}));
-	const feedback = $("#admin-feedback");
-	feedback.className = "admin-feedback";
-	feedback.textContent = "Salvando...";
-	try {
-		const resposta = await fetch("/api/admin/configuracoes/scraping", {
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRF-Token": obterTokenCsrf(),
-			},
-			body: JSON.stringify({ fontes }),
-		});
-		if (!resposta.ok)
-			throw new Error(
-				(await resposta.json()).erro ?? "Não foi possível salvar",
-			);
-		feedback.className = "admin-feedback success";
-		feedback.textContent = "Configurações salvas com sucesso.";
-	} catch (erro) {
-		feedback.className = "admin-feedback error";
-		feedback.textContent = erro.message;
-	}
-}
-
 async function configurarMfa() {
 	const inicio = await fetch("/api/autenticacao/mfa/iniciar", {
 		method: "POST",
@@ -1769,49 +1664,6 @@ async function configurarMfa() {
 	});
 }
 
-function renderizarRotaAnterior() {
-	if (window.location.hash === "#admin") {
-		carregarConfiguracaoAdministracaoAnterior();
-		return;
-	}
-	$("#admin-page").classList.add("is-hidden");
-	const rota = window.location.hash.match(/^#produto\/(.+)$/);
-	if (rota) carregarDetalhe(rota[1]);
-	else {
-		$(".content-layout").classList.remove("is-hidden");
-		$("#product-detail").classList.add("is-hidden");
-		carregarProdutos();
-	}
-}
-
-// Mostra o login sem expor detalhes administrativos na tela inicial.
-function mostrarLoginAdministracaoLegado(mensagem = "") {
-	mostrarPaginaAdministracao();
-	const pagina = $("#admin-page");
-	pagina.innerHTML = `<div class="admin-card admin-login"><h1>Entrar</h1>${mensagem ? `<div class="admin-error">${escaparHtml(mensagem)}</div>` : ""}<form id="admin-login-form"><label>E-mail<input name="email" type="email" required autocomplete="username" /></label><label>Senha<input name="senha" type="password" required autocomplete="current-password" /></label><label>Código de verificação<input name="codigoTotp" inputmode="numeric" autocomplete="one-time-code" /></label><button class="primary-button full-button" type="submit">Entrar</button></form></div>`;
-	$("#admin-login-form").addEventListener("submit", async (evento) => {
-		evento.preventDefault();
-		try {
-			const resposta = await fetch("/api/autenticacao/login", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(
-					Object.fromEntries(new FormData(evento.currentTarget)),
-				),
-			});
-			if (!resposta.ok)
-				throw new Error(
-					(await resposta.json()).erro ?? "Não foi possível entrar",
-				);
-			atualizarConta();
-			window.location.hash = "admin";
-		} catch (erro) {
-			mostrarLoginAdministracao(erro.message);
-		}
-	});
-}
-
-// Mantém os campos bloqueados até o usuário solicitar uma edição.
 async function carregarConfiguracaoAdministracao() {
 	mostrarPaginaAdministracao();
 	const pagina = $("#admin-page");
@@ -1836,7 +1688,7 @@ async function carregarConfiguracaoAdministracao() {
 				item.nome ?? item.fonte,
 			]),
 		);
-		pagina.innerHTML = `<div class="admin-header"><h1>Configurações do scraping</h1></div><form id="scraping-settings-form" class="admin-settings">${configuracao.fontes.map((fonte) => `<section class="admin-source"><div><h2>${renderizarFonteComLogo(fonte.fonte, fonte.nome)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa-${fonte.fonte}" ${fonte.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Ativa</span></label></div><label>URL da fonte<div class="url-edit"><input name="url-${fonte.fonte}" type="url" value="${escaparHtml(fonte.url)}" readonly required /><button class="edit-button" type="button" data-edit-url="${fonte.fonte}" aria-label="Editar URL">✎</button></div></label></section>`).join("")}<div id="admin-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form><section class="admin-mfa"><h2>Autenticação em dois fatores</h2><button id="start-mfa" class="secondary-button" type="button">Configurar MFA</button></section></div>`;
+		pagina.innerHTML = `<div class="admin-header"><h1>Configurações do scraping</h1></div><form id="scraping-settings-form" class="admin-settings">${configuracao.fontes.map((fonte) => `<section class="admin-source"><div><h2>${renderizarFonteComLogo(fonte.fonte, fonte.nome)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa-${fonte.fonte}" ${fonte.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Ativa</span></label></div><label>URL da fonte<div class="url-edit"><input name="url-${fonte.fonte}" type="url" value="${escaparHtml(fonte.url)}" readonly required /><button class="edit-button" type="button" data-edit-url="${fonte.fonte}" aria-label="Editar URL"><i data-lucide="pencil" aria-hidden="true"></i></button></div></label></section>`).join("")}<div id="admin-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form><section class="admin-mfa"><h2>Autenticação em dois fatores</h2><button id="start-mfa" class="secondary-button" type="button">Configurar MFA</button></section></div>`;
 		if (configuracao.fontes.length === 0) {
 			const formularioVazio = $("#scraping-settings-form");
 			formularioVazio.innerHTML =
@@ -1855,63 +1707,12 @@ async function carregarConfiguracaoAdministracao() {
 			"submit",
 			salvarConfiguracaoAdministracaoGeral,
 		);
+		adicionarBotoesEdicaoFontes();
+		configurarRotulosAcoesFontes();
+		agendarAtualizacaoIcones();
 	} catch (erro) {
 		pagina.innerHTML = `<div class="admin-card"><div class="admin-error">${escaparHtml(erro.message)}</div></div>`;
 	}
-}
-
-async function confirmarLimpezaProdutos() {
-	const confirmacao = window.prompt(
-		"Esta ação removerá todos os produtos, históricos e índices do Elasticsearch. Digite reset para confirmar:",
-	);
-	if (confirmacao !== "reset") return;
-	const botao = $("#reset-products");
-	botao.disabled = true;
-	botao.textContent = "Limpando...";
-	try {
-		const resposta = await fetch(
-			"/api/admin/configuracoes/scraping/limpar-produtos",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-CSRF-Token": obterTokenCsrf(),
-				},
-				body: JSON.stringify({ confirmacao }),
-			},
-		);
-		const dados = await resposta.json();
-		if (!resposta.ok)
-			throw new Error(
-				dados.erro ?? "Não foi possível limpar os produtos",
-			);
-		await mostrarMensagemPersonalizada(
-			"Limpeza concluída",
-			`Produtos: ${dados.dados.itens}; históricos: ${dados.dados.historico}; documentos indexados: ${dados.dados.indexados}.`,
-		);
-	} catch (erro) {
-		await mostrarMensagemPersonalizada(
-			"Não foi possível limpar os produtos",
-			erro.message,
-			"danger",
-		);
-	} finally {
-		botao.disabled = false;
-		botao.textContent = "Limpar produtos";
-	}
-}
-
-function renderizarCamposSeletoresAnterior(fonte) {
-	const campos = [
-		["item", "Container do produto"],
-		["titulo", "Título"],
-		["preco", "Preço atual"],
-		["precoAntigo", "Preço antigo"],
-		["imagem", "Imagem"],
-		["url", "Link do produto"],
-		["carregarMais", "Botão carregar mais"],
-	];
-	return `<div class="selector-config"><div class="selector-config-heading"><div><h3>Seletores dos elementos</h3><p>Informe seletores CSS ou use o editor visual.</p></div><div class="selector-config-actions"><button class="secondary-button" type="button" data-test-selectors="${fonte.fonte}">Testar seletores</button><button class="secondary-button" type="button" data-visual-selectors="${fonte.fonte}">Editor visual</button></div></div><div class="selector-fields">${campos.map(([campo, rotulo]) => `<label>${rotulo}<input name="seletor-${campo}-${fonte.fonte}" value="${escaparHtml(fonte.seletores?.[campo] ?? "")}" placeholder="Ex.: .product-card h2" ${campo === "item" || campo === "titulo" || campo === "preco" || campo === "imagem" ? "required" : ""} /></label>`).join("")}</div><label class="check-row selector-virtualized"><input type="checkbox" name="paginaVirtualizada-${fonte.fonte}" ${fonte.seletores?.paginaVirtualizada ? "checked" : ""} /> Página com produtos virtualizados</label><div class="selector-test-result" data-selector-result="${fonte.fonte}" aria-live="polite"></div></div>`;
 }
 
 function renderizarCamposSeletores(fonte) {
@@ -1933,7 +1734,7 @@ function renderizarCamposSeletores(fonte) {
 		url: "Link que leva à página do produto.",
 		carregarMais: "Botão usado para carregar mais produtos, se houver.",
 	};
-	return `<div class="selector-config"><div class="selector-config-heading"><div><h3>Seletores dos elementos</h3></div><div class="selector-config-actions"><button class="secondary-button" type="button" data-test-selectors="${fonte.fonte}">Testar seletores</button><button class="secondary-button" type="button" data-visual-selectors="${fonte.fonte}">Editor visual</button></div></div><div class="selector-fields">${campos.map(([campo, rotulo]) => `<label class="selector-field ${campo === "item" ? "selector-field-item" : ""}"><span class="selector-field-label">${rotulo}<span class="info-icon" tabindex="0" title="${dicas[campo] ?? "Configuração do produto."}" aria-label="${dicas[campo] ?? "Configuração do produto."}">i</span></span><input name="seletor-${campo}-${fonte.fonte}" value="${escaparHtml(fonte.seletores?.[campo] ?? "")}" placeholder="Ex.: .product-card h2" ${campo === "item" || campo === "titulo" || campo === "preco" || campo === "imagem" ? "required" : ""} /></label>`).join("")}</div><label class="check-row selector-virtualized"><input type="checkbox" name="paginaVirtualizada-${fonte.fonte}" ${fonte.seletores?.paginaVirtualizada ? "checked" : ""} /> <span>Página com produtos virtualizados</span><span class="info-icon" tabindex="0" title="Ative quando a página renderiza os produtos dinamicamente conforme você rola ou interage." aria-label="Ative quando a página renderiza os produtos dinamicamente conforme você rola ou interage.">i</span></label><div class="selector-test-result" data-selector-result="${fonte.fonte}" aria-live="polite"></div></div>`;
+	return `<div class="selector-config"><div class="selector-config-heading"><div><h3>Seletores dos elementos</h3></div><div class="selector-config-actions"><button class="secondary-button" type="button" data-test-selectors="${fonte.fonte}">Testar seletores</button><button class="secondary-button" type="button" data-analyze-html="${fonte.fonte}">Analisar HTML</button></div></div><div class="selector-fields">${campos.map(([campo, rotulo]) => { const obrigatorio = campo === "item" || campo === "titulo" || campo === "preco" || campo === "imagem"; return `<label class="selector-field ${campo === "item" ? "selector-field-item" : ""}"><span class="selector-field-label"><span class="info-icon" tabindex="0" title="${dicas[campo] ?? "Configuração do produto."}" aria-label="${dicas[campo] ?? "Configuração do produto."}"><i data-lucide="info" aria-hidden="true"></i></span>${rotulo}${obrigatorio ? '<span class="required-mark">*</span>' : ""}</span><input name="seletor-${campo}-${fonte.fonte}" value="${escaparHtml(fonte.seletores?.[campo] ?? "")}" placeholder="Ex.: .product-card h2" ${obrigatorio ? "required" : ""} /></label>`; }).join("")}</div><label class="check-row selector-virtualized"><input type="checkbox" name="paginaVirtualizada-${fonte.fonte}" ${fonte.seletores?.paginaVirtualizada ? "checked" : ""} /><span class="info-icon" tabindex="0" title="Ative quando a página renderiza os produtos dinamicamente conforme você rola ou interage." aria-label="Ative quando a página renderiza os produtos dinamicamente conforme você rola ou interage."><i data-lucide="info" aria-hidden="true"></i></span><span>Página com produtos virtualizados</span></label><div class="selector-test-result" data-selector-result="${fonte.fonte}" aria-live="polite"></div></div>`;
 }
 
 async function salvarConfiguracaoFonte(evento, fonte, configuracao) {
@@ -1950,21 +1751,18 @@ async function salvarConfiguracaoFonte(evento, fonte, configuracao) {
 	const fonteAtiva =
 		evento.currentTarget.querySelector("input[name='ativa']")?.checked ??
 		formulario.get("ativa") === "on";
-	const fontes = configuracao.fontes.map((item) =>
-		item.fonte === fonte
+	const fontes = configuracao.fontes.map((fonteConfigurada) => {
+		const item = removerLogoDaAtualizacao(fonteConfigurada);
+		return item.fonte === fonte
 			? {
-					fonte,
+					...item,
+					logo: formulario.get("logo") ?? fonteConfigurada.logo ?? "",
 					url: urlAtual,
 					ativa: fonteAtiva,
 					seletores: obterSeletoresDoFormulario(fonte),
 				}
-			: {
-					fonte: item.fonte,
-					url: item.url,
-					ativa: item.ativa,
-					seletores: item.seletores,
-				},
-	);
+			: item;
+	});
 	const feedback = $("#source-settings-feedback");
 	feedback.className = "admin-feedback";
 	feedback.textContent = "";
@@ -1996,28 +1794,6 @@ async function salvarConfiguracaoFonte(evento, fonte, configuracao) {
 		if (botaoSalvar) botaoSalvar.disabled = false;
 	}
 }
-
-/*
-async function carregarConfiguracaoFonte(fonte) {
-	mostrarPaginaAdministracao();
-	const pagina = $("#admin-page");
-	pagina.innerHTML = '<div class="admin-card skeleton-admin"><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line title"></div><div class="skeleton skeleton-line"></div></div>';
-	try {
-		const sessao = await fetch("/api/autenticacao/sessao");
-		if (!sessao.ok) { mostrarLoginAdministracao(); return; }
-		const resposta = await fetch("/api/admin/configuracoes/scraping");
-		if (!resposta.ok) throw new Error("Não foi possível carregar a configuração da fonte");
-		const configuracao = (await resposta.json()).dados;
-		const item = configuracao.fontes.find((fonteConfigurada) => fonteConfigurada.fonte === fonte);
-		logosFontesConfiguradas[fonte] = item?.logo ?? "";
-		if (!item) throw new Error("Fonte não encontrada");
-		pagina.innerHTML = \`<div class="admin-header"><div><a class="back-link" href="#admin">← Configurações</a><h1>Configurar \${escaparHtml(item.nome)}</h1><p class="admin-description">Ajuste os seletores usados para localizar os produtos nesta fonte.</p></div></div><form id="source-settings-form" class="admin-settings source-settings-form"><section class="admin-source source-settings-main"><div><h2>\${renderizarFonteComLogo(item.fonte)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa" \${item.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Fonte ativa</span></label></div><label>URL da fonte<div class="url-edit"><input name="url" type="url" value="\${escaparHtml(item.url)}" required /><span class="source-url-hint">A URL será usada na próxima coleta.</span></div></label></section>\${renderizarCamposSeletores(item)}<div id="source-settings-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form>\`;
-		document.querySelectorAll("[data-test-selectors]").forEach((botao) => botao.addEventListener("click", () => void testarSeletoresFonte(botao.dataset.testSelectors)));
-		document.querySelectorAll("[data-visual-selectors]").forEach((botao) => botao.addEventListener("click", () => void abrirEditorVisual(botao.dataset.visualSelectors)));
-		$("#source-settings-form").addEventListener("submit", (evento) => void salvarConfiguracaoFonte(evento, fonte, configuracao));
-	} catch (erro) { pagina.innerHTML = \`<div class="admin-card"><div class="admin-error">\${escaparHtml(erro.message)}</div></div>\`; }
-}
-*/
 
 async function carregarConfiguracaoFonte(fonte) {
 	mostrarPaginaAdministracao();
@@ -2062,17 +1838,10 @@ async function carregarConfiguracaoFonte(fonte) {
 			' /><span class="toggle-control"></span><span>Fonte ativa</span></label></div><label>URL da fonte<div class="url-edit"><input name="url" type="url" value="' +
 			escaparHtml(item.url) +
 			'" required /><span class="source-url-hint">A URL será usada na próxima coleta.</span></div></label></section>' +
+			'<input type="hidden" name="logo" value="' + escaparHtml(item.logo ?? "") + '" />' +
 			renderizarCamposSeletores(item) +
 			'<div id="source-settings-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form>';
 		atualizarEstadoBotoesTeste();
-		document
-			.querySelectorAll("[data-visual-selectors]")
-			.forEach((botao) =>
-				botao.addEventListener(
-					"click",
-					() => void abrirEditorVisual(botao.dataset.visualSelectors),
-				),
-			);
 		$("#source-settings-form").addEventListener(
 			"submit",
 			(evento) =>
@@ -2093,12 +1862,59 @@ async function carregarConfiguracaoFonte(fonte) {
 			);
 			if (oculto) oculto.value = campoUrlFonte.value;
 		});
+		posicionarNotaUrlFonte();
+		configurarLogoFonte(item);
+		configurarTooltipsInformativos();
+		configurarEdicaoFonte();
+		agendarAtualizacaoIcones();
 	} catch (erro) {
 		pagina.innerHTML =
 			'<div class="admin-card"><div class="admin-error">' +
 			escaparHtml(erro.message) +
 			"</div></div>";
 	}
+}
+
+function configurarLogoFonte(item) {
+	const formulario = $("#source-settings-form");
+	const areaIdentidade = formulario?.querySelector(".source-settings-main > div");
+	const entradaOculta = formulario?.querySelector("input[name='logo']");
+	if (!formulario || !areaIdentidade || !entradaOculta || formulario.dataset.logoConfigured) return;
+	formulario.dataset.logoConfigured = "true";
+
+	const seletor = document.createElement("label");
+	seletor.className = `source-logo-picker${item.logo ? " has-logo" : ""}`;
+	const entrada = document.createElement("input");
+	entrada.type = "file";
+	entrada.accept = "image/png,image/jpeg,image/webp,image/svg+xml";
+	entrada.className = "source-logo-input";
+	entrada.setAttribute("aria-label", "Alterar logo da fonte");
+	const preview = document.createElement("img");
+	preview.className = "source-logo-preview";
+	preview.alt = "Logo da fonte";
+	if (item.logo) preview.src = item.logo;
+	seletor.prepend(entrada);
+	seletor.append(preview);
+	areaIdentidade.append(seletor);
+
+	entrada.addEventListener("change", () => {
+		const arquivo = entrada.files?.[0];
+		if (!arquivo) return;
+		if (arquivo.size > 700 * 1024 || !["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(arquivo.type)) {
+			entrada.value = "";
+			return;
+		}
+		const leitor = new FileReader();
+		leitor.addEventListener("load", () => {
+			const logo = String(leitor.result ?? "");
+			if (!logo) return;
+			entradaOculta.value = logo;
+			preview.src = logo;
+			seletor.classList.add("has-logo");
+		});
+		leitor.readAsDataURL(arquivo);
+	});
+	agendarAtualizacaoIcones();
 }
 
 async function carregarConfiguracaoAutenticacao() {
@@ -2125,21 +1941,6 @@ let resultadoBuscaManual = { itens: [], erros: [] };
 function escaparCsvManual(valor) {
 	return `"${String(valor ?? "").replaceAll('"', '""')}"`;
 }
-function gerarCsvBuscaManual() {
-	const linhas = resultadoBuscaManual.itens.map((item) =>
-		[
-			item.fonte,
-			item.titulo,
-			item.preco,
-			item.precoAntigo,
-			item.url,
-			item.imagemUrl,
-		]
-			.map(escaparCsvManual)
-			.join(";"),
-	);
-	return `\uFEFFfonte;titulo;preco;precoAntigo;url;imagemUrl\n${linhas.join("\n")}\n`;
-}
 function baixarArquivoBuscaManual(nome, conteudo, tipo) {
 	const url = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
 	const link = document.createElement("a");
@@ -2147,26 +1948,6 @@ function baixarArquivoBuscaManual(nome, conteudo, tipo) {
 	link.download = nome;
 	link.click();
 	URL.revokeObjectURL(url);
-}
-function renderizarTabelaBuscaManual() {
-	const corpo = $("#manual-search-body");
-	if (!corpo) return;
-	corpo.innerHTML =
-		resultadoBuscaManual.itens
-			.map(
-				(item) =>
-					`<tr><td>${renderizarFonteComLogo(item.fonte)}</td><td>${escaparHtml(item.titulo)}</td><td>${formatarPreco(item.preco)}</td><td>${item.precoAntigo ? formatarPreco(item.precoAntigo) : "—"}</td><td><a href="${escaparHtml(item.url)}" target="_blank" rel="noreferrer">Abrir</a></td></tr>`,
-			)
-			.join("") ||
-		'<tr><td colspan="5" class="manual-search-empty">Nenhum produto encontrado.</td></tr>';
-	$("#manual-search-count").textContent =
-		`${resultadoBuscaManual.itens.length} produto(s)`;
-	$("#manual-search-errors").innerHTML = resultadoBuscaManual.erros
-		.map(
-			(erro) =>
-				`<div class="admin-error">${renderizarFonteComLogo(erro.fonte)}: ${escaparHtml(erro.mensagem)}</div>`,
-		)
-		.join("");
 }
 async function carregarBuscaManual() {
 	mostrarPaginaAdministracao();
@@ -2180,8 +1961,16 @@ async function carregarBuscaManual() {
 			return;
 		}
 		pagina.innerHTML =
-			'<div class="admin-header"><div><h1>Busca manual</h1><p class="admin-description">Execute uma busca sem salvar os resultados no banco de dados.</p></div></div><section class="admin-card manual-search-page"><div class="manual-search-toolbar"><fieldset class="manual-search-sources"><legend>Fontes</legend><label><input type="checkbox" name="manual-search-source" value="kabum" checked /><img src="/kabum-logo.png" alt="" aria-hidden="true" /> KaBuM!</label><label><input type="checkbox" name="manual-search-source" value="amazon" checked /><img src="/amazon-logo.png" alt="" aria-hidden="true" /> Amazon</label><label><input type="checkbox" name="manual-search-source" value="terabyteshop" checked /><img src="/terabyte-logo.png" alt="" aria-hidden="true" /> Terabyte Shop</label></fieldset><button id="run-manual-search" class="primary-button" type="button">Executar busca</button></div><div id="manual-search-feedback" class="admin-feedback"></div><div class="manual-search-actions"><strong id="manual-search-count">0 produto(s)</strong><button id="download-manual-csv" class="secondary-button" type="button" disabled>Exportar CSV</button><button id="print-manual-search" class="secondary-button" type="button" disabled>Exportar PDF</button></div><div id="manual-search-errors"></div><div class="manual-search-table-wrap"><table class="manual-search-table"><thead><tr><th>Fonte</th><th>Produto</th><th>Preço</th><th>Preço antigo</th><th>Link</th></tr></thead><tbody id="manual-search-body"><tr><td colspan="5" class="manual-search-empty">Execute uma busca para visualizar os produtos.</td></tr></tbody></table></div></section>';
+			'<div class="admin-header"><div><h1>Busca manual</h1><p class="admin-description">Execute uma busca sem salvar os resultados no banco de dados.</p></div></div><section class="admin-card manual-search-page"><div class="manual-search-toolbar"><fieldset class="manual-search-sources"><legend>Fontes</legend></fieldset><label class="manual-search-multiple-filter"><input id="manual-search-multiple-filter" type="checkbox" /> Presente em mais de uma loja</label><button id="run-manual-search" class="primary-button" type="button">Executar busca</button></div><div id="manual-search-feedback" class="admin-feedback"></div><div class="manual-search-actions"><label class="manual-search-text-filter"><span>Buscar no resultado</span><input id="manual-search-text-filter" type="search" placeholder="Nome do produto" /></label><strong id="manual-search-count">0 produto(s)</strong><button id="download-manual-csv" class="secondary-button" type="button" disabled>Exportar CSV</button><button id="print-manual-search" class="secondary-button" type="button" disabled>Exportar PDF</button></div><div id="manual-search-errors"></div><div class="manual-search-table-wrap"><table class="manual-search-table"><thead><tr><th>Fonte</th><th>Produto</th><th>Preço</th><th>Preço antigo</th><th>Link</th></tr></thead><tbody id="manual-search-body"><tr><td colspan="5" class="manual-search-empty">Execute uma busca para visualizar os produtos.</td></tr></tbody></table></div></section>';
 		$("#run-manual-search").addEventListener("click", executarBuscaManual);
+		$("#manual-search-text-filter").addEventListener("input", (evento) => {
+			filtroBuscaManual.texto = evento.target.value;
+			renderizarTabelaBuscaManual();
+		});
+		$("#manual-search-multiple-filter").addEventListener("change", (evento) => {
+			filtroBuscaManual.somenteMultilojas = evento.target.checked;
+			renderizarTabelaBuscaManual();
+		});
 		$("#download-manual-csv").addEventListener("click", () =>
 			baixarArquivoBuscaManual(
 				"produtos-busca-manual.csv",
@@ -2196,7 +1985,7 @@ async function carregarBuscaManual() {
 		pagina.innerHTML = `<div class="admin-card"><div class="admin-error">${escaparHtml(erro.message)}</div></div>`;
 	}
 }
-async function executarBuscaManual() {
+async function executarBuscaManualInterna() {
 	const botao = $("#run-manual-search");
 	const feedback = $("#manual-search-feedback");
 	botao.disabled = true;
@@ -2233,38 +2022,6 @@ async function executarBuscaManual() {
 		feedback.textContent = erro.message;
 	} finally {
 		botao.disabled = false;
-	}
-}
-
-async function salvarConfiguracaoAdministracaoAnterior(evento) {
-	evento.preventDefault();
-	const formulario = new FormData(evento.currentTarget);
-	const fontes = ["kabum", "amazon", "terabyteshop"].map((fonte) => ({
-		fonte,
-		url: formulario.get(`url-${fonte}`),
-		ativa: formulario.get(`ativa-${fonte}`) === "on",
-	}));
-	const feedback = $("#admin-feedback");
-	feedback.className = "admin-feedback";
-	feedback.textContent = "Salvando...";
-	try {
-		const resposta = await fetch("/api/admin/configuracoes/scraping", {
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRF-Token": obterTokenCsrf(),
-			},
-			body: JSON.stringify({ fontes }),
-		});
-		if (!resposta.ok)
-			throw new Error(
-				(await resposta.json()).erro ?? "Não foi possível salvar",
-			);
-		feedback.className = "admin-feedback success";
-		feedback.textContent = "Configurações salvas com sucesso.";
-	} catch (erro) {
-		feedback.className = "admin-feedback error";
-		feedback.textContent = erro.message;
 	}
 }
 
@@ -2344,12 +2101,12 @@ function formatarHorario(data) {
 async function carregarMonitoramento() {
 	mostrarPaginaAdministracao();
 	const pagina = $("#admin-page");
-	pagina.innerHTML = `<div class="admin-header"><div><span class="detail-source">Área protegida</span><h1>Scrapings em tempo real</h1></div></div><div class="monitor-summary" id="monitor-summary"></div><section id="monitor-errors-panel" class="monitor-panel monitor-errors-panel is-hidden"><div class="monitor-panel-heading"><h2>Fontes com problemas</h2><span class="monitor-error-caption" title="Atenção necessária" aria-label="Atenção necessária">!</span></div><div id="monitor-errors" class="monitor-status-grid"></div></section><section class="monitor-panel"><div class="monitor-panel-heading"><h2>Status por fonte</h2><div class="monitor-filters"><select id="monitor-source-filter"><option value="">Todas as fontes</option><option value="kabum">KaBuM!</option><option value="amazon">Amazon</option><option value="terabyteshop">Terabyte Shop</option></select><button id="open-monitor-logs" class="secondary-button" type="button">Ver console de logs</button></div></div><div id="monitor-status" class="monitor-status-grid"></div></section><section class="monitor-panel"><div class="monitor-panel-heading"><h2>Histórico recente</h2></div><div class="monitor-history-wrap"><table class="monitor-history"><thead><tr><th>Fonte</th><th>Status</th><th>Início</th><th>Duração</th><th>Produtos</th><th></th></tr></thead><tbody id="monitor-history-body"></tbody></table></div></section><div id="monitor-logs-modal" class="monitor-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="monitor-logs-title"><div class="monitor-modal-backdrop" data-close-monitor-logs></div><div class="monitor-modal-content"><div class="monitor-panel-heading"><h2 id="monitor-logs-title">Console de logs</h2><button id="close-monitor-logs" class="icon-button" type="button" aria-label="Fechar console">×</button></div><div id="monitor-execution-progress" class="monitor-execution-progress"></div><div class="monitor-filters"><select id="monitor-log-level"><option value="">Todos os níveis</option><option value="info">Informação</option><option value="sucesso">Sucesso</option><option value="aviso">Aviso</option><option value="erro">Erro</option></select><button id="clear-monitor-logs" class="secondary-button" type="button">Limpar visualização</button></div><div id="monitor-logs" class="monitor-logs"></div></div></div></div>`;
+	pagina.innerHTML = `<div class="admin-header"><div><h1>Scrapings em tempo real</h1></div></div><div class="monitor-summary" id="monitor-summary"></div><section id="monitor-errors-panel" class="monitor-panel monitor-errors-panel is-hidden"><div class="monitor-panel-heading"><h2>Fontes com problemas</h2><span class="monitor-error-caption" title="Atenção necessária" aria-label="Atenção necessária"><i data-lucide="triangle-alert" aria-hidden="true"></i></span></div><div id="monitor-errors" class="monitor-status-grid"></div></section><section class="monitor-panel"><div class="monitor-panel-heading"><h2>Status por fonte</h2><div class="monitor-filters"></div></div><div id="monitor-status" class="monitor-status-grid"></div></section><section class="monitor-panel"><div class="monitor-panel-heading"><h2>Histórico recente</h2></div><div class="monitor-history-wrap"><table class="monitor-history"><thead><tr><th>Início</th><th>Rodada</th><th>Fonte</th><th>Status</th><th>Duração</th><th>Produtos</th><th></th></tr></thead><tbody id="monitor-history-body"></tbody></table></div></section><div id="monitor-logs-modal" class="monitor-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="monitor-logs-title"><div class="monitor-modal-backdrop" data-close-monitor-logs></div><div class="monitor-modal-content"><div class="monitor-panel-heading"><h2 id="monitor-logs-title">Console de logs</h2><button id="close-monitor-logs" class="icon-button" type="button" aria-label="Fechar console"><i data-lucide="x" aria-hidden="true"></i></button></div><div id="monitor-execution-progress" class="monitor-execution-progress"></div><div class="monitor-filters"><fieldset class="monitor-log-levels"><legend>Níveis</legend><label><input type="checkbox" name="monitor-log-level" value="info" checked /> Informação</label><label><input type="checkbox" name="monitor-log-level" value="sucesso" checked /> Sucesso</label><label><input type="checkbox" name="monitor-log-level" value="aviso" checked /> Aviso</label><label><input type="checkbox" name="monitor-log-level" value="erro" checked /> Erro</label></fieldset></div><div id="monitor-logs" class="monitor-logs"></div></div></div></div>`;
 	const cabecalhoMonitoramento = pagina.querySelector(".admin-header");
 	cabecalhoMonitoramento.classList.add("monitor-header");
 	cabecalhoMonitoramento.insertAdjacentHTML(
 		"beforeend",
-		'<div class="monitor-next-search"><span class="monitor-clock-icon" aria-hidden="true">◷</span><div><small>Próxima busca</small><strong id="monitor-countdown">—</strong></div></div>',
+		'<div class="monitor-next-search"><span class="monitor-clock-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span><div><small>Próxima busca</small><strong id="monitor-countdown">—</strong></div></div>',
 	);
 	const painelErros = $("#monitor-errors-panel");
 	const painelStatus = $("#monitor-status").closest(".monitor-panel");
@@ -2372,24 +2129,11 @@ async function carregarMonitoramento() {
 	$("#monitor-history-body").innerHTML =
 		'<tr><td colspan="7"><div class="skeleton skeleton-table"></div></td></tr>';
 	configurarPainelMonitoramento();
-	garantirColunaRodadaHistorico();
-	await atualizarPainelMonitoramentoFinal();
-	abrirEventosScrapingFinal();
+	await atualizarPainelMonitoramento();
+	abrirEventosScraping();
 }
 
 function configurarPainelMonitoramento() {
-	$("#open-monitor-logs")?.remove();
-	$("#monitor-source-filter")?.remove();
-	$("#clear-monitor-logs")?.remove();
-	$("#monitor-log-level")?.replaceWith(
-		Object.assign(document.createElement("fieldset"), {
-			className: "monitor-log-levels",
-			innerHTML:
-				'<legend>Níveis</legend><label><input type="checkbox" name="monitor-log-level" value="info" checked /> Informação</label><label><input type="checkbox" name="monitor-log-level" value="sucesso" checked /> Sucesso</label><label><input type="checkbox" name="monitor-log-level" value="aviso" checked /> Aviso</label><label><input type="checkbox" name="monitor-log-level" value="erro" checked /> Erro</label>',
-		}),
-	);
-	$(".monitor-history thead tr").innerHTML =
-		"<th>Data e hora</th><th>Fonte</th><th>Status</th><th>Duração</th><th>Produtos</th><th></th>";
 	document
 		.querySelectorAll("input[name='monitor-log-level']")
 		.forEach((caixa) =>
@@ -2397,7 +2141,7 @@ function configurarPainelMonitoramento() {
 		);
 	$(".monitor-history-wrap").insertAdjacentHTML(
 		"beforebegin",
-		'<div class="monitor-history-filters"><fieldset class="monitor-history-sources"><legend>Fonte</legend><label><input type="radio" name="monitor-history-source" value="" checked /> Todas</label><label><input type="radio" name="monitor-history-source" value="kabum" /><img src="/kabum-logo.png" alt="" aria-hidden="true" /> KaBuM!</label><label><input type="radio" name="monitor-history-source" value="amazon" /><img src="/amazon-logo.png" alt="" aria-hidden="true" /> Amazon</label><label><input type="radio" name="monitor-history-source" value="terabyteshop" /><img src="/terabyte-logo.png" alt="" aria-hidden="true" /> Terabyte Shop</label></fieldset><div class="monitor-history-date-filters"><label>De <input id="monitor-history-start" type="date" /></label><label>Até <input id="monitor-history-end" type="date" /></label><button id="filter-monitor-history" class="secondary-button" type="button">Filtrar</button></div></div>',
+		'<div class="monitor-history-filters"><fieldset class="monitor-history-sources"><legend>Fonte</legend><label><input type="radio" name="monitor-history-source" value="" checked /> Todas</label></fieldset><div class="monitor-history-date-filters"><label>De <input id="monitor-history-start" type="date" /></label><label>Até <input id="monitor-history-end" type="date" /></label><button id="filter-monitor-history" class="secondary-button" type="button">Filtrar</button></div></div>',
 	);
 	$(".monitor-history-wrap").insertAdjacentHTML(
 		"afterend",
@@ -2521,7 +2265,7 @@ function renderizarInfoProgresso(rotulo) {
 	const descricao =
 		descricoesProgresso[rotulo] ??
 		"Informações sobre esta etapa do processamento.";
-	return `<span class="info-icon progress-info-icon" tabindex="0" data-tooltip="${escaparHtml(descricao)}" aria-label="${escaparHtml(descricao)}">i</span>`;
+	return `<span class="info-icon progress-info-icon" tabindex="0" data-tooltip="${escaparHtml(descricao)}" aria-label="${escaparHtml(descricao)}"><i data-lucide="info" aria-hidden="true"></i></span>`;
 }
 function renderizarBarraProgresso(valor, rotulo = "", tempoRestante = "") {
 	const percentual = Math.max(0, Math.min(100, Number(valor) || 0));
@@ -2578,20 +2322,20 @@ function formatarStatusHistorico(status, execucao = {}) {
 		return `<div class="history-status-progress"><span class="history-status status-running"><span class="status-icon status-loading"></span>Executando</span><strong class="history-progress-percent">${percentual}%</strong></div>`;
 	}
 	if (status === "erro" || execucao.erro)
-		return '<span class="history-status status-error"><span class="status-icon">×</span>Erro</span>';
-	return '<span class="history-status status-success"><span class="status-icon">✓</span>Concluído</span>';
+		return '<span class="history-status status-error"><span class="status-icon"><i data-lucide="x" aria-hidden="true"></i></span>Erro</span>';
+	return '<span class="history-status status-success"><span class="status-icon"><i data-lucide="check" aria-hidden="true"></i></span>Concluído</span>';
 }
 function renderizarHistoricoMonitoramentoPaginado() {
 	const principal = dadosMonitoramento.paginaHistorico === 1;
 	$("#monitor-history-body").innerHTML = dadosMonitoramento.execucoes
 		.map((item) => {
 			const rodada = String(item.rodadaId ?? "legada");
-			return `<tr class="history-row status-${item.status}"><td class="history-date">${formatarDataHora(item.iniciadoEm)}</td><td class="history-round" title="${escaparHtml(rodada)}">${principal ? "Principal" : escaparHtml(rodada.slice(0, 8))}</td><td>${renderizarFonteComLogo(item.fonte)}</td><td>${formatarStatusHistorico(item.status, item)}</td><td>${formatarDuracaoExecucao(item)}</td><td>${item.produtosEncontrados ?? 0}</td><td><button class="history-details-button" data-monitor-detail="${item._id}" aria-label="Ver detalhes da execução"><span aria-hidden="true">☷</span> Detalhes</button></td></tr>`;
+		return `<tr class="history-row status-${item.status}"><td class="history-date">${formatarDataHora(item.iniciadoEm)}</td><td class="history-round" title="${escaparHtml(rodada)}">${principal ? "Principal" : escaparHtml(rodada.slice(0, 8))}</td><td>${renderizarFonteComLogo(item.fonte)}</td><td>${formatarStatusHistorico(item.status, item)}</td><td>${formatarDuracaoExecucao(item)}</td><td>${item.produtosEncontrados ?? 0}</td><td><button class="history-details-button" data-monitor-detail="${item._id}" aria-label="Ver detalhes da execução"><i data-lucide="list" aria-hidden="true"></i> Detalhes</button></td></tr>`;
 		})
 		.join("");
 	$("#monitor-history-pagination").innerHTML =
 		dadosMonitoramento.totalPaginasHistorico > 1
-			? `<button class="page-button" data-monitor-page="prev" ${dadosMonitoramento.paginaHistorico === 1 ? "disabled" : ""}>‹</button><span>Rodada ${principal ? "principal" : dadosMonitoramento.paginaHistorico} de ${dadosMonitoramento.totalPaginasHistorico}</span><button class="page-button" data-monitor-page="next" ${dadosMonitoramento.paginaHistorico === dadosMonitoramento.totalPaginasHistorico ? "disabled" : ""}>›</button>`
+			? `<button class="page-button" data-monitor-page="prev" aria-label="Rodada anterior" ${dadosMonitoramento.paginaHistorico === 1 ? "disabled" : ""}><i data-lucide="chevron-left" aria-hidden="true"></i></button><span>Rodada ${principal ? "principal" : dadosMonitoramento.paginaHistorico} de ${dadosMonitoramento.totalPaginasHistorico}</span><button class="page-button" data-monitor-page="next" aria-label="Próxima rodada" ${dadosMonitoramento.paginaHistorico === dadosMonitoramento.totalPaginasHistorico ? "disabled" : ""}><i data-lucide="chevron-right" aria-hidden="true"></i></button>`
 			: "";
 	document
 		.querySelectorAll("[data-monitor-detail]")
@@ -2609,14 +2353,6 @@ function renderizarHistoricoMonitoramentoPaginado() {
 	);
 }
 
-function garantirColunaRodadaHistorico() {
-	const cabecalho = $(".monitor-history thead tr");
-	if (!cabecalho || cabecalho.querySelector(".history-round-heading")) return;
-	const coluna = document.createElement("th");
-	coluna.className = "history-round-heading";
-	coluna.textContent = "Rodada";
-	cabecalho.insertBefore(coluna, cabecalho.children[1] ?? null);
-}
 let dadosMonitoramento = {
 	execucoes: [],
 	statusFontes: [],
@@ -2670,16 +2406,11 @@ function renderizarStatusMonitoramento() {
 	if (typeof atualizarResumoMonitoramento === "function")
 		void atualizarResumoMonitoramento();
 }
-function renderizarResumoMonitoramentoLegado() {
-	const resumo = dadosMonitoramento.resumo;
-	$("#monitor-summary").innerHTML =
-		`<div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">◷</span><strong>${resumo.ultimaAtualizacao ? formatarDataHora(resumo.ultimaAtualizacao) : "—"}</strong><span>Última atualização</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">✓</span><strong>${resumo.produtosAtivos ?? 0}</strong><span>Produtos listados atualmente</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">▦</span><strong>${resumo.produtosSalvos ?? 0}</strong><span>Produtos salvos</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">⏱</span><strong>${resumo.duracaoMediaMs ? formatarDuracao(resumo.duracaoMediaMs) : "—"}</strong><span>Tempo médio das buscas</span></div>`;
-}
 function renderizarPainelExecucaoAberta(execucao) {
 	const painel = $("#monitor-execution-progress");
 	if (!painel || !execucao) return;
 	if (execucao.status === "erro" || execucao.erro) {
-		painel.innerHTML = `<div class="monitor-execution-failed"><span class="monitor-execution-failed-icon" aria-hidden="true">!</span><div><strong>Execução interrompida</strong><p>${escaparHtml(execucao.erro ?? "A busca não foi concluída. Tente novamente.")}</p></div></div>`;
+		painel.innerHTML = `<div class="monitor-execution-failed"><span class="monitor-execution-failed-icon" aria-hidden="true"><i data-lucide="triangle-alert"></i></span><div><strong>Execução interrompida</strong><p>${escaparHtml(execucao.erro ?? "A busca não foi concluída. Tente novamente.")}</p></div></div>`;
 		return;
 	}
 	painel.innerHTML = renderizarProgressoExecucao(
@@ -2728,41 +2459,6 @@ function renderizarLogsMonitoramento() {
 		'<div class="empty-state">Nenhuma mensagem registrada para esta execução.</div>';
 	if (estavaNoFinal) area.scrollTop = area.scrollHeight;
 }
-function renderizarHistoricoMonitoramento() {
-	$("#monitor-history-body").innerHTML = dadosMonitoramento.execucoes
-		.map(
-			(item) =>
-				`<tr><td>${escaparHtml(formatarFonte(item.fonte))}</td><td><span class="monitor-status-badge ${item.status}">${escaparHtml(item.status)}</span></td><td>${formatarHorario(item.iniciadoEm)}</td><td>${formatarDuracao(item.duracaoMs)}</td><td>${item.produtosEncontrados ?? 0}</td><td><button class="text-button" data-monitor-detail="${item._id}">Detalhes</button></td></tr>`,
-		)
-		.join("");
-	document
-		.querySelectorAll("[data-monitor-detail]")
-		.forEach((botao) =>
-			botao.addEventListener("click", () =>
-				carregarLogsExecucao(botao.dataset.monitorDetail),
-			),
-		);
-}
-async function atualizarPainelMonitoramento() {
-	const [status, historico] = await Promise.all([
-		fetch("/api/admin/scraping/status"),
-		fetch("/api/admin/scraping/execucoes?limite=50"),
-	]);
-	if (!status.ok || !historico.ok) {
-		mostrarLoginAdministracao("Sessão expirada. Entre novamente.");
-		return;
-	}
-	dadosMonitoramento.execucoes = (await historico.json()).dados ?? [];
-	const execucoesAtivas = (await status.json()).dados ?? [];
-	dadosMonitoramento.execucoes = [
-		...execucoesAtivas,
-		...dadosMonitoramento.execucoes.filter(
-			(item) => !execucoesAtivas.some((ativo) => ativo._id === item._id),
-		),
-	];
-	renderizarStatusMonitoramento();
-	renderizarHistoricoMonitoramento();
-}
 async function carregarLogsExecucao(id) {
 	dadosMonitoramento.execucaoAbertaId = String(id);
 	dadosMonitoramento.execucaoAberta = null;
@@ -2788,101 +2484,7 @@ async function carregarLogsExecucao(id) {
 	renderizarLogsMonitoramento();
 	$("#monitor-logs").scrollTop = $("#monitor-logs").scrollHeight;
 }
-function adicionarEventoMonitoramento(evento) {
-	if (evento.tipo === "log") {
-		dadosMonitoramento.logs.push(evento.dados);
-		if (dadosMonitoramento.logs.length > 500)
-			dadosMonitoramento.logs.shift();
-		renderizarLogsMonitoramento();
-	}
-	if (evento.tipo === "execucao") {
-		const indice = dadosMonitoramento.execucoes.findIndex(
-			(item) => item._id === evento.dados._id,
-		);
-		if (indice >= 0)
-			dadosMonitoramento.execucoes[indice] = {
-				...dadosMonitoramento.execucoes[indice],
-				...evento.dados,
-			};
-		else dadosMonitoramento.execucoes.unshift(evento.dados);
-		atualizarPainelExecucaoAberta(evento.dados);
-		renderizarStatusMonitoramento();
-		renderizarHistoricoMonitoramento();
-	}
-}
-async function atualizarPainelMonitoramentoSeparado() {
-	const [status, historico] = await Promise.all([
-		fetch("/api/admin/scraping/status"),
-		fetch("/api/admin/scraping/execucoes?limite=50"),
-	]);
-	if (!status.ok || !historico.ok) {
-		mostrarLoginAdministracao("Sessão expirada. Entre novamente.");
-		return;
-	}
-	dadosMonitoramento.statusFontes = (await status.json()).dados ?? [];
-	dadosMonitoramento.execucoes = (await historico.json()).dados ?? [];
-	renderizarStatusMonitoramento();
-	renderizarHistoricoMonitoramento();
-}
-function adicionarEventoMonitoramentoSeparado(evento) {
-	if (evento.tipo === "log") {
-		dadosMonitoramento.logs.push(evento.dados);
-		if (dadosMonitoramento.logs.length > 500)
-			dadosMonitoramento.logs.shift();
-		renderizarLogsMonitoramento();
-	}
-	if (evento.tipo === "execucao") {
-		const indiceStatus = dadosMonitoramento.statusFontes.findIndex(
-			(item) => item._id === evento.dados._id,
-		);
-		if (indiceStatus >= 0)
-			dadosMonitoramento.statusFontes[indiceStatus] = {
-				...dadosMonitoramento.statusFontes[indiceStatus],
-				...evento.dados,
-			};
-		else dadosMonitoramento.statusFontes.push(evento.dados);
-		const indiceHistorico = dadosMonitoramento.execucoes.findIndex(
-			(item) => item._id === evento.dados._id,
-		);
-		if (indiceHistorico >= 0)
-			dadosMonitoramento.execucoes[indiceHistorico] = {
-				...dadosMonitoramento.execucoes[indiceHistorico],
-				...evento.dados,
-			};
-		else dadosMonitoramento.execucoes.unshift(evento.dados);
-		atualizarPainelExecucaoAberta(evento.dados);
-		renderizarStatusMonitoramento();
-		renderizarHistoricoMonitoramento();
-	}
-}
-function abrirEventosScraping() {
-	conexaoEventosScraping?.close();
-	clearTimeout(temporizadorReconexaoScraping);
-	conexaoEventosScraping = new EventSource("/api/admin/scraping/eventos");
-	conexaoEventosScraping.addEventListener("execucao", (evento) =>
-		adicionarEventoMonitoramentoSeparado({
-			tipo: "execucao",
-			dados: JSON.parse(evento.data),
-		}),
-	);
-	conexaoEventosScraping.addEventListener("log", (evento) =>
-		adicionarEventoMonitoramentoSeparado({
-			tipo: "log",
-			dados: JSON.parse(evento.data),
-		}),
-	);
-	conexaoEventosScraping.onerror = () => {
-		conexaoEventosScraping.close();
-		temporizadorReconexaoScraping = setTimeout(() => {
-			if (window.location.hash === "#admin/scraping") {
-				void atualizarPainelMonitoramentoSeparado().then(
-					abrirEventosScraping,
-				);
-			}
-		}, 3000);
-	};
-}
-async function atualizarPainelMonitoramentoFinal() {
+async function atualizarPainelMonitoramento() {
 	if (atualizacaoMonitoramentoEmAndamento) return;
 	atualizacaoMonitoramentoEmAndamento = true;
 	try {
@@ -2900,7 +2502,7 @@ async function atualizarPainelMonitoramentoFinal() {
 		atualizacaoMonitoramentoEmAndamento = false;
 	}
 }
-function adicionarEventoMonitoramentoAtual(evento) {
+function adicionarEventoMonitoramento(evento) {
 	if (evento.tipo === "log") {
 		dadosMonitoramento.logs.push(evento.dados);
 		if (dadosMonitoramento.logs.length > 500)
@@ -2922,23 +2524,23 @@ function adicionarEventoMonitoramentoAtual(evento) {
 		void carregarHistoricoMonitoramento();
 	}
 }
-function abrirEventosScrapingFinal() {
+function abrirEventosScraping() {
 	conexaoEventosScraping?.close();
 	clearTimeout(temporizadorReconexaoScraping);
 	clearInterval(temporizadorAtualizacaoMonitoramento);
 	temporizadorAtualizacaoMonitoramento = setInterval(() => {
 		if (window.location.hash === "#admin/scraping")
-			void atualizarPainelMonitoramentoFinal();
+			void atualizarPainelMonitoramento();
 	}, 5000);
 	conexaoEventosScraping = new EventSource("/api/admin/scraping/eventos");
 	conexaoEventosScraping.addEventListener("execucao", (evento) =>
-		adicionarEventoMonitoramentoAtual({
+		adicionarEventoMonitoramento({
 			tipo: "execucao",
 			dados: JSON.parse(evento.data),
 		}),
 	);
 	conexaoEventosScraping.addEventListener("log", (evento) =>
-		adicionarEventoMonitoramentoAtual({
+		adicionarEventoMonitoramento({
 			tipo: "log",
 			dados: JSON.parse(evento.data),
 		}),
@@ -2947,8 +2549,8 @@ function abrirEventosScrapingFinal() {
 		conexaoEventosScraping.close();
 		temporizadorReconexaoScraping = setTimeout(() => {
 			if (window.location.hash === "#admin/scraping") {
-				void atualizarPainelMonitoramentoFinal().then(
-					abrirEventosScrapingFinal,
+				void atualizarPainelMonitoramento().then(
+					abrirEventosScraping,
 				);
 			}
 		}, 3000);
@@ -2989,7 +2591,8 @@ function renderizarResumoMonitoramento() {
 	const resumo = dadosMonitoramento.resumo;
 	clearInterval(temporizadorContagemRegressiva);
 	$("#monitor-summary").innerHTML =
-		`<div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">◷</span>${formatarDataResumo(resumo.ultimaAtualizacao)}<span>Última atualização</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">✓</span><strong>${resumo.produtosAtivos ?? 0}</strong><span>Produtos listados atualmente</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">▦</span><strong>${resumo.produtosSalvos ?? 0}</strong><span>Produtos salvos</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true">⏱</span><strong>${resumo.duracaoMediaMs ? formatarDuracao(resumo.duracaoMediaMs) : "—"}</strong><span>Tempo médio por rodada</span></div>`;
+		`<div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true"><i data-lucide="clock-3"></i></span>${formatarDataResumo(resumo.ultimaAtualizacao)}<span>Última atualização</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true"><i data-lucide="check"></i></span><strong>${resumo.produtosAtivos ?? 0}</strong><span>Produtos listados atualmente</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true"><i data-lucide="package"></i></span><strong>${resumo.produtosSalvos ?? 0}</strong><span>Produtos salvos</span></div><div class="monitor-stat"><span class="monitor-stat-icon" aria-hidden="true"><i data-lucide="timer"></i></span><strong>${resumo.duracaoMediaMs ? formatarDuracao(resumo.duracaoMediaMs) : "—"}</strong><span>Tempo médio por rodada</span></div>`;
+	agendarAtualizacaoIcones();
 	atualizarContagemRegressiva();
 	temporizadorContagemRegressiva = setInterval(
 		atualizarContagemRegressiva,
@@ -3010,7 +2613,7 @@ function renderizarCadastroInicial() {
 		.querySelectorAll("[data-requer-fonte]")
 		.forEach((link) => link.classList.add("is-hidden"));
 	$("#admin-page").innerHTML =
-		'<section class="admin-card initial-source-card"><div class="initial-source-icon"><i data-lucide="store-plus" aria-hidden="true"></i></div><h1>Cadastre sua primeira fonte</h1><p>Para acessar o monitoramento e a busca manual, configure pelo menos uma loja para o sistema coletar produtos.</p><a href="#admin" class="primary-button">Cadastrar fonte <i data-lucide="arrow-right" aria-hidden="true"></i></a></section>';
+		'<section class="admin-card initial-source-card"><div class="initial-source-icon"><i data-lucide="store" aria-hidden="true"></i></div><h1>Cadastre sua primeira fonte</h1><p>Para acessar o monitoramento e a busca manual, configure pelo menos uma loja para o sistema coletar produtos.</p><a href="#admin" class="primary-button">Cadastrar fonte <i data-lucide="arrow-right" aria-hidden="true"></i></a></section>';
 	atualizarIconesLucide();
 }
 async function carregarRotaQueExigeFonte(carregar) {
@@ -3067,6 +2670,15 @@ function renderizarRota() {
 		fecharEventosScraping();
 		$("#new-products").classList.add("is-hidden");
 		void carregarRotaQueExigeFonte(carregarSistema);
+		return;
+	}
+	const rotaFonte = window.location.hash.match(
+		/^#admin\/fontes\/([a-z0-9]+(?:-[a-z0-9]+)*)$/,
+	);
+	if (rotaFonte) {
+		fecharEventosScraping();
+		$("#new-products").classList.add("is-hidden");
+		void carregarConfiguracaoFonte(rotaFonte[1]);
 		return;
 	}
 	fecharEventosScraping();
@@ -3183,30 +2795,9 @@ function obterItensBuscaManualVisiveis() {
 		return correspondeTexto && correspondeLojas;
 	});
 }
-function renderizarTabelaBuscaManualFiltrada() {
+function renderizarTabelaBuscaManual() {
 	const corpo = $("#manual-search-body");
 	if (!corpo) return;
-	if (!$("#manual-search-text-filter")) {
-		$("#manual-search-count").insertAdjacentHTML(
-			"afterend",
-			'<label class="manual-search-text-filter"><span>Buscar no resultado</span><input id="manual-search-text-filter" type="search" placeholder="Nome do produto" /></label>',
-		);
-		$("#run-manual-search").insertAdjacentHTML(
-			"beforebegin",
-			'<label class="manual-search-multiple-filter"><input id="manual-search-multiple-filter" type="checkbox" /> Presente em mais de uma loja</label>',
-		);
-		$("#manual-search-text-filter").addEventListener("input", (evento) => {
-			filtroBuscaManual.texto = evento.target.value;
-			renderizarTabelaBuscaManual();
-		});
-		$("#manual-search-multiple-filter").addEventListener(
-			"change",
-			(evento) => {
-				filtroBuscaManual.somenteMultilojas = evento.target.checked;
-				renderizarTabelaBuscaManual();
-			},
-		);
-	}
 	const itens = obterItensBuscaManualVisiveis();
 	corpo.innerHTML =
 		itens
@@ -3224,7 +2815,7 @@ function renderizarTabelaBuscaManualFiltrada() {
 		)
 		.join("");
 }
-function gerarCsvBuscaManualFiltrado() {
+function gerarCsvBuscaManual() {
 	return `\uFEFFfonte;titulo;preco;precoAntigo;url;imagemUrl\n${obterItensBuscaManualVisiveis()
 		.map((item) =>
 			[
@@ -3240,38 +2831,7 @@ function gerarCsvBuscaManualFiltrado() {
 		)
 		.join("\n")}\n`;
 }
-renderizarTabelaBuscaManual = renderizarTabelaBuscaManualFiltrada;
-gerarCsvBuscaManual = gerarCsvBuscaManualFiltrado;
-const observadorBuscaManual = new MutationObserver(() => {
-	const acoes = $(".manual-search-actions");
-	if (!acoes || $("#manual-search-text-filter")) return;
-	acoes.insertAdjacentHTML(
-		"afterbegin",
-		'<label class="manual-search-text-filter"><span>Buscar no resultado</span><input id="manual-search-text-filter" type="search" placeholder="Nome do produto" /></label>',
-	);
-	$("#run-manual-search").insertAdjacentHTML(
-		"beforebegin",
-		'<label class="manual-search-multiple-filter"><input id="manual-search-multiple-filter" type="checkbox" /> Presente em mais de uma loja</label>',
-	);
-	$("#manual-search-text-filter").addEventListener("input", (evento) => {
-		filtroBuscaManual.texto = evento.target.value;
-		renderizarTabelaBuscaManual();
-	});
-	$("#manual-search-multiple-filter").addEventListener("change", (evento) => {
-		filtroBuscaManual.somenteMultilojas = evento.target.checked;
-		renderizarTabelaBuscaManual();
-	});
-});
-observadorBuscaManual.observe($("#admin-page"), {
-	childList: true,
-	subtree: true,
-});
-
-async function obterConfiguracaoSeletores() {
-	const resposta = await fetch("/api/admin/configuracoes/scraping");
-	return resposta.ok ? (await resposta.json()).dados : null;
-}
-async function salvarStatusFonte(evento) {
+async function salvarStatusFonteInterno(evento) {
 	const campo = evento.currentTarget;
 	const fonte = campo.name.replace("ativa-", "");
 	const feedback = $("#admin-feedback");
@@ -3285,12 +2845,13 @@ async function salvarStatusFonte(evento) {
 				"Não foi possível carregar as configurações atuais",
 			);
 		const configuracao = (await atual.json()).dados;
-		const fontes = configuracao.fontes.map((item) => ({
-			fonte: item.fonte,
-			url: item.url,
-			ativa: item.fonte === fonte ? campo.checked : item.ativa,
-			seletores: item.seletores,
-		}));
+		const fontes = configuracao.fontes.map((fonteConfigurada) => {
+			const item = removerLogoDaAtualizacao(fonteConfigurada);
+			return {
+				...item,
+				ativa: item.fonte === fonte ? campo.checked : item.ativa,
+			};
+		});
 		const resposta = await fetch("/api/admin/configuracoes/scraping", {
 			method: "PUT",
 			headers: {
@@ -3314,80 +2875,6 @@ async function salvarStatusFonte(evento) {
 		campo.disabled = false;
 	}
 }
-async function abrirFormularioNovaFonte() {
-	const nome = window.prompt("Nome da nova fonte:");
-	if (!nome?.trim()) return;
-	const identificador = window.prompt(
-		"Identificador (apenas letras minúsculas, números e hífen):",
-		nome
-			.trim()
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, ""),
-	);
-	if (!identificador || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identificador)) {
-		window.alert("Informe um identificador válido.");
-		return;
-	}
-	const url = window.prompt("URL da página de produtos:", "https://");
-	if (!url) return;
-	const seletores = {
-		item:
-			window.prompt("Seletor CSS do container do produto:", ".product") ??
-			"",
-		titulo: window.prompt("Seletor CSS do título:", "h2") ?? "",
-		preco: window.prompt("Seletor CSS do preço atual:", ".price") ?? "",
-		precoAntigo:
-			window.prompt("Seletor CSS do preço antigo (opcional):", "") ?? "",
-		imagem: window.prompt("Seletor CSS da imagem:", "img") ?? "",
-		url:
-			window.prompt("Seletor CSS do link do produto (opcional):", "a") ??
-			"",
-		paginaVirtualizada: false,
-		carregarMais: "",
-	};
-	const resposta = await fetch("/api/admin/configuracoes/scraping/fontes", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-CSRF-Token": obterTokenCsrf(),
-		},
-		body: JSON.stringify({
-			fonte: identificador,
-			nome: nome.trim(),
-			url,
-			ativa: true,
-			seletores,
-		}),
-	});
-	const dados = await resposta.json();
-	if (!resposta.ok) {
-		window.alert(dados.erro ?? "Não foi possível adicionar a fonte.");
-		return;
-	}
-	await carregarConfiguracaoAdministracao();
-}
-async function removerFonte(fonte, nome) {
-	if (
-		!window.confirm(
-			`Deseja realmente excluir a fonte "${nome}"? Essa ação não poderá ser desfeita.`,
-		)
-	)
-		return;
-	try {
-		const resposta = await fetch(
-			"/api/admin/configuracoes/scraping/fontes/" +
-				encodeURIComponent(fonte),
-			{ method: "DELETE", headers: { "X-CSRF-Token": obterTokenCsrf() } },
-		);
-		const dados = await resposta.json();
-		if (!resposta.ok)
-			throw new Error(dados.erro ?? "Não foi possível excluir a fonte.");
-		await carregarConfiguracaoAdministracao();
-	} catch (erro) {
-		window.alert(erro.message);
-	}
-}
 async function salvarConfiguracaoAdministracaoGeral(evento) {
 	evento.preventDefault();
 	const formulario = new FormData(evento.currentTarget);
@@ -3401,12 +2888,14 @@ async function salvarConfiguracaoAdministracaoGeral(evento) {
 				"Não foi possível carregar as configurações atuais",
 			);
 		const configuracao = (await atual.json()).dados;
-		const fontes = configuracao.fontes.map((fonte) => ({
-			...fonte,
-			nome: undefined,
-			url: formulario.get(`url-${fonte.fonte}`),
-			ativa: formulario.get(`ativa-${fonte.fonte}`) === "on",
-		}));
+		const fontes = configuracao.fontes.map((fonteConfigurada) => {
+			const fonte = removerLogoDaAtualizacao(fonteConfigurada);
+			return {
+				...fonte,
+				url: formulario.get(`url-${fonte.fonte}`),
+				ativa: formulario.get(`ativa-${fonte.fonte}`) === "on",
+			};
+		});
 		const resposta = await fetch("/api/admin/configuracoes/scraping", {
 			method: "PUT",
 			headers: {
@@ -3424,136 +2913,6 @@ async function salvarConfiguracaoAdministracaoGeral(evento) {
 	} catch (erro) {
 		feedback.className = "admin-feedback error";
 		feedback.textContent = erro.message;
-	}
-}
-salvarConfiguracaoAdministracao = async function (evento) {
-	evento.preventDefault();
-	const formulario = new FormData(evento.currentTarget);
-	const fontes = ["kabum", "amazon", "terabyteshop"].map((fonte) => ({
-		fonte,
-		url: formulario.get(`url-${fonte}`),
-		ativa: formulario.get(`ativa-${fonte}`) === "on",
-		seletores: obterSeletoresDoFormulario(fonte),
-	}));
-	const feedback = $("#admin-feedback");
-	feedback.className = "admin-feedback";
-	feedback.textContent = "Salvando...";
-	try {
-		const resposta = await fetch("/api/admin/configuracoes/scraping", {
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-				"X-CSRF-Token": obterTokenCsrf(),
-			},
-			body: JSON.stringify({ fontes }),
-		});
-		if (!resposta.ok)
-			throw new Error(
-				(await resposta.json()).erro ?? "Não foi possível salvar",
-			);
-		feedback.className = "admin-feedback success";
-		feedback.textContent = "Configurações salvas com sucesso.";
-	} catch (erro) {
-		feedback.className = "admin-feedback error";
-		feedback.textContent = erro.message;
-	}
-};
-function adicionarHoverAoEditorVisual(script) {
-	const marcador = 'document.addEventListener("click", (evento) => {';
-	const hover =
-		'document.addEventListener("mouseover", (evento) => { if (!(evento.target instanceof Element)) return; const alvo = papel === "item" ? evento.target : (container?.contains(evento.target) ? evento.target : evento.target.closest("*")); const valor = seletor(alvo, papel === "item" ? null : container); if (valor) window.parent.postMessage({ tipo: "seletor-hover", seletor: valor }, "*"); }, true);' +
-		marcador;
-	return script.replace(marcador, hover);
-}
-async function abrirEditorVisual(fonte) {
-	const url =
-		document.querySelector('input[name="url-' + fonte + '"]')?.value ??
-		document.querySelector('#source-settings-form input[name="url"]')
-			?.value;
-	if (!url) return;
-	const modal = document.createElement("div");
-	modal.className = "selector-visual-modal";
-	modal.innerHTML = `<div class="selector-visual-backdrop"></div><section class="selector-visual-content" role="dialog" aria-modal="true" aria-labelledby="selector-visual-title"><div class="selector-visual-header"><div><h2 id="selector-visual-title">Editor visual de seletores</h2><p>Selecione um tipo de elemento e clique nele na prévia.</p></div><button class="icon-button" type="button" data-close-visual-selector aria-label="Fechar">×</button></div><div class="selector-visual-toolbar"><label>Elemento a selecionar<select id="visual-selector-role"><option value="item">Container do produto</option><option value="titulo">Título</option><option value="preco">Preço atual</option><option value="precoAntigo">Preço antigo</option><option value="imagem">Imagem</option><option value="url">Link do produto</option></select></label><span id="visual-selector-status">Carregando prévia…</span></div><iframe class="selector-visual-frame" title="Prévia da página da fonte"></iframe></section>`;
-	document.body.append(modal);
-	const iframe = modal.querySelector("iframe");
-	const areaCarregamento = document.createElement("div");
-	areaCarregamento.className = "selector-visual-loading";
-	areaCarregamento.innerHTML =
-		'<div class="selector-visual-loading-card"><span></span><span></span><span></span></div>';
-	modal.querySelector(".selector-visual-content").append(areaCarregamento);
-	iframe.addEventListener("load", () => areaCarregamento.remove(), {
-		once: true,
-	});
-	iframe.setAttribute("sandbox", "allow-scripts");
-	const papel = modal.querySelector("#visual-selector-role");
-	const status = modal.querySelector("#visual-selector-status");
-	status.classList.add("is-loading");
-	const fechar = () => modal.remove();
-	modal
-		.querySelector("[data-close-visual-selector]")
-		.addEventListener("click", fechar);
-	modal
-		.querySelector(".selector-visual-backdrop")
-		.addEventListener("click", fechar);
-	window.addEventListener(
-		"message",
-		function receber(evento) {
-			if (
-				evento.source !== iframe.contentWindow ||
-				!["seletor-visual", "seletor-hover"].includes(evento.data?.tipo)
-			)
-				return;
-			const seletor = evento.data.seletor;
-			if (evento.data.tipo === "seletor-hover") {
-				status.textContent = "Elemento sob o mouse: " + seletor;
-				return;
-			}
-			const campo = document.querySelector(
-				'input[name="seletor-' + papel.value + "-" + fonte + '"]',
-			);
-			if (!campo || !seletor) return;
-			campo.value = seletor;
-			modal.querySelector("#visual-selector-status").textContent =
-				"Seletor definido: " + seletor;
-			if (papel.value === "item")
-				iframe.contentWindow.postMessage(
-					{ tipo: "definir-container", seletor },
-					"*",
-				);
-		},
-		{ once: false },
-	);
-	papel.addEventListener("change", () =>
-		iframe.contentWindow.postMessage(
-			{ tipo: "definir-papel", papel: papel.value },
-			"*",
-		),
-	);
-	try {
-		const resposta = await fetch(
-			"/api/admin/configuracoes/scraping/previa",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-CSRF-Token": obterTokenCsrf(),
-				},
-				body: JSON.stringify({ url }),
-			},
-		);
-		const dados = await resposta.json();
-		if (!resposta.ok)
-			throw new Error(dados.erro ?? "Não foi possível carregar a prévia");
-		const script = `<script>(() => { let papel = "item"; let container = null; const escape = (valor) => valor.replace(/([\\\\.#:\\\\[\\\\],>+~*])/g, "\\\\\\\\$1"); const seletor = (elemento, raiz) => { const partes = []; let atual = elemento; while (atual && atual !== raiz && atual.nodeType === 1) { let parte = atual.tagName.toLowerCase(); if (atual.id) parte += "#" + escape(atual.id); else if (atual.classList.length) parte += "." + [...atual.classList].filter((classe) => /^[a-zA-Z_][\\\\w-]*$/.test(classe)).slice(0, 2).map(escape).join("."); const irmaos = atual.parentElement ? [...atual.parentElement.children].filter((item) => item.tagName === atual.tagName) : []; if (irmaos.length > 1) parte += ":nth-of-type(" + (irmaos.indexOf(atual) + 1) + ")"; partes.unshift(parte); atual = atual.parentElement; } return partes.join(" > "); }; document.addEventListener("mouseover", (evento) => { document.querySelectorAll("[data-selector-hover]").forEach((item) => item.removeAttribute("data-selector-hover")); if (evento.target instanceof Element) evento.target.setAttribute("data-selector-hover", "true"); }, true); document.addEventListener("click", (evento) => { if (!(evento.target instanceof Element)) return; evento.preventDefault(); evento.stopPropagation(); const alvo = papel === "item" ? evento.target : (container?.contains(evento.target) ? evento.target : evento.target.closest("*")); const valor = seletor(alvo, papel === "item" ? null : container); if (!valor) return; window.parent.postMessage({ tipo: "seletor-visual", seletor: valor }, "*"); }, true); window.addEventListener("message", (evento) => { if (evento.data?.tipo === "definir-papel") papel = evento.data.papel; if (evento.data?.tipo === "definir-container") container = document.querySelector(evento.data.seletor); }); })()<\\/script>`;
-		iframe.srcdoc = dados.dados.html.replace(
-			"</body>",
-			adicionarHoverAoEditorVisual(script) + "</body>",
-		);
-		status.classList.remove("is-loading");
-		status.textContent = "Escolha o container do produto para começar.";
-	} catch (erro) {
-		status.classList.remove("is-loading");
-		status.textContent = erro.message;
 	}
 }
 function obterSeletoresDoFormulario(fonte) {
@@ -3572,61 +2931,6 @@ function obterSeletoresDoFormulario(fonte) {
 		),
 	};
 }
-async function testarSeletoresFonte(fonte) {
-	const resultado = $(`[data-selector-result="${fonte}"]`);
-	const url = $(`input[name="url-${fonte}"]`)?.value;
-	if (!resultado || !url) return;
-	resultado.className = "selector-test-result";
-	resultado.textContent = "Testando página e seletores…";
-	try {
-		const resposta = await fetch(
-			"/api/admin/configuracoes/scraping/testar-seletores",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"X-CSRF-Token": obterTokenCsrf(),
-				},
-				body: JSON.stringify({
-					fonte,
-					url,
-					seletores: obterSeletoresDoFormulario(fonte),
-				}),
-			},
-		);
-		const dados = await resposta.json();
-		if (!resposta.ok)
-			throw new Error(
-				dados.erro ?? "Não foi possível testar os seletores",
-			);
-		resultado.className = "selector-test-result success";
-		resultado.textContent = `${dados.dados.quantidadeProdutos} produto(s) encontrado(s).`;
-	} catch (erro) {
-		resultado.className = "selector-test-result error";
-		resultado.textContent = erro.message;
-	}
-}
-async function adicionarEditorSeletoresAoFormulario() {
-	const fontes = await obterConfiguracaoSeletores();
-	if (!fontes) return;
-	document.querySelectorAll(".admin-source").forEach((secao, indice) => {
-		if (secao.querySelector(".selector-config")) return;
-		const fonte = fontes.fontes[indice];
-		if (fonte)
-			secao.insertAdjacentHTML(
-				"beforeend",
-				renderizarCamposSeletores(fonte),
-			);
-	});
-	document
-		.querySelectorAll("[data-test-selectors]")
-		.forEach((botao) =>
-			botao.addEventListener(
-				"click",
-				() => void testarSeletoresFonte(botao.dataset.testSelectors),
-			),
-		);
-}
 function posicionarNotaUrlFonte() {
 	const formulario = $("#source-settings-form");
 	const campo = formulario?.querySelector("input[name='url']");
@@ -3636,7 +2940,7 @@ function posicionarNotaUrlFonte() {
 	const titulo = document.createElement("span");
 	titulo.className = "url-label-title";
 	titulo.innerHTML =
-		"URL da fonte <span class='url-label-note'>(A URL será usada na próxima coleta.)</span>";
+		"URL da fonte <span class='required-mark'>*</span> <span class='url-label-note'>(A URL será usada na próxima coleta.)</span>";
 	rotulo.firstChild?.replaceWith(titulo);
 }
 function configurarTooltipsInformativos() {
@@ -3727,17 +3031,21 @@ function adicionarBotoesEdicaoFontes() {
 			(evento) => void salvarStatusFonte(evento),
 		);
 	});
-	if (formulario && !$("#add-source-button")) {
-		const botaoAdicionar = document.createElement("button");
+	if (formulario) {
+		let botaoAdicionar = $("#add-source-button");
+		if (!botaoAdicionar) {
+			botaoAdicionar = document.createElement("button");
 		botaoAdicionar.id = "add-source-button";
 		botaoAdicionar.type = "button";
 		botaoAdicionar.className = "secondary-button add-source-button";
-		botaoAdicionar.textContent = "＋ Adicionar fonte";
+		botaoAdicionar.innerHTML =
+			'Adicionar fonte <i data-lucide="plus" aria-hidden="true"></i>';
 		formulario.querySelector("#admin-feedback")?.before(botaoAdicionar);
-		botaoAdicionar.addEventListener(
-			"click",
-			() => void abrirFormularioNovaFonte(),
-		);
+		}
+		if (!botaoAdicionar.dataset.configured) {
+			botaoAdicionar.dataset.configured = "true";
+			botaoAdicionar.addEventListener("click", abrirLinhaNovaFonte);
+		}
 	}
 	document.querySelectorAll(".admin-source").forEach((secao) => {
 		const campo = secao.querySelector("input[name^='ativa-']");
@@ -3786,62 +3094,6 @@ function configurarRotulosAcoesFontes() {
 		botao.title = "Excluir fonte";
 	});
 }
-async function criarFontePelaLinha(linha) {
-	const nome = linha
-		.querySelector("input[name='new-source-name']")
-		?.value.trim();
-	if (!nome) {
-		linha.querySelector("input[name='new-source-name']")?.focus();
-		return;
-	}
-	const identificador = window.prompt(
-		"Identificador (apenas letras minúsculas, números e hífen):",
-		nome
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, ""),
-	);
-	if (!identificador || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identificador)) {
-		window.alert("Informe um identificador válido.");
-		return;
-	}
-	const url = window.prompt("URL da página de produtos:", "https://");
-	if (!url) return;
-	const seletores = {
-		item:
-			window.prompt("Seletor CSS do card do produto:", ".product") ?? "",
-		titulo: window.prompt("Seletor CSS do título:", "h2") ?? "",
-		preco: window.prompt("Seletor CSS do preço atual:", ".price") ?? "",
-		precoAntigo:
-			window.prompt("Seletor CSS do preço antigo (opcional):", "") ?? "",
-		imagem: window.prompt("Seletor CSS da imagem:", "img") ?? "",
-		url:
-			window.prompt("Seletor CSS do link do produto (opcional):", "a") ??
-			"",
-		paginaVirtualizada: false,
-		carregarMais: "",
-	};
-	const resposta = await fetch("/api/admin/configuracoes/scraping/fontes", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-CSRF-Token": obterTokenCsrf(),
-		},
-		body: JSON.stringify({
-			fonte: identificador,
-			nome,
-			url,
-			ativa: true,
-			seletores,
-		}),
-	});
-	const dados = await resposta.json();
-	if (!resposta.ok) {
-		window.alert(dados.erro ?? "Não foi possível adicionar a fonte.");
-		return;
-	}
-	await carregarConfiguracaoAdministracao();
-}
 function abrirLinhaNovaFonte() {
 	if ($("[data-new-source-row]")) return;
 	const formulario = $("#scraping-settings-form");
@@ -3850,7 +3102,7 @@ function abrirLinhaNovaFonte() {
 	linha.className = "admin-source new-source-row";
 	linha.dataset.newSourceRow = "true";
 	linha.innerHTML =
-		'<div class="new-source-identity"><label class="toggle-row"><input class="toggle-input" type="checkbox" checked disabled /><span class="toggle-control"></span><span>Ativa</span></label><label class="new-source-name-label"><span class="sr-only">Nome da fonte</span><input name="new-source-name" type="text" placeholder="Nome da nova fonte" /></label></div><div class="new-source-actions"><button type="button" class="secondary-button cancel-new-source">Cancelar</button><button type="button" class="primary-button confirm-new-source">Continuar</button></div>';
+		'<div class="new-source-identity"><label class="toggle-row"><input class="toggle-input" type="checkbox" disabled /><span class="toggle-control"></span><span>Inativa</span></label><label class="new-source-name-label"><span class="sr-only">Nome da fonte</span><input name="new-source-name" type="text" placeholder="Nome da nova fonte" /></label></div><div class="new-source-actions"><button type="button" class="secondary-button cancel-new-source">Cancelar <i data-lucide="x" aria-hidden="true"></i></button><button type="button" class="new-source-save-button confirm-new-source">Salvar fonte <i data-lucide="save" aria-hidden="true"></i></button></div>';
 	formulario.querySelector("#admin-feedback")?.before(linha);
 	$("#add-source-button")?.classList.add("is-hidden");
 	linha.querySelector(".cancel-new-source").addEventListener("click", () => {
@@ -3859,11 +3111,11 @@ function abrirLinhaNovaFonte() {
 	});
 	linha
 		.querySelector(".confirm-new-source")
-		.addEventListener("click", () => void criarFontePelaLinha(linha));
+		.addEventListener("click", () => void salvarNovaFonteBasica(linha));
 	linha
 		.querySelector("input[name='new-source-name']")
 		.addEventListener("keydown", (evento) => {
-			if (evento.key === "Enter") void criarFontePelaLinha(linha);
+			if (evento.key === "Enter") void salvarNovaFonteBasica(linha);
 		});
 	configurarLogoNovaFonte();
 	linha.querySelector("input[name='new-source-name']")?.focus();
@@ -3891,256 +3143,97 @@ function configurarLogoNovaFonte() {
 		const arquivo = entrada.files?.[0];
 		if (!arquivo) return;
 		if (preview.src) URL.revokeObjectURL(preview.src);
-		preview.src = URL.createObjectURL(arquivo);
+		const urlPreview = URL.createObjectURL(arquivo);
+		preview.addEventListener("load", () => URL.revokeObjectURL(urlPreview), {
+			once: true,
+		});
+		preview.src = urlPreview;
 		preview.classList.remove("is-hidden");
+		seletor.classList.add("has-logo");
 	});
 	linha.querySelector(".new-source-name-label")?.before(seletor);
 	agendarAtualizacaoIcones();
 }
-async function criarFontePelaLinhaComLogo(linha) {
-	const nome = linha
-		.querySelector("input[name='new-source-name']")
-		?.value.trim();
-	if (!nome) {
-		linha.querySelector("input[name='new-source-name']")?.focus();
-		return;
-	}
-	const identificador = nome
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/^-|-$/g, "");
-	if (!identificador) {
-		window.alert("Informe um nome válido para a fonte.");
-		return;
-	}
-	const url = window.prompt("URL da página de produtos:", "https://");
-	if (!url) return;
-	const arquivo = linha.querySelector("input[name='new-source-logo']")
-		?.files?.[0];
-	const logo = arquivo
-		? await new Promise((resolver) => {
-				const leitor = new FileReader();
-				leitor.onload = () => resolver(String(leitor.result ?? ""));
-				leitor.readAsDataURL(arquivo);
-			})
-		: "";
-	const seletores = {
-		item:
-			window.prompt("Seletor CSS do card do produto:", ".product") ?? "",
-		titulo: window.prompt("Seletor CSS do título:", "h2") ?? "",
-		preco: window.prompt("Seletor CSS do preço atual:", ".price") ?? "",
-		precoAntigo:
-			window.prompt("Seletor CSS do preço antigo (opcional):", "") ?? "",
-		imagem: window.prompt("Seletor CSS da imagem:", "img") ?? "",
-		url:
-			window.prompt("Seletor CSS do link do produto (opcional):", "a") ??
-			"",
-		paginaVirtualizada: false,
-		carregarMais: "",
-	};
-	const resposta = await fetch("/api/admin/configuracoes/scraping/fontes", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-CSRF-Token": obterTokenCsrf(),
-		},
-		body: JSON.stringify({
-			fonte: identificador,
-			nome,
-			logo,
-			url,
-			ativa: false,
-			seletores,
-		}),
-	});
-	const dados = await resposta.json();
-	if (!resposta.ok) {
-		window.alert(dados.erro ?? "Não foi possível adicionar a fonte.");
-		return;
-	}
-	await carregarConfiguracaoAdministracao();
-}
-document.addEventListener(
-	"click",
-	(evento) => {
-		const alvo =
-			evento.target instanceof Element
-				? evento.target.closest("#add-source-button")
-				: null;
-		if (!alvo) return;
+function configurarInteracoesCatalogo() {
+	$("#search-form").addEventListener("submit", (evento) => {
 		evento.preventDefault();
-		evento.stopImmediatePropagation();
-		abrirLinhaNovaFonte();
-		const ativo = $("[data-new-source-row] input[type='checkbox']");
-		if (ativo) ativo.checked = false;
-		const salvar = $("[data-new-source-row] .confirm-new-source");
-		salvar?.classList.remove("primary-button");
-		salvar?.classList.add("new-source-save-button");
-		if (salvar)
-			salvar.innerHTML =
-				"Salvar fonte <i data-lucide='save' aria-hidden='true'></i>";
-		agendarAtualizacaoIcones();
-	},
-	true,
-);
-document.addEventListener(
-	"click",
-	(evento) => {
-		const alvo =
-			evento.target instanceof Element
-				? evento.target.closest(".confirm-new-source")
-				: null;
-		if (!alvo) return;
-		evento.preventDefault();
-		evento.stopImmediatePropagation();
-		const linha = alvo.closest("[data-new-source-row]");
-		if (linha) void criarFontePelaLinhaComLogo(linha);
-	},
-	true,
-);
-document.addEventListener("change", (evento) => {
-	const entrada =
-		evento.target instanceof HTMLInputElement &&
-		evento.target.matches(".new-source-logo-input")
-			? evento.target
-			: null;
-	if (!entrada) return;
-	entrada
-		.closest(".new-source-logo-picker")
-		?.classList.toggle("has-logo", Boolean(entrada.files?.length));
-});
-let atualizandoComponentesAdministrativos = false;
-const observadorBotoesVisuais = new MutationObserver(() => {
-	if (atualizandoComponentesAdministrativos) return;
-	atualizandoComponentesAdministrativos = true;
-	observadorBotoesVisuais.takeRecords();
-	observadorBotoesVisuais.disconnect();
-	try {
-		adicionarBotoesEdicaoFontes();
-		configurarRotulosAcoesFontes();
-		configurarLogoNovaFonte();
-		posicionarNotaUrlFonte();
-		configurarTooltipsInformativos();
-		configurarEdicaoFonte();
-		configurarResetTotal();
-		organizarPaginaSistema();
-		atualizarAcaoAnaliseHtml();
-	} finally {
-		atualizandoComponentesAdministrativos = false;
-		observadorBotoesVisuais.observe($("#admin-page"), {
-			childList: true,
-			subtree: true,
-		});
-	}
-});
-observadorBotoesVisuais.observe($("#admin-page"), {
-	childList: true,
-	subtree: true,
-});
-function atualizarAcaoAnaliseHtml() {
-	document.querySelectorAll("[data-visual-selectors]").forEach((botao) => {
-		if (botao.dataset.analyzerLabel === "true") return;
-		botao.innerHTML =
-			'<i data-lucide="sparkles" aria-hidden="true"></i>Analisar HTML';
-		botao.dataset.analyzerLabel = "true";
-	});
-	createIcons({ icons });
-}
-$("#search-form").addEventListener("submit", (evento) => {
-	evento.preventDefault();
-	estado.busca = $("#search-input").value.trim();
-	estado.pagina = 1;
-	ocultarSugestoes();
-	carregarProdutos();
-});
-$("#search-input").addEventListener("input", (evento) =>
-	carregarSugestoes(evento.target.value),
-);
-$("#search-input").addEventListener("blur", () =>
-	setTimeout(ocultarSugestoes, 150),
-);
-document.querySelectorAll("input[name='source']").forEach((radio) =>
-	radio.addEventListener("change", () => {
-		estado.fonte = radio.value;
-		aplicarFiltrosAutomaticamente();
-	}),
-);
-$("#min-price").addEventListener("input", () => {
-	atualizarValoresPreco("min");
-	aplicarFiltrosAutomaticamente();
-});
-$("#max-price").addEventListener("input", () => {
-	atualizarValoresPreco("max");
-	aplicarFiltrosAutomaticamente();
-});
-$("#only-active").addEventListener("change", (evento) => {
-	estado.apenasAtivos = evento.target.checked;
-	aplicarFiltrosAutomaticamente();
-});
-$("#clear-filters").addEventListener("click", () => {
-	estado.busca = "";
-	estado.categoria = "";
-	estado.fonte = "";
-	estado.precoMin = "";
-	estado.precoMax = "";
-	estado.apenasAtivos = true;
-	$("#search-input").value = "";
-	$("input[name='category'][value='']").checked = true;
-	$("input[name='source'][value='']").checked = true;
-	$("#min-price").value = 0;
-	$("#max-price").value = 20000;
-	$("#only-active").checked = true;
-	atualizarValoresPreco();
-	estado.pagina = 1;
-	carregarProdutos();
-});
-$("#sort-filter").addEventListener("change", (evento) => {
-	estado.ordenacao = evento.target.value;
-	estado.pagina = 1;
-	carregarProdutos();
-});
-document.querySelectorAll("[data-category]").forEach((botao) =>
-	botao.addEventListener("click", () => {
-		const estavaEmOutraPagina =
-			!$("#admin-shell").classList.contains("is-hidden") ||
-			!$("#product-detail").classList.contains("is-hidden");
-		document
-			.querySelectorAll("[data-category]")
-			.forEach((item) => item.classList.remove("is-active"));
-		botao.classList.add("is-active");
-		estado.busca = botao.dataset.category ?? "";
-		$("#search-input").value = estado.busca;
+		estado.busca = $("#search-input").value.trim();
 		estado.pagina = 1;
-		$("#admin-shell").classList.add("is-hidden");
-		$("#admin-page").classList.add("is-hidden");
-		$("#product-detail").classList.add("is-hidden");
-		$(".content-layout").classList.remove("is-hidden");
-		window.location.hash = "";
-		if (!estavaEmOutraPagina) carregarProdutos();
-	}),
-);
-function carregarRotaConfiguracaoFonte() {
-	const rota = window.location.hash.match(
-		/^#admin\/fontes\/([a-z0-9]+(?:-[a-z0-9]+)*)$/,
+		ocultarSugestoes();
+		void carregarProdutos();
+	});
+	$("#search-input").addEventListener("input", (evento) =>
+		void carregarSugestoes(evento.target.value),
 	);
-	if (rota) {
-		clearInterval(temporizadorAtualizacaoMonitoramento);
-		carregarConfiguracaoFonte(rota[1]);
-	}
+	$("#search-input").addEventListener("blur", () =>
+		setTimeout(ocultarSugestoes, 150),
+	);
+	document.querySelectorAll("input[name='source']").forEach((radio) =>
+		radio.addEventListener("change", () => {
+			estado.fonte = radio.value;
+			aplicarFiltrosAutomaticamente();
+		}),
+	);
+	$("#min-price").addEventListener("input", () => {
+		atualizarValoresPreco("min");
+		aplicarFiltrosAutomaticamente();
+	});
+	$("#max-price").addEventListener("input", () => {
+		atualizarValoresPreco("max");
+		aplicarFiltrosAutomaticamente();
+	});
+	$("#only-active").addEventListener("change", (evento) => {
+		estado.apenasAtivos = evento.target.checked;
+		aplicarFiltrosAutomaticamente();
+	});
+	$("#clear-filters").addEventListener("click", () => {
+		Object.assign(estado, {
+			busca: "",
+			categoria: "",
+			fonte: "",
+			precoMin: "",
+			precoMax: "",
+			apenasAtivos: true,
+			pagina: 1,
+		});
+		$("#search-input").value = "";
+		const categoriaTodas = $("input[name='category'][value='']");
+		const fonteTodas = $("input[name='source'][value='']");
+		if (categoriaTodas) categoriaTodas.checked = true;
+		if (fonteTodas) fonteTodas.checked = true;
+		$("#min-price").value = 0;
+		$("#max-price").value = 20000;
+		$("#only-active").checked = true;
+		atualizarValoresPreco();
+		void carregarProdutos();
+	});
+	$("#sort-filter").addEventListener("change", (evento) => {
+		estado.ordenacao = evento.target.value;
+		estado.pagina = 1;
+		void carregarProdutos();
+	});
+	document.querySelectorAll("[data-category]").forEach((botao) =>
+		botao.addEventListener("click", () => {
+			const estavaEmOutraPagina =
+				!$("#admin-shell").classList.contains("is-hidden") ||
+				!$("#product-detail").classList.contains("is-hidden");
+			document
+				.querySelectorAll("[data-category]")
+				.forEach((item) => item.classList.remove("is-active"));
+			botao.classList.add("is-active");
+			estado.busca = botao.dataset.category ?? "";
+			$("#search-input").value = estado.busca;
+			estado.pagina = 1;
+			$("#admin-shell").classList.add("is-hidden");
+			$("#admin-page").classList.add("is-hidden");
+			$("#product-detail").classList.add("is-hidden");
+			$(".content-layout").classList.remove("is-hidden");
+			window.location.hash = "";
+			if (!estavaEmOutraPagina) void carregarProdutos();
+		}),
+	);
 }
-// Mantém os fluxos legados de fontes dentro da interface, sem diálogos nativos do navegador.
-abrirFormularioNovaFonte = async () => {
-	abrirLinhaNovaFonte();
-};
-criarFontePelaLinha = async (linha) => {
-	await salvarNovaFonteBasica(linha);
-};
-criarFontePelaLinhaComLogo = async (linha) => {
-	await salvarNovaFonteBasica(linha);
-};
-removerFonte = async (fonte, nome) => {
+async function removerFonte(fonte, nome) {
 	const confirmacao = await abrirDialogoPersonalizado({
 		titulo: `Excluir ${nome}?`,
 		descricao: "Essa ação não poderá ser desfeita.",
@@ -4150,15 +3243,13 @@ removerFonte = async (fonte, nome) => {
 	if (!confirmacao) return;
 	try {
 		const resposta = await fetch(
-			"/api/admin/configuracoes/scraping/fontes/" +
-				encodeURIComponent(fonte),
+			"/api/admin/configuracoes/scraping/fontes/" + encodeURIComponent(fonte),
 			{ method: "DELETE", headers: { "X-CSRF-Token": obterTokenCsrf() } },
 		);
 		const dados = await resposta.json();
-		if (!resposta.ok)
-			throw new Error(
-				formatarErroApi(dados, "Não foi possível excluir a fonte."),
-			);
+		if (!resposta.ok) {
+			throw new Error(formatarErroApi(dados, "Não foi possível excluir a fonte."));
+		}
 		await carregarConfiguracaoAdministracao();
 	} catch (erro) {
 		await mostrarMensagemPersonalizada(
@@ -4167,31 +3258,24 @@ removerFonte = async (fonte, nome) => {
 			"danger",
 		);
 	}
-};
+}
+
 if (import.meta.hot) {
 	import.meta.hot.dispose(() => {
 		observadorIcones.disconnect();
-		observadorBotoesVisuais.disconnect();
 		fecharEventosScraping();
+		controladorSugestoes?.abort();
 		clearTimeout(temporizadorFiltros);
 		clearTimeout(temporizadorSugestoes);
 	});
 }
 
 atualizarIconesLucide();
-atualizarIconesInfo();
-atualizarIconesAcoes();
-atualizarAcaoAnaliseHtml();
 configurarConta();
+configurarInteracoesCatalogo();
 atualizarConta();
 void carregarCategorias();
 void carregarFontesParaFiltros();
 window.addEventListener("hashchange", renderizarRota);
-window.addEventListener("hashchange", carregarRotaConfiguracaoFonte);
-window.addEventListener("hashchange", () =>
-	window.setTimeout(() => void carregarFontesNosFiltrosAdministrativos(), 0),
-);
 atualizarValoresPreco();
 renderizarRota();
-carregarRotaConfiguracaoFonte();
-window.setTimeout(() => void carregarFontesNosFiltrosAdministrativos(), 0);

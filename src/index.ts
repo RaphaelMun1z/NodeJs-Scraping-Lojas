@@ -5,7 +5,6 @@ import { ConexaoBanco } from "./banco/conexao-banco.js";
 import { RepositorioItem } from "./banco/repositorios/repositorio-item.js";
 import { ClienteHttp } from "./clientes/cliente-http.js";
 import { ColetorFonteSite } from "./fontes/coletor-fonte-site.js";
-import { seletoresPorFonte } from "./config/fontes.js";
 import { configuracaoAplicacao } from "./config/aplicacao.config.js";
 import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
@@ -70,7 +69,7 @@ async function iniciarAplicacao(): Promise<void> {
 			url,
 			clienteHttp,
 			new AnalisadorSite(),
-			configuracaoFonte.seletores ?? seletoresPorFonte[nome],
+			configuracaoFonte.seletores,
 			async () => {
 				const atualizada = await configuracaoScraping.obterOuCriarPadrao();
 				const fonteAtual = atualizada.fontes.find((fonte) => fonte.fonte === nome);

@@ -1,12 +1,12 @@
 import * as cheerio from "cheerio";
-import { seletores as seletoresPadrao, type SeletoresSite } from "../config/selectors.js";
+import type { SeletoresSite } from "../modelos/seletores-site.js";
 import {
 	esquemaItemColetado,
 	type ItemColetado,
 } from "../modelos/item-coletado.model.js";
 
 export class AnalisadorSite {
-	analisar(html: string, urlBase: string, fonte = "kabum", seletores: SeletoresSite = seletoresPadrao): ItemColetado[] {
+	analisar(html: string, urlBase: string, fonte: string, seletores: SeletoresSite): ItemColetado[] {
 		const $ = cheerio.load(html);
 		const itens: ItemColetado[] = [];
 

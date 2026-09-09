@@ -60,7 +60,8 @@ export class RepositorioItem {
 	}
 
 	async sugerirTitulos(texto: string, limite = 8): Promise<string[]> {
-		const itens = await ModeloItemBanco.find({ ativo: true, titulo: { $regex: texto, $options: "i" } })
+		const textoSeguro = texto.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const itens = await ModeloItemBanco.find({ ativo: true, titulo: { $regex: textoSeguro, $options: "i" } })
 			.select("titulo")
 			.sort({ ultimaColetaEm: -1 })
 			.limit(limite * 3)

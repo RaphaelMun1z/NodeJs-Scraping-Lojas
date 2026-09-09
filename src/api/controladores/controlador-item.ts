@@ -21,8 +21,21 @@ export class ControladorItem {
 
 	sugestoes = async (requisicao: Request, resposta: Response): Promise<void> => {
 		const texto = z.string().trim().min(2).parse(requisicao.query.q);
-		const sugestoes = this.repositorioIndice ? await this.repositorioIndice.sugerirTitulos(texto) : [];
-		resposta.json({ dados: sugestoes.length > 0 ? sugestoes : await this.repositorioItem.sugerirTitulos(texto) });
+		let sugestoes: string[] = [];
+
+		// O autocomplete continua funcionando mesmo quando o Elasticsearch
+		// estiver indisponível. O MongoDB é a fonte de fallback dos títulos.
+		try {
+			sugestoes = this.repositorioIndice ? await this.repositorioIndice.sugerirTitulos(texto) : [];
+		} catch {
+			sugestoes = [];
+		}
+
+		if (sugestoes.length === 0) {
+			sugestoes = await this.repositorioItem.sugerirTitulos(texto);
+		}
+
+		resposta.json({ dados: sugestoes });
 	};
 
 	novidades = async (requisicao: Request, resposta: Response): Promise<void> => {

@@ -1,4 +1,5 @@
-export const VERSAO_CLASSIFICACAO_PRODUTO = 5;
+// Incrementada após o endurecimento dos identificadores de modelo no matching.
+export const VERSAO_CLASSIFICACAO_PRODUTO = 6;
 
 export const CATEGORIAS_PRODUTO = {
 	Computadores: ["Notebook", "Desktop", "All-in-one"],

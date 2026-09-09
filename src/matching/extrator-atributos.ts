@@ -17,7 +17,7 @@ export interface AtributosProduto {
 }
 
 const VARIANTES = new Set(["pro", "max", "ultra", "plus", "fe", "se", "lite", "mini", "slim", "digital", "leitor", "oled"]);
-const MARCAS = new Set(["asus", "acer", "apple", "samsung", "lenovo", "corsair", "msi", "intel", "amd", "nvidia", "lg", "philips", "sony", "motorola", "xiaomi", "logitech", "kingston", "western", "seagate", "pichau", "kabum"]);
+const MARCAS = new Set(["asus", "acer", "apple", "samsung", "lenovo", "corsair", "msi", "intel", "amd", "nvidia", "lg", "philips", "sony", "motorola", "xiaomi", "logitech", "kingston", "western", "seagate", "pichau"]);
 const TIPOS = new Set(["monitor", "notebook", "laptop", "smartphone", "celular", "tablet", "fonte", "suporte", "mesa", "parede", "teclado", "mouse", "headset", "placa", "video", "processador", "memoria", "ssd", "hd", "televisao", "tv", "console", "cadeira"]);
 const FORMAS = new Set(["mesa", "parede", "teto", "embutir", "portatil"]);
 const RESOLUCOES = new Set(["hd", "fhd", "fullhd", "qhd", "2k", "uhd", "4k", "8k", "wqhd"]);
@@ -40,7 +40,7 @@ export function extrairAtributosProduto(titulo: string): AtributosProduto {
 	const capacidades = new Set<string>();
 	// Captura códigos de modelo e part number, que diferenciam variantes visualmente parecidas.
 	for (const token of tokens) {
-		if (token.length >= 5 && /[a-z]/.test(token) && /\d/.test(token) && !["ddr4", "ddr5", "fullhd", "smartphone"].includes(token)) identificadores.add(token);
+		if (token.length >= 4 && /[a-z]/.test(token) && /\d/.test(token) && !["ddr4", "ddr5", "fullhd", "smartphone", "ps4", "ps5"].includes(token)) identificadores.add(token);
 	}
 	for (const codigo of titulo.toLowerCase().match(/[a-z0-9]+(?:-[a-z0-9]+)+/g) ?? []) {
 		if (/[a-z]/.test(codigo) && /\d/.test(codigo)) identificadores.add(codigo);
@@ -67,10 +67,10 @@ export function extrairAtributosProduto(titulo: string): AtributosProduto {
 		if (anterior && atual && /[a-z]/.test(anterior) && /\d/.test(atual)) modelos.add(`${anterior}${atual}`);
 	}
 	for (const modelo of [...modelos]) {
-		if (/\d+(?:\.\d+)?(?:gb|tb|mb|mah|wh|w)/.test(modelo) || armazenamento.has(modelo) || ram.has(modelo)) modelos.delete(modelo);
+		if (/^\d+(?:\.\d+)?(?:mm|cm|m|gb|tb|mb|mah|wh|w|hz|v|kg|g)$/.test(modelo) || ["ps4", "ps5"].includes(modelo) || armazenamento.has(modelo) || ram.has(modelo)) modelos.delete(modelo);
 	}
 	for (const identificador of [...identificadores]) {
-		if (/\d+(?:\.\d+)?(?:gb|tb|mb|mah|wh|w)/.test(identificador)) identificadores.delete(identificador);
+		if (/^\d+(?:\.\d+)?(?:mm|cm|m|gb|tb|mb|mah|wh|w|hz|v|kg|g)$/.test(identificador)) identificadores.delete(identificador);
 	}
 	return { numeros, armazenamento, ram, polegadas, ano, variantes, modelos, marcas, tipos, formas, resolucoes, identificadores, capacidades };
 }

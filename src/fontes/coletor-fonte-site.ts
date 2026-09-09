@@ -3,7 +3,7 @@ import { ClienteHttp } from "../clientes/cliente-http.js";
 import { load } from "cheerio";
 import type { ItemColetado } from "../modelos/item-coletado.model.js";
 import { ColetorBase } from "../coletores/coletor-base.js";
-import type { SeletoresSite } from "../config/selectors.js";
+import type { SeletoresSite } from "../modelos/seletores-site.js";
 import type { FonteProdutos } from "./fonte-produtos.js";
 
 export class ColetorFonteSite extends ColetorBase<ItemColetado> implements FonteProdutos {

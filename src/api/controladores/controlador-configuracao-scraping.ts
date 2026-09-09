@@ -3,7 +3,7 @@ import type { ServicoConfiguracaoScraping } from "../../configuracoes/servico-co
 import type { ServicoLimpezaProdutos } from "../../servicos/servico-limpeza-produtos.js";
 import type { ClienteHttp } from "../../clientes/cliente-http.js";
 import { AnalisadorSite } from "../../analisadores/analisador-site.js";
-import type { SeletoresSite } from "../../config/selectors.js";
+import type { SeletoresSite } from "../../modelos/seletores-site.js";
 import type { AnalisadorSeletoresOllama } from "../../analisadores/analisador-seletores-ollama.js";
 import type { ServicoResetSistema } from "../../servicos/servico-reset-sistema.js";
 import type { ServicoAutenticacao } from "../../autenticacao/servico-autenticacao.js";
@@ -69,7 +69,8 @@ export class ControladorConfiguracaoScraping {
 		}
 		const html = await this.clienteHttp.obterHtml(url, { seletorItens: seletores.paginaVirtualizada ? seletores.item : undefined, seletorAguardar: seletores.item, seletorCarregarMais: seletores.carregarMais });
 		const itens = this.analisador.analisar(html, url, fonte, seletores);
-		resposta.json({ dados: { quantidadeProdutos: itens.length, produtos: itens.slice(0, 5) } });
+		const previewImagem = await this.clienteHttp.obterCaptura(url, seletores.item);
+		resposta.json({ dados: { quantidadeProdutos: itens.length, produtos: itens.slice(0, 5), previewImagem } });
 	};
 
 	analisarHtml = async (requisicao: Request, resposta: Response): Promise<void> => {
@@ -82,26 +83,4 @@ export class ControladorConfiguracaoScraping {
 		}
 	};
 
-	obterPrevia = async (requisicao: Request, resposta: Response): Promise<void> => {
-		const url = String(requisicao.body?.url ?? "");
-		const endereco = new URL(url);
-		if (!["http:", "https:"].includes(endereco.protocol)) {
-			resposta.status(400).json({ erro: "A URL deve usar HTTP ou HTTPS" });
-			return;
-		}
-		const htmlOriginal = await this.clienteHttp.obterHtml(url);
-		const htmlSeguro = htmlOriginal
-			.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-			.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "")
-			.replace(/<iframe\b[^>]*\/?>/gi, "")
-			.replace(/<meta\s+[^>]*http-equiv=["']content-security-policy["'][^>]*>/gi, "")
-			.replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-			.replace(/<base\b[^>]*>/gi, "")
-			.replace(/<a(\s[^>]*?)\shref=(['"]).*?\2/gi, '<a$1 href="#"');
-		const base = "<base href=\"" + endereco.href.replace(/"/g, "&quot;") + "\">";
-		const estiloSelecao = "<style>html,body{min-width:1400px !important}[data-selector-hover]{outline:3px solid #2456df !important;outline-offset:2px !important;cursor:crosshair !important}[data-selector-hover] *{pointer-events:none !important}</style>";
-		const viewportDesktop = '<meta name="viewport" content="width=1440">';
-		const htmlDesktop = htmlSeguro.replace(/<meta\s+[^>]*name=["']viewport["'][^>]*>/gi, "").replace(/<head([^>]*)>/i, "<head$1>" + viewportDesktop + base + estiloSelecao);
-		resposta.json({ dados: { html: htmlDesktop } });
-	};
 }

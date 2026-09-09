@@ -15,6 +15,10 @@ assert.equal(possuiConflitoDeAtributos(extrairAtributosProduto("PS5 Slim Digital
 assert.equal(possuiConflitoDeAtributos(extrairAtributosProduto("Monitor ASUS TUF 27\" QHD"), extrairAtributosProduto("Monitor ASUS TUF 25\" Full HD")), true);
 assert.equal(possuiConflitoDeAtributos(extrairAtributosProduto("Suporte de Mesa Articulado"), extrairAtributosProduto("Suporte de Parede Articulado")), true);
 assert.equal(possuiConflitoDeAtributos(extrairAtributosProduto("Fonte Corsair CX650"), extrairAtributosProduto("Fonte MSI MAG A650BN")), true);
+assert.equal(possuiConflitoDeAtributos(
+	extrairAtributosProduto("Headset Gamer Havit, Drivers 53mm, Microfone Plugável, 3.5mm, PC, PS4, XBOX ONE, Preto - HV-H2O02D"),
+	extrairAtributosProduto("Headset Gamer Redragon Cragblade H541, Drivers de 53mm, 3.5mm, Preto"),
+), true);
 
 const equivalente = avaliarCandidato("Samsung Galaxy S24 256GB Preto", criarCandidato("Smartphone Samsung Galaxy S24 5G 256 GB Black"), { vetor: 0.45, texto: 0.3, tokens: 0.25 });
 assert(equivalente.scoreFinal > 0.6);
