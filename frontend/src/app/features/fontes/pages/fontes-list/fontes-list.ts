@@ -13,9 +13,7 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
   template: `
     <header class="page-heading">
       <div>
-        <span class="eyebrow">Coleta por loja</span>
-        <h1>Fontes de produtos</h1>
-        <p>Cadastre lojas e organize URLs e seletores por categoria.</p>
+        <h1>Configurações do scraping</h1>
       </div>
       <button class="btn primary" (click)="showForm.set(!showForm())">＋ Nova fonte</button>
     </header>
@@ -54,28 +52,46 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
     } @else {
       <div class="source-grid">
         @for (source of config()?.fontes; track source.fonte) {
-          <article class="panel source-card">
-            <div class="source-title">
-              <app-source-identity [name]="source.nome" [logo]="source.logo ?? ''" /><span
-                class="badge"
-                [class.active]="source.ativa"
-                >{{ source.ativa ? 'Ativa' : 'Inativa' }}</span
-              >
+          <article class="source-card">
+            <div class="source-main">
+              <label class="switch" [class.is-active]="source.ativa" [class.is-inactive]="!source.ativa" [attr.aria-label]="'Alterar status da coleta de ' + source.nome">
+                <input type="checkbox" [checked]="source.ativa" (change)="toggle(source, $event)" />
+                <span class="switch-track"><span></span></span>
+                <span class="switch-status">{{ source.ativa ? 'Ativo' : 'Inativo' }}</span>
+              </label>
+              <app-source-identity [name]="source.nome" [logo]="source.logo ?? ''" [large]="true" />
             </div>
-            <p>{{ source.categorias.length }} categoria(s) configurada(s)</p>
+            <span class="source-count">{{ source.categorias.length }} categoria(s) configurada(s)</span>
             <div class="source-actions">
-              <label class="switch"
-                ><input
-                  type="checkbox"
-                  [checked]="source.ativa"
-                  (change)="toggle(source, $event)"
-                />
-                Coleta ativa</label
-              ><a class="btn" [routerLink]="['/admin/fontes', source.fonte]">Configurar</a
-              ><button class="btn danger" (click)="remove(source)">Excluir</button>
+              <a class="icon-action configure" [routerLink]="['/admin/fontes', source.fonte]" aria-label="Configurar fonte"><i data-lucide="pencil" aria-hidden="true"></i></a>
+              <button class="icon-action remove" type="button" (click)="remove(source)" aria-label="Excluir fonte"><i data-lucide="trash-2" aria-hidden="true"></i></button>
             </div>
+            @if (source.categorias.length) {
+              <div class="category-list" aria-label="Categorias da fonte">
+                @for (category of source.categorias; track category.id) {
+                  <div class="category-row">
+                    <div class="category-name">
+                      <i data-lucide="tag" aria-hidden="true"></i>
+                      <span>{{ category.categoria || 'Categoria sem nome' }}</span>
+                    </div>
+                    <span class="category-status" [class.is-active]="category.ativa" [class.is-inactive]="!category.ativa">
+                      {{ category.ativa ? 'Ativa' : 'Inativa' }}
+                    </span>
+                    <a class="category-action" [routerLink]="['/admin/fontes', source.fonte]" [queryParams]="{ categoria: category.id }" aria-label="Configurar categoria">
+                      <i data-lucide="settings-2" aria-hidden="true"></i><span>Configurar</span>
+                    </a>
+                    <button class="category-action category-delete" type="button" (click)="removeCategory(source, category)" aria-label="Excluir categoria">
+                      <i data-lucide="trash-2" aria-hidden="true"></i><span>Excluir</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </article>
         }
+        <button class="btn add-source-button" type="button" (click)="showForm.set(true)">
+          Adicionar fonte <span aria-hidden="true">+</span>
+        </button>
       </div>
     }
   `,
@@ -84,13 +100,17 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
     }
     .page-heading h1 {
-      margin: 0.2rem 0;
+      margin: 0;
+      color: #111827;
+      font-size: 28px;
+      letter-spacing: -0.7px;
     }
-    .page-heading p,
-    .source-card p,
+    .page-heading > .btn { display: none; }
+    .page-heading h1 { font-size: 0; }
+    .page-heading h1::after { content: 'Configuração de Fontes'; font-size: 28px; }
     .onboarding p {
       color: var(--muted);
     }
@@ -126,56 +146,119 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
     .source-grid {
       display: grid;
       grid-template-columns: 1fr;
-      max-width: 1050px;
-      margin: 0 auto;
-      padding: 0 30px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      padding: 0 38px;
+      border: 1px solid #dfe3e8;
+      border-radius: 12px;
       background: #fff;
     }
-    .source-grid .source-card {
-      min-height: 106px;
-      padding: 22px 0;
-      border: 0 !important;
-      border-bottom: 1px solid var(--line) !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-    }
-    .source-grid .source-card:last-child {
-      border-bottom: 0 !important;
-    }
-    .source-title,
-    .source-actions {
-      display: flex;
-      justify-content: space-between;
+    .source-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto 40px 40px;
+      min-height: 88px;
       align-items: center;
-      gap: 0.6rem;
+      gap: 10px;
+      padding: 22px 0;
+      border-bottom: 1px solid #dfe3e8;
     }
-    .source-card > p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12px;
+    .source-card:last-child { border-bottom: 0; }
+    .add-source-button { grid-column: 1 / -1; justify-self: start; margin: 22px 0 60px; background: #fff; color: #26354e; }
+    .add-source-button span { margin-left: 10px; font-size: 21px; line-height: 0; }
+    .source-main {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+    .source-count {
+      padding-top: 0;
+      color: #697386;
+      font-size: 14px;
     }
     .source-actions {
-      margin-top: -28px;
-      justify-content: flex-end;
+      display: contents;
     }
     .switch {
-      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
       font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
     }
-    .badge {
-      padding: 0.25rem 0.55rem;
-      border-radius: 5px;
-      background: #fee2e2;
-      color: #b91c1c;
-      font-size: 11px;
-      font-weight: 700;
+    .switch.is-active { color: #168253; }
+    .switch.is-inactive { color: #c44343; }
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .switch-track {
+      display: inline-flex;
+      width: 47px;
+      height: 28px;
+      align-items: center;
+      padding: 3px;
+      border-radius: 20px;
+      background: #e7b4b4;
+      transition: background .18s ease;
     }
-    .badge.active {
-      background: #dcfce7;
-      color: #15803d;
+    .switch-track span { width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .18s ease; }
+    .switch.is-active .switch-track { background: #22a06b; }
+    .switch.is-inactive .switch-track { background: #d95454; }
+    .switch input:checked + .switch-track span { transform: translateX(19px); }
+    .icon-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
     }
+    .icon-action .lucide { width: 18px; height: 18px; }
+    .icon-action.configure { position: static; grid-column: 3; color: var(--blue); }
+    .icon-action.remove { position: static; grid-column: 4; color: #c44343; }
+    .icon-action:hover { opacity: .7; }
+    .source-card app-source-identity { display: inline-flex; align-items: center; }
+    .source-card .source-actions + * { display: none; }
+    .source-card .btn { display: none; }
+    .source-card .badge { display: none; }
+    .source-card > p { display: none;
+    }
+    .category-list {
+      grid-column: 1 / -1;
+      display: grid;
+      gap: 1px;
+      margin: 6px 0 0 38px;
+      padding: 4px 0 4px 20px;
+      border-left: 1px solid #d5ddeb;
+      background: #fbfcff;
+    }
+    .category-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      align-items: center;
+      gap: 14px;
+      min-height: 42px;
+      padding: 0 12px;
+      border-bottom: 1px solid #edf0f5;
+      color: #596273;
+      font-size: 13px;
+    }
+    .category-row:last-child { border-bottom: 0; }
+    .category-name { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .category-name .lucide { width: 16px; height: 16px; color: #7b8aa5; }
+    .category-status { font-size: 12px; font-weight: 600; }
+    .category-status.is-active { color: #168253; }
+    .category-status.is-inactive { color: #c44343; }
+    .category-action {
+      display: inline-flex !important; align-items: center; justify-content: flex-start !important; gap: 6px;
+      min-height: 30px; padding: 0 7px; border: 0; border-radius: 5px; background: transparent;
+      color: var(--blue); font: inherit; font-size: 12px; text-decoration: none; cursor: pointer;
+    }
+    .category-action:hover { background: #eef2ff; }
+    .category-action .lucide { width: 15px; height: 15px; }
+    .category-delete { color: #c44343; }
+    .category-delete:hover { background: #fff1f1; }
     .onboarding {
       text-align: center;
       padding: 4rem max(1rem, 15%);
@@ -192,9 +275,9 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
       .source-grid {
         padding: 0 18px;
       }
-      .source-actions {
-        flex-wrap: wrap;
-      }
+      .source-actions { display: flex; }
+      .icon-action.configure { left: auto; right: 44px; top: 40px; }
+      .icon-action.remove { right: 0; }
       .page-heading {
         align-items: flex-start;
         gap: 1rem;
@@ -266,20 +349,29 @@ export class FontesListPage {
   protected toggle(source: ConfiguredSource, event: Event): void {
     const config = this.config();
     if (!config) return;
+    const previousValue = source.ativa;
+    const nextValue = (event.target as HTMLInputElement).checked;
     const changed = {
       ...config,
       fontes: config.fontes.map((item) =>
         item.fonte === source.fonte
-          ? { ...item, ativa: (event.target as HTMLInputElement).checked }
+          ? { ...item, ativa: nextValue }
           : item,
       ),
     };
+    this.config.set(changed);
     this.api.save(changed).subscribe({
       next: (c) => {
         this.config.set(c);
         this.success('Status atualizado.');
       },
-      error: (e) => this.fail(e),
+      error: (e) => {
+        this.config.update((current) => current ? {
+          ...current,
+          fontes: current.fontes.map((item) => item.fonte === source.fonte ? { ...item, ativa: previousValue } : item),
+        } : current);
+        this.fail(e);
+      },
     });
   }
   protected remove(source: ConfiguredSource): void {
@@ -290,6 +382,22 @@ export class FontesListPage {
         this.success('Fonte excluída.');
       },
       error: (e) => this.fail(e),
+    });
+  }
+  protected removeCategory(source: ConfiguredSource, category: ConfiguredSource['categorias'][number]): void {
+    if (!confirm(`Excluir a categoria ${category.categoria || 'sem nome'} da fonte ${source.nome}?`)) return;
+    const config = this.config();
+    if (!config) return;
+    const changed = {
+      ...config,
+      fontes: config.fontes.map((item) => item.fonte === source.fonte
+        ? { ...item, categorias: item.categorias.filter((itemCategory) => itemCategory.id !== category.id) }
+        : item),
+    };
+    this.config.set(changed);
+    this.api.save(changed).subscribe({
+      next: (saved) => { this.config.set(saved); this.success('Categoria excluída.'); },
+      error: (error) => { this.config.set(config); this.fail(error); },
     });
   }
   private success(message: string): void {

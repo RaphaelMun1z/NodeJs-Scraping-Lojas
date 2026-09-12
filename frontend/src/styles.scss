@@ -159,6 +159,7 @@ button:has(> .lucide), a:has(> .lucide) { display: inline-flex; align-items: cen
   .admin-layout > main { padding: 30px 16px 55px; }
   .admin-layout .source-grid { grid-template-columns: 1fr; }
 }
+
 @media (max-width: 450px) {
   .admin-layout .page-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
 }
@@ -391,4 +392,22 @@ body { background: #fff; }
   .admin-layout > aside { height: auto; min-height: 0; padding: 15px 16px; }
   .admin-layout > main { padding: 25px 16px 50px; }
   .admin-layout .source-grid { grid-template-columns: 1fr; }
+}
+
+/* Shared administrative content grid: all pages start from the same base width. */
+:root { --admin-container-width: 1312px; }
+.admin-layout > main > * {
+  width: 100%;
+  max-width: var(--admin-container-width);
+  margin-right: auto;
+  margin-left: auto;
+}
+.admin-layout > main > * .page-heading,
+.admin-layout > main > * .source-grid,
+.admin-layout > main > * .add-form,
+.admin-layout > main > * .onboarding,
+.admin-layout > main > * .settings,
+.admin-layout > main > * .category-list { max-width: none; }
+@media (max-width: 800px) {
+  .admin-layout > main > * { max-width: none; }
 }

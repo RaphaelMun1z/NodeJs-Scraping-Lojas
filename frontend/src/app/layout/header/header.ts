@@ -39,8 +39,9 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
   styles: `
     :host {
       display: block;
-      position: relative;
-      z-index: 30;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     .topbar {
       height: 64px;

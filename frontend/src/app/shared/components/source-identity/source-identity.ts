@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   selector: 'app-source-identity',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="source-identity">
+    <span class="source-identity" [class.large]="large()">
       @if (logo()) {
         <img [src]="logo()" [alt]="name()" (error)="hide($event)" />
       }
@@ -44,11 +44,23 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     img:not([hidden]) + .source-fallback {
       display: none;
     }
+    .source-identity.large {
+      color: #171717;
+      font-size: 20px;
+      font-weight: 700;
+      gap: 9px;
+    }
+    .source-identity.large img,
+    .source-identity.large .source-fallback {
+      width: 30px;
+      height: 30px;
+    }
   `,
 })
 export class SourceIdentityComponent {
   readonly name = input.required<string>();
   readonly logo = input<string>('');
+  readonly large = input(false);
   protected hide(event: Event): void {
     (event.target as HTMLImageElement).hidden = true;
   }

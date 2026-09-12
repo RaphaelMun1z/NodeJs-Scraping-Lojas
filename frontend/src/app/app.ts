@@ -1,9 +1,11 @@
 import { AfterViewChecked, ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
+  Activity,
   ArrowRight,
   Braces,
   ChartNoAxesCombined,
   Check,
+  ChevronDown,
   createIcons,
   ArrowLeft,
   ChevronLeft,
@@ -33,6 +35,7 @@ import {
   SearchCheck,
   ServerCog,
   Settings,
+  Settings2,
   ShieldCheck,
   Sparkles,
   Store,
@@ -60,10 +63,10 @@ export class App implements AfterViewChecked {
   }
   ngAfterViewChecked(): void {
     createIcons({ icons: {
-      ArrowLeft, ArrowRight, Braces, ChartNoAxesCombined, Check, ChevronLeft, ChevronRight,
+      Activity, ArrowLeft, ArrowRight, Braces, ChartNoAxesCombined, Check, ChevronDown, ChevronLeft, ChevronRight,
       Clock3, Download, ExternalLink, Filter, Globe2, Eye, EyeOff, Info, KeyRound, LockKeyhole, List, LogOut, Mail, Monitor,
       Package, Pencil, Plus, Printer, RotateCcw, Save, ScanSearch, Search, SearchCheck,
-      ServerCog, Settings, ShieldCheck, Sparkles, Store, Tag, Timer, Trash2, TriangleAlert, Upload, X,
+      ServerCog, Settings, Settings2, ShieldCheck, Sparkles, Store, Tag, Timer, Trash2, TriangleAlert, Upload, X,
     } });
   }
 }
