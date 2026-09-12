@@ -1,23 +1,21 @@
 import type { EmbeddingProvider } from "../embeddings/provedor-embedding.js";
-import type { ProvedorClassificacaoProduto, ResultadoClassificacaoProduto } from "../classificacao/provedor-classificacao.js";
 import type { RepositorioIndiceProdutos, ProdutoIndexado } from "../elasticsearch/repositorio-indice-produtos.js";
 import type { ItemColetado } from "../modelos/item-coletado.model.js";
 import { gerarChaveItem } from "../utilitarios/chave-item.js";
 import { normalizarTituloProduto } from "./normalizador-titulo.js";
 import { ServicoMatchingProduto } from "./servico-matching-produto.js";
 import type { RepositorioItem } from "../banco/repositorios/repositorio-item.js";
-import { VERSAO_CLASSIFICACAO_PRODUTO } from "../classificacao/categorias-produto.js";
 
 export interface ProgressoMatching {
-	classificacao?: number;
 	embeddings?: number;
 	indexacao?: number;
 }
-export type EventoEtapaMatching = (etapa: "classificacao" | "embeddings" | "indexacao", estado: "inicio" | "fim") => Promise<void> | void;
+export type EventoEtapaMatching = (etapa: "embeddings" | "indexacao", estado: "inicio" | "fim") => Promise<void> | void;
+
+const VERSAO_MATCHING_CATEGORIA_CONFIGURADA = 1;
 
 export class ServicoMatchingCatalogoProdutos {
 	private readonly cacheEmbeddings = new Map<string, number[]>();
-	private readonly cacheClassificacoes = new Map<string, ResultadoClassificacaoProduto>();
 	private filaIndexacao: Promise<void> = Promise.resolve();
 
 	constructor(
@@ -25,7 +23,6 @@ export class ServicoMatchingCatalogoProdutos {
 		private readonly embeddings: EmbeddingProvider,
 		private readonly matching: ServicoMatchingProduto,
 		private readonly repositorioItem: RepositorioItem,
-		private readonly classificador?: ProvedorClassificacaoProduto,
 	) {}
 
 	async processarProdutosColetados(itens: ItemColetado[], atualizarProgresso?: (progresso: ProgressoMatching) => Promise<void> | void, registrarEtapa?: EventoEtapaMatching): Promise<void> {
@@ -40,12 +37,9 @@ export class ServicoMatchingCatalogoProdutos {
 		const estados = await this.repositorioItem.consultarEstadosIndexacao(chaves);
 		const pendentes = itensUnicos.filter((item) => {
 			const estado = estados.get(gerarChaveItem(item));
-			return !estado || estado.titulo !== item.titulo || !estado.grupoProdutoId || !estado.classificacaoProcessada || estado.classificacaoVersao !== VERSAO_CLASSIFICACAO_PRODUTO;
+			return !estado || !estado.grupoProdutoId || !estado.matchingProcessado || estado.matchingVersao !== VERSAO_MATCHING_CATEGORIA_CONFIGURADA;
 		});
-		await atualizarProgresso?.({ classificacao: 0, embeddings: 0, indexacao: 0 });
-		await registrarEtapa?.("classificacao", "inicio");
-		let classificacoes: Map<string, ResultadoClassificacaoProduto>;
-		try { classificacoes = await this.classificarPendentes(pendentes, async (classificacao) => atualizarProgresso?.({ classificacao })); } finally { await registrarEtapa?.("classificacao", "fim"); }
+		await atualizarProgresso?.({ embeddings: 0, indexacao: 0 });
 		await registrarEtapa?.("embeddings", "inicio");
 		let embeddings: Map<string, number[]>;
 		try { embeddings = await this.gerarEmbeddingsPendentes(pendentes); } finally { await registrarEtapa?.("embeddings", "fim"); }
@@ -56,9 +50,7 @@ export class ServicoMatchingCatalogoProdutos {
 			const chave = gerarChaveItem(item);
 			const tituloNormalizado = normalizarTituloProduto(item.titulo);
 			const embedding = embeddings.get(tituloNormalizado)!;
-			const classificacao = classificacoes.get(tituloNormalizado);
-			if (classificacao) await this.repositorioItem.salvarClassificacao(chave, classificacao);
-			const resultado = await this.matching.encontrarEquivalente(item.titulo, chave, embedding, item.fonte);
+			const resultado = await this.matching.encontrarEquivalente(item.titulo, chave, embedding, item.fonte, item.categoria);
 			const grupoProdutoId = resultado.equivalente?.grupoProdutoId ?? `grupo-${resultado.equivalente?.chave ?? chave}`;
 			if (resultado.equivalente) {
 				console.log(`🔗 Possível equivalente: "${item.titulo}" -> "${resultado.equivalente.titulo}" (${resultado.score.toFixed(3)})`);
@@ -66,49 +58,16 @@ export class ServicoMatchingCatalogoProdutos {
 				await this.indice.atualizarGrupoProduto(resultado.equivalente.chave, grupoProdutoId);
 			}
 			await this.repositorioItem.vincularGrupoProduto(chave, grupoProdutoId);
-			documentos.push({ id: chave, chave, grupoProdutoId, fonte: item.fonte, titulo: item.titulo, tituloNormalizado, ativo: true, url: item.url, embedding, ...classificacao && { categoriaOriginal: classificacao.categoriaOriginal, categoriaNormalizada: classificacao.categoriaNormalizada, categoria: classificacao.categoria, subcategoria: classificacao.subcategoria, tipoProduto: classificacao.tipoProduto, confiancaCategoria: classificacao.confianca } });
+			documentos.push({ id: chave, chave, grupoProdutoId, fonte: item.fonte, titulo: item.titulo, tituloNormalizado, ativo: true, url: item.url, embedding, categoriaOriginal: item.categoria, categoriaNormalizada: item.categoria, categoria: item.categoria.split(" > ")[0], subcategoria: item.categoria.includes(" > ") ? item.categoria.slice(item.categoria.indexOf(" > ") + 3) : undefined, tipoProduto: "principal", confiancaCategoria: 1 });
 		}
 
 		await atualizarProgresso?.({ indexacao: 0 });
 		await registrarEtapa?.("indexacao", "inicio");
 		try { await this.indice.indexarProdutos(documentos); } finally { await registrarEtapa?.("indexacao", "fim"); }
+		await Promise.all(documentos.map((documento) => this.repositorioItem.marcarMatchingProcessado(documento.chave, VERSAO_MATCHING_CATEGORIA_CONFIGURADA)));
 		await atualizarProgresso?.({ indexacao: 100 });
-		await this.indice.ativarPresentesDaFonte(itensUnicos[0]?.fonte ?? "", chaves);
-		await this.indice.inativarAusentesDaFonte(itensUnicos[0]?.fonte ?? "", chaves);
-	}
-
-	private async classificarPendentes(itens: ItemColetado[], atualizarProgresso?: (progresso: number) => Promise<void> | void): Promise<Map<string, ResultadoClassificacaoProduto>> {
-		const textos = [...new Set(itens.map((item) => normalizarTituloProduto(item.titulo)))];
-		if (!this.classificador) {
-			await atualizarProgresso?.(100);
-			return new Map(textos.map((texto) => [texto, this.criarClassificacaoFallback()]));
-		}
-		for (const [indice, texto] of textos.entries()) {
-			if (this.cacheClassificacoes.has(texto)) {
-				await atualizarProgresso?.(Math.round(((indice + 1) / textos.length) * 100));
-				continue;
-			}
-			try {
-				this.cacheClassificacoes.set(texto, await this.classificador.classificarProduto(texto));
-			} catch (erro) {
-				// Mantém o produto filtrável mesmo quando o classificador falha.
-				this.cacheClassificacoes.set(texto, {
-					categoriaOriginal: "Outros",
-					categoriaNormalizada: "Outros",
-					categoria: "Outros",
-					tipoProduto: "outro",
-					confianca: 0,
-					versao: VERSAO_CLASSIFICACAO_PRODUTO,
-				});
-				console.warn(`Não foi possível classificar o produto: ${erro instanceof Error ? erro.message : "erro desconhecido"}`);
-			}
-			await atualizarProgresso?.(Math.round(((indice + 1) / textos.length) * 100));
-		}
-		return new Map(textos.map((texto) => [texto, this.cacheClassificacoes.get(texto)!]).filter((item): item is [string, ResultadoClassificacaoProduto] => Boolean(item[1])));
-	}
-
-	private criarClassificacaoFallback(): ResultadoClassificacaoProduto {
-		return { categoriaOriginal: "Outros", categoriaNormalizada: "Outros", categoria: "Outros", tipoProduto: "outro", confianca: 0, versao: VERSAO_CLASSIFICACAO_PRODUTO };
+		await this.indice.ativarPresentesDaFonte(itensUnicos[0]?.fonte ?? "", itensUnicos[0]?.categoria ?? "", chaves);
+		await this.indice.inativarAusentesDaFonte(itensUnicos[0]?.fonte ?? "", itensUnicos[0]?.categoria ?? "", chaves);
 	}
 
 	private async gerarEmbeddingsPendentes(itens: ItemColetado[]): Promise<Map<string, number[]>> {

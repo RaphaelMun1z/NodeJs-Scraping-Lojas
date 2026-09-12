@@ -68,7 +68,7 @@ export class ServidorApi {
 		const controladorItem = new ControladorItem(this.repositorioItem, this.repositorioIndice);
 		const controladorAutenticacao = new ControladorAutenticacao(this.autenticacao);
 		if (!this.limpezaProdutos) throw new Error("Serviço de limpeza de produtos não configurado");
-		const controladorConfiguracao = new ControladorConfiguracaoScraping(this.configuracaoScraping, this.limpezaProdutos, this.clienteHttpConfiguracao, undefined, new AnalisadorSeletoresOllama(configuracaoAplicacao.coleta.classificacao.url, configuracaoAplicacao.coleta.analisadorSeletores.modelo), new ServicoResetSistema(this.repositorioIndice), this.autenticacao);
+		const controladorConfiguracao = new ControladorConfiguracaoScraping(this.configuracaoScraping, this.limpezaProdutos, this.clienteHttpConfiguracao, undefined, new AnalisadorSeletoresOllama(configuracaoAplicacao.coleta.analisadorSeletores.url, configuracaoAplicacao.coleta.analisadorSeletores.modelo), new ServicoResetSistema(this.repositorioIndice), this.autenticacao);
 		if (!this.servicoColeta) throw new Error("Serviço de coleta não configurado");
 		const controladorMonitoramento = new ControladorMonitoramentoScraping(this.eventosScraping, this.obterProximaExecucao, this.servicoColeta);
 		const controladorBuscaManual = new ControladorBuscaManual(this.servicoBuscaManual);

@@ -561,7 +561,10 @@ async function testarSeletoresFonte(fonte) {
 					"X-CSRF-Token": obterTokenCsrf(),
 				},
 				body: JSON.stringify({
-					fonte,
+					fonte: fonte.split("--")[0],
+					categoria:
+						botao?.closest("[data-category-config]")?.querySelector("input[name^='categoria-']")?.value.trim() ||
+						"Outros",
 					url,
 					seletores: obterSeletoresDoFormulario(fonte),
 				}),
@@ -1688,7 +1691,7 @@ async function carregarConfiguracaoAdministracao() {
 				item.nome ?? item.fonte,
 			]),
 		);
-		pagina.innerHTML = `<div class="admin-header"><h1>Configurações do scraping</h1></div><form id="scraping-settings-form" class="admin-settings">${configuracao.fontes.map((fonte) => `<section class="admin-source"><div><h2>${renderizarFonteComLogo(fonte.fonte, fonte.nome)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa-${fonte.fonte}" ${fonte.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Ativa</span></label></div><label>URL da fonte<div class="url-edit"><input name="url-${fonte.fonte}" type="url" value="${escaparHtml(fonte.url)}" readonly required /><button class="edit-button" type="button" data-edit-url="${fonte.fonte}" aria-label="Editar URL"><i data-lucide="pencil" aria-hidden="true"></i></button></div></label></section>`).join("")}<div id="admin-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form><section class="admin-mfa"><h2>Autenticação em dois fatores</h2><button id="start-mfa" class="secondary-button" type="button">Configurar MFA</button></section></div>`;
+		pagina.innerHTML = `<div class="admin-header"><h1>Configurações do scraping</h1></div><form id="scraping-settings-form" class="admin-settings">${configuracao.fontes.map((fonte) => `<section class="admin-source"><div><h2>${renderizarFonteComLogo(fonte.fonte, fonte.nome)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa-${fonte.fonte}" ${fonte.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Ativa</span></label></div><span class="source-category-count">${fonte.categorias?.length ?? 0} categoria(s) configurada(s)</span></section>`).join("")}<div id="admin-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form><section class="admin-mfa"><h2>Autenticação em dois fatores</h2><button id="start-mfa" class="secondary-button" type="button">Configurar MFA</button></section></div>`;
 		if (configuracao.fontes.length === 0) {
 			const formularioVazio = $("#scraping-settings-form");
 			formularioVazio.innerHTML =
@@ -1893,7 +1896,11 @@ function configurarLogoFonte(item) {
 	preview.className = "source-logo-preview";
 	preview.alt = "Logo da fonte";
 	if (item.logo) preview.src = item.logo;
+	const botaoLogo = document.createElement("span");
+	botaoLogo.className = "source-logo-button";
+	botaoLogo.innerHTML = '<i data-lucide="image-plus" aria-hidden="true"></i> Adicionar logo';
 	seletor.prepend(entrada);
+	seletor.append(botaoLogo);
 	seletor.append(preview);
 	areaIdentidade.append(seletor);
 
@@ -2257,7 +2264,6 @@ const descricoesProgresso = {
 		"Percentual estimado de conclusão de todas as etapas da rodada.",
 	Coleta: "Leitura dos produtos na página da fonte e extração dos dados encontrados.",
 	Indexação: "Atualização dos produtos e dos preços no índice de pesquisa.",
-	Classificação: "Identificação da categoria e do tipo de cada produto.",
 	Embeddings:
 		"Geração das representações numéricas usadas para encontrar produtos semelhantes.",
 };
@@ -2286,11 +2292,6 @@ function renderizarProgressoExecucao(
 			progresso.coleta,
 			"Coleta",
 			estimarTempoRestante(progresso.coleta, iniciadoEm),
-		),
-		renderizarBarraProgresso(
-			progresso.classificacao,
-			"Classificação",
-			estimarTempoRestante(progresso.classificacao, iniciadoEm),
 		),
 		renderizarBarraProgresso(
 			progresso.embeddings,
@@ -2330,7 +2331,7 @@ function renderizarHistoricoMonitoramentoPaginado() {
 	$("#monitor-history-body").innerHTML = dadosMonitoramento.execucoes
 		.map((item) => {
 			const rodada = String(item.rodadaId ?? "legada");
-		return `<tr class="history-row status-${item.status}"><td class="history-date">${formatarDataHora(item.iniciadoEm)}</td><td class="history-round" title="${escaparHtml(rodada)}">${principal ? "Principal" : escaparHtml(rodada.slice(0, 8))}</td><td>${renderizarFonteComLogo(item.fonte)}</td><td>${formatarStatusHistorico(item.status, item)}</td><td>${formatarDuracaoExecucao(item)}</td><td>${item.produtosEncontrados ?? 0}</td><td><button class="history-details-button" data-monitor-detail="${item._id}" aria-label="Ver detalhes da execução"><i data-lucide="list" aria-hidden="true"></i> Detalhes</button></td></tr>`;
+			return `<tr class="history-row status-${item.status}"><td class="history-date">${formatarDataHora(item.iniciadoEm)}</td><td class="history-round" title="${escaparHtml(rodada)}">${principal ? "Principal" : escaparHtml(rodada.slice(0, 8))}</td><td>${renderizarFonteComLogo(item.fonte)}${item.categoria ? `<small class="monitor-category">${escaparHtml(item.categoria)}</small>` : ""}</td><td>${formatarStatusHistorico(item.status, item)}</td><td>${formatarDuracaoExecucao(item)}</td><td>${item.produtosEncontrados ?? 0}</td><td><button class="history-details-button" data-monitor-detail="${item._id}" aria-label="Ver detalhes da execução"><i data-lucide="list" aria-hidden="true"></i> Detalhes</button></td></tr>`;
 		})
 		.join("");
 	$("#monitor-history-pagination").innerHTML =
@@ -2388,14 +2389,14 @@ function renderizarStatusMonitoramento() {
 	$("#monitor-errors").innerHTML = execucoesComProblema
 		.map(
 			(item) =>
-				`<article class="monitor-source-card monitor-source-error"><div class="monitor-card-title"><strong>${renderizarFonteComLogo(item.fonte)}</strong><span class="monitor-status-badge erro">Erro</span></div><span>Início: ${formatarHorario(item.iniciadoEm)}</span><span>Erro: ${escaparHtml(item.erro ?? item.ultimaMensagem ?? "Falha não detalhada")}</span><span>Produtos encontrados: ${item.produtosEncontrados ?? 0}</span></article>`,
+				`<article class="monitor-source-card monitor-source-error"><div class="monitor-card-title"><strong>${renderizarFonteComLogo(item.fonte)}</strong><span class="monitor-status-badge erro">Erro</span></div>${item.categoria ? `<span>Categoria: ${escaparHtml(item.categoria)}</span>` : ""}<span>Início: ${formatarHorario(item.iniciadoEm)}</span><span>Erro: ${escaparHtml(item.erro ?? item.ultimaMensagem ?? "Falha não detalhada")}</span><span>Produtos encontrados: ${item.produtosEncontrados ?? 0}</span></article>`,
 		)
 		.join("");
 	$("#monitor-status").innerHTML = execucoesNormais.length
 		? execucoesNormais
 				.map(
 					(item) =>
-						`<article class="monitor-source-card"><div class="monitor-card-title"><strong>${renderizarFonteComLogo(item.fonte)}</strong><span class="monitor-status-badge ${item.status}">${escaparHtml(item.status)}</span></div><span>Início: ${formatarHorario(item.iniciadoEm)}</span><span>Produtos encontrados: ${item.produtosEncontrados ?? 0}</span><span>Última mensagem: ${escaparHtml(item.ultimaMensagem ?? "Aguardando...")}</span></article>`,
+						`<article class="monitor-source-card"><div class="monitor-card-title"><strong>${renderizarFonteComLogo(item.fonte)}</strong><span class="monitor-status-badge ${item.status}">${escaparHtml(item.status)}</span></div>${item.categoria ? `<span>Categoria: ${escaparHtml(item.categoria)}</span>` : ""}<span>Início: ${formatarHorario(item.iniciadoEm)}</span><span>Produtos encontrados: ${item.produtosEncontrados ?? 0}</span><span>Última mensagem: ${escaparHtml(item.ultimaMensagem ?? "Aguardando...")}</span></article>`,
 				)
 				.join("")
 		: '<div class="empty-state">Nenhuma fonte em execução.</div>';
@@ -2678,7 +2679,7 @@ function renderizarRota() {
 	if (rotaFonte) {
 		fecharEventosScraping();
 		$("#new-products").classList.add("is-hidden");
-		void carregarConfiguracaoFonte(rotaFonte[1]);
+		void carregarConfiguracaoFonteV5(rotaFonte[1]);
 		return;
 	}
 	fecharEventosScraping();
@@ -3233,6 +3234,139 @@ function configurarInteracoesCatalogo() {
 		}),
 	);
 }
+const seletoresVaziosV5 = {
+	item: "",
+	titulo: "",
+	preco: "",
+	precoAntigo: "",
+	imagem: "",
+	url: "",
+	paginaVirtualizada: false,
+	carregarMais: "",
+};
+
+function criarIdCategoriaV5(categoria = "categoria") {
+	const slug = String(categoria)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 45) || "categoria";
+	return `${slug}-${Date.now().toString(36)}`;
+}
+
+function renderizarCamposSeletoresV5(configuracao, chaveCampos) {
+	const campos = [
+		["item", "Container do produto"],
+		["titulo", "Título"],
+		["preco", "Preço atual"],
+		["precoAntigo", "Preço antigo"],
+		["imagem", "Imagem"],
+		["url", "Link do produto"],
+		["carregarMais", "Botão carregar mais"],
+	];
+	return `<div class="selector-config"><div class="selector-config-heading"><div><h3>Seletores dos cards</h3><p>Esta categoria pode usar seletores próprios ou iguais aos de outra categoria.</p></div><div class="selector-config-actions"><button class="secondary-button" type="button" data-test-selectors="${chaveCampos}">Testar seletores</button><button class="secondary-button" type="button" data-analyze-html="${chaveCampos}">Analisar HTML</button></div></div><div class="selector-fields">${campos.map(([campo, rotulo]) => { const obrigatorio = ["item", "titulo", "preco", "imagem"].includes(campo); return `<label class="selector-field ${campo === "item" ? "selector-field-item" : ""}"><span class="selector-field-label">${rotulo}${obrigatorio ? '<span class="required-mark">*</span>' : ""}</span><input name="seletor-${campo}-${chaveCampos}" value="${escaparHtml(configuracao.seletores?.[campo] ?? "")}" placeholder="Ex.: .product-card h2" ${obrigatorio ? "required" : ""} /></label>`; }).join("")}</div><label class="check-row selector-virtualized"><input type="checkbox" name="paginaVirtualizada-${chaveCampos}" ${configuracao.seletores?.paginaVirtualizada ? "checked" : ""} /><span>Página com produtos virtualizados</span></label><div class="selector-test-result" data-selector-result="${chaveCampos}" aria-live="polite"></div></div>`;
+}
+
+function renderizarCategoriaFonteV5(fonte, configuracao) {
+	const chaveCampos = `${fonte}--${configuracao.id}`;
+	return `<section class="source-category-card" data-category-config="${escaparHtml(configuracao.id)}" data-fields-key="${chaveCampos}"><header class="source-category-header"><label>Categoria<input name="categoria-${chaveCampos}" value="${escaparHtml(configuracao.categoria)}" placeholder="Ex.: Notebooks" required /></label><label class="toggle-row"><input class="toggle-input" type="checkbox" name="categoria-ativa-${chaveCampos}" ${configuracao.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Coleta ativa</span></label><button class="delete-source-button" type="button" data-remove-category aria-label="Remover categoria"><i data-lucide="trash-2" aria-hidden="true"></i></button></header><label>URL da categoria <span class="required-mark">*</span><div class="url-edit"><input name="url-${chaveCampos}" type="url" value="${escaparHtml(configuracao.url)}" placeholder="https://loja.com/notebooks" required /></div></label>${renderizarCamposSeletoresV5(configuracao, chaveCampos)}</section>`;
+}
+
+function obterCategoriasFormularioV5(formulario) {
+	return [...formulario.querySelectorAll("[data-category-config]")].map((card) => {
+		const id = card.dataset.categoryConfig;
+		const chaveCampos = card.dataset.fieldsKey;
+		return {
+			id,
+			categoria: card.querySelector(`input[name="categoria-${chaveCampos}"]`).value.trim(),
+			url: card.querySelector(`input[name="url-${chaveCampos}"]`).value.trim(),
+			ativa: card.querySelector(`input[name="categoria-ativa-${chaveCampos}"]`).checked,
+			seletores: obterSeletoresDoFormulario(chaveCampos),
+		};
+	});
+}
+
+async function salvarConfiguracaoFonteV5(evento, fonte, configuracao) {
+	evento.preventDefault();
+	const formulario = evento.currentTarget;
+	const feedback = $("#source-settings-feedback");
+	const botao = formulario.querySelector("button[type='submit']");
+	formulario.classList.add("is-saving");
+	botao.disabled = true;
+	feedback.className = "admin-feedback";
+	feedback.textContent = "Salvando...";
+	try {
+		const categorias = obterCategoriasFormularioV5(formulario);
+		if (!categorias.length) throw new Error("Adicione ao menos uma categoria à fonte.");
+		const fontes = configuracao.fontes.map((fonteConfigurada) => {
+			const item = removerLogoDaAtualizacao(fonteConfigurada);
+			return item.fonte === fonte
+				? { ...item, logo: formulario.elements.logo.value, ativa: formulario.elements.ativa.checked, categorias }
+				: item;
+		});
+		const resposta = await fetch("/api/admin/configuracoes/scraping", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json", "X-CSRF-Token": obterTokenCsrf() },
+			body: JSON.stringify({ fontes }),
+		});
+		const dados = await resposta.json();
+		if (!resposta.ok) throw new Error(formatarErroApi(dados, "Não foi possível salvar as configurações."));
+		feedback.className = "admin-feedback success";
+		feedback.textContent = "Categorias e coletas salvas com sucesso.";
+		configuracao.fontes = dados.dados.fontes;
+	} catch (erro) {
+		feedback.className = "admin-feedback error";
+		feedback.textContent = erro.message;
+	} finally {
+		formulario.classList.remove("is-saving");
+		botao.disabled = false;
+	}
+}
+
+function configurarCategoriasFonteV5(fonte) {
+	const formulario = $("#source-settings-form");
+	const lista = $("#source-categories-list");
+	$("#add-source-category").addEventListener("click", () => {
+		const id = criarIdCategoriaV5();
+		lista.insertAdjacentHTML("beforeend", renderizarCategoriaFonteV5(fonte, { id, categoria: "", url: "", ativa: false, seletores: seletoresVaziosV5 }));
+		lista.lastElementChild.querySelector("input[name^='categoria-']")?.focus();
+		atualizarEstadoBotoesTeste();
+		agendarAtualizacaoIcones();
+	});
+	formulario.addEventListener("click", (evento) => {
+		const remover = evento.target.closest("[data-remove-category]");
+		if (!remover) return;
+		remover.closest("[data-category-config]")?.remove();
+	});
+}
+
+async function carregarConfiguracaoFonteV5(fonte) {
+	mostrarPaginaAdministracao();
+	const pagina = $("#admin-page");
+	pagina.innerHTML = '<div class="admin-card skeleton-admin"><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line title"></div><div class="skeleton skeleton-line"></div></div>';
+	try {
+		const sessao = await fetch("/api/autenticacao/sessao");
+		if (!sessao.ok) { mostrarLoginAdministracao(); return; }
+		const resposta = await fetch("/api/admin/configuracoes/scraping");
+		if (!resposta.ok) throw new Error("Não foi possível carregar a configuração da fonte");
+		const configuracao = (await resposta.json()).dados;
+		const item = configuracao.fontes.find((fonteConfigurada) => fonteConfigurada.fonte === fonte);
+		if (!item) throw new Error("Fonte não encontrada");
+		logosFontesConfiguradas = Object.fromEntries(configuracao.fontes.map((fonteConfigurada) => [fonteConfigurada.fonte, fonteConfigurada.logo ?? ""]));
+		nomesFontesConfiguradas = Object.fromEntries(configuracao.fontes.map((fonteConfigurada) => [fonteConfigurada.fonte, fonteConfigurada.nome ?? fonteConfigurada.fonte]));
+		pagina.innerHTML = `<div class="admin-header"><div><a class="back-link" href="#admin">Voltar para configurações</a><h1>Configurar ${escaparHtml(item.nome)}</h1><p class="admin-description">Cadastre uma URL e os seletores de cards para cada categoria da loja.</p></div></div><form id="source-settings-form" class="admin-settings source-settings-form source-settings-categories"><section class="admin-source source-settings-main"><div><h2>${renderizarFonteComLogo(item.fonte)}</h2><label class="toggle-row"><input class="toggle-input" type="checkbox" name="ativa" ${item.ativa ? "checked" : ""} /><span class="toggle-control"></span><span>Loja ativa</span></label></div></section><input type="hidden" name="logo" value="${escaparHtml(item.logo ?? "")}" /><div class="source-categories-heading"><div><h2>Categorias da loja</h2><p>Cada categoria possui sua própria URL e configuração de seletores.</p></div><button id="add-source-category" class="secondary-button" type="button">Adicionar categoria <i data-lucide="plus" aria-hidden="true"></i></button></div><div id="source-categories-list">${(item.categorias ?? []).map((categoria) => renderizarCategoriaFonteV5(fonte, categoria)).join("")}</div><div id="source-settings-feedback" class="admin-feedback"></div><button class="primary-button" type="submit">Salvar configurações</button></form>`;
+		$("#source-settings-form").addEventListener("submit", (evento) => void salvarConfiguracaoFonteV5(evento, fonte, configuracao));
+		configurarLogoFonte(item);
+		configurarCategoriasFonteV5(fonte);
+		atualizarEstadoBotoesTeste();
+		agendarAtualizacaoIcones();
+	} catch (erro) {
+		pagina.innerHTML = `<div class="admin-card"><div class="admin-error">${escaparHtml(erro.message)}</div></div>`;
+	}
+}
+
 async function removerFonte(fonte, nome) {
 	const confirmacao = await abrirDialogoPersonalizado({
 		titulo: `Excluir ${nome}?`,

@@ -25,9 +25,7 @@ const esquemaConfiguracao = z.object({
 	SCRAPING_RETENCAO_EXECUCOES: z.coerce.number().int().positive().default(100),
 	SCRAPING_RETENCAO_LOGS: z.coerce.number().int().positive().default(2000),
 	HISTORICO_PRECO_RETENCAO_DIAS: z.coerce.number().int().nonnegative().default(730),
-	CLASSIFICACAO_HABILITADA: z.enum(["true", "false"]).default("false").transform((valor) => valor === "true"),
 	CLASSIFICADOR_URL: z.string().url().default("http://127.0.0.1:11434/api/generate"),
-	CLASSIFICADOR_MODELO: z.string().min(1).default("llama3.2:3b"),
 	ANALISADOR_SELETORES_MODELO: z.string().min(1).default("gemma3:1b"),
 });
 
@@ -47,8 +45,7 @@ export const configuracaoAplicacao = {
 		salvarColeta: ambiente.SALVAR_COLETA,
 		executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
 		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
-		classificacao: { habilitada: ambiente.CLASSIFICACAO_HABILITADA, url: ambiente.CLASSIFICADOR_URL, modelo: ambiente.CLASSIFICADOR_MODELO },
-		analisadorSeletores: { modelo: ambiente.ANALISADOR_SELETORES_MODELO },
+		analisadorSeletores: { url: ambiente.CLASSIFICADOR_URL, modelo: ambiente.ANALISADOR_SELETORES_MODELO },
 	},
 	agendamento: {
 		expressao: ambiente.CRON_EXPRESSAO,

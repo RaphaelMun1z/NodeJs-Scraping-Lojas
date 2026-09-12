@@ -3,6 +3,7 @@ import { Schema, model } from "mongoose";
 const esquemaExecucao = new Schema(
 	{
 		fonte: { type: String, required: true, index: true },
+		categoria: { type: String, index: true },
 		rodadaId: { type: String, index: true },
 		status: { type: String, enum: ["aguardando", "executando", "concluido", "erro"], required: true, index: true },
 		iniciadoEm: { type: Date, required: true, index: true },
@@ -14,7 +15,6 @@ const esquemaExecucao = new Schema(
 		produtosInativados: { type: Number, default: 0 },
 		progresso: {
 			coleta: { type: Number, default: 0 },
-			classificacao: { type: Number, default: 0 },
 			embeddings: { type: Number, default: 0 },
 			indexacao: { type: Number, default: 0 },
 			geral: { type: Number, default: 0 },

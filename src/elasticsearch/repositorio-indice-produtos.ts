@@ -93,13 +93,13 @@ export class RepositorioIndiceProdutos {
 		return resultado.deleted ?? 0;
 	}
 
-	async ativarPresentesDaFonte(fonte: string, chavesAtivas: string[]): Promise<void> {
+	async ativarPresentesDaFonte(fonte: string, categoria: string, chavesAtivas: string[]): Promise<void> {
 		if (chavesAtivas.length === 0) return;
 		await this.client.updateByQuery({
 			index: this.indice,
 			refresh: true,
 			conflicts: "proceed",
-			query: { bool: { filter: [{ term: { fonte } }, { terms: { chave: chavesAtivas } }] } },
+			query: { bool: { filter: [{ term: { fonte } }, { term: { categoriaNormalizada: categoria } }, { terms: { chave: chavesAtivas } }] } },
 			script: { lang: "painless", source: "ctx._source.ativo = true" },
 		});
 	}
@@ -108,25 +108,26 @@ export class RepositorioIndiceProdutos {
 		await this.client.update({ index: this.indice, id: chave, doc: { grupoProdutoId }, refresh: "wait_for" });
 	}
 
-	async inativarAusentesDaFonte(fonte: string, chavesAtivas: string[]): Promise<void> {
+	async inativarAusentesDaFonte(fonte: string, categoria: string, chavesAtivas: string[]): Promise<void> {
 		if (!chavesAtivas.length) return;
 		// Mantém o estado do índice alinhado à última coleta da fonte.
 		await this.client.updateByQuery({
 			index: this.indice,
 			refresh: true,
 			conflicts: "proceed",
-			query: { bool: { filter: [{ term: { fonte } }], must_not: [{ terms: { chave: chavesAtivas } }] } },
+			query: { bool: { filter: [{ term: { fonte } }, { term: { categoriaNormalizada: categoria } }], must_not: [{ terms: { chave: chavesAtivas } }] } },
 			script: { lang: "painless", source: "ctx._source.ativo = false" },
 		});
 	}
 
-	async buscarCandidatos(texto: string, embedding: number[], limite: number, chaveIgnorada?: string, fonteIgnorada?: string): Promise<ProdutoCandidato[]> {
+	async buscarCandidatos(texto: string, embedding: number[], limite: number, chaveIgnorada?: string, fonteIgnorada?: string, categoria?: string): Promise<ProdutoCandidato[]> {
 		const exclusoes = [
 			...(chaveIgnorada ? [{ term: { id: chaveIgnorada } }] : []),
 			...(fonteIgnorada ? [{ term: { fonte: fonteIgnorada } }] : []),
 		];
-		const filtroTexto = [{ term: { ativo: true } }];
-		const filtroVetor = { bool: { filter: [{ term: { ativo: true } }], ...(exclusoes.length ? { must_not: exclusoes } : {}) } };
+		const filtros = [{ term: { ativo: true } }, ...(categoria ? [{ term: { categoriaNormalizada: categoria } }] : [])];
+		const filtroTexto = filtros;
+		const filtroVetor = { bool: { filter: filtros, ...(exclusoes.length ? { must_not: exclusoes } : {}) } };
 		const consultaTexto = { bool: { must: [{ multi_match: { query: texto, fields: ["titulo^2", "tituloNormalizado"], fuzziness: "AUTO" } }], filter: filtroTexto, ...(exclusoes.length ? { must_not: exclusoes } : {}) } };
 		const [resultadoTexto, resultadoVetor] = await Promise.all([
 			this.client.search<ProdutoIndexado>({

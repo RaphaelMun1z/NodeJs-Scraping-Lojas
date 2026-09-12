@@ -62,19 +62,19 @@ export class ControladorConfiguracaoScraping {
 	};
 
 	testarSeletores = async (requisicao: Request, resposta: Response): Promise<void> => {
-		const { url, fonte, seletores } = requisicao.body as { url?: string; fonte?: string; seletores?: SeletoresSite };
-		if (!url || !seletores || !fonte) {
+		const { url, fonte, categoria, seletores } = requisicao.body as { url?: string; fonte?: string; categoria?: string; seletores?: SeletoresSite };
+		if (!url || !seletores || !fonte || !categoria) {
 			resposta.status(400).json({ erro: "Informe fonte, URL e todos os seletores obrigatórios" });
 			return;
 		}
 		const html = await this.clienteHttp.obterHtml(url, { seletorItens: seletores.paginaVirtualizada ? seletores.item : undefined, seletorAguardar: seletores.item, seletorCarregarMais: seletores.carregarMais });
-		const itens = this.analisador.analisar(html, url, fonte, seletores);
+		const itens = this.analisador.analisar(html, url, fonte, categoria, seletores);
 		const previewImagem = await this.clienteHttp.obterCaptura(url, seletores.item);
 		resposta.json({ dados: { quantidadeProdutos: itens.length, produtos: itens.slice(0, 5), previewImagem } });
 	};
 
 	analisarHtml = async (requisicao: Request, resposta: Response): Promise<void> => {
-		if (!this.analisadorSeletores) { resposta.status(503).json({ erro: "A análise por IA não está configurada. Defina CLASSIFICADOR_URL e CLASSIFICADOR_MODELO." }); return; }
+		if (!this.analisadorSeletores) { resposta.status(503).json({ erro: "A análise por IA não está configurada. Defina CLASSIFICADOR_URL e ANALISADOR_SELETORES_MODELO." }); return; }
 		const html = typeof requisicao.body?.html === "string" ? requisicao.body.html : "";
 		if (!html.trim()) { resposta.status(400).json({ erro: "Cole o HTML de pelo menos um card de produto." }); return; }
 		try { resposta.json({ dados: await this.analisadorSeletores.analisar(html) }); } catch (erro) {

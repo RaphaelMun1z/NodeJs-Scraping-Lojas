@@ -34,13 +34,28 @@ const esquemaUrlFonte = z
 		}
 	}, "Informe uma URL HTTP ou HTTPS válida");
 
+const esquemaCategoriaFonte = z.object({
+	id: z.string().max(64).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+	categoria: z.string().trim().min(1).max(100),
+	url: esquemaUrlFonte.default(""),
+	ativa: z.boolean().default(false),
+	seletores: esquemaSeletores.default(seletoresPadrao),
+});
+
 const esquemaFonte = z.object({
 	fonte: z.string().max(64).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 	nome: z.string().trim().min(1).max(100).optional(),
 	logo: z.string().max(950_000, "A logo deve ter no máximo 700 KB").default(""),
-	url: esquemaUrlFonte.default(""),
 	ativa: z.boolean(),
-	seletores: esquemaSeletores.default(seletoresPadrao),
+	categorias: z.array(esquemaCategoriaFonte).max(100).default([]),
+}).superRefine((fonte, contexto) => {
+	if (new Set(fonte.categorias.map((item) => item.id)).size !== fonte.categorias.length) {
+		contexto.addIssue({ code: "custom", path: ["categorias"], message: "Cada configuração de categoria deve ter um identificador único" });
+	}
+	const nomes = fonte.categorias.map((item) => item.categoria.toLocaleLowerCase("pt-BR"));
+	if (new Set(nomes).size !== nomes.length) {
+		contexto.addIssue({ code: "custom", path: ["categorias"], message: "Cada categoria deve aparecer uma única vez por fonte" });
+	}
 });
 
 const esquemaAtualizacao = z.object({
@@ -62,6 +77,13 @@ export interface FonteConfigurada {
 	fonte: string;
 	nome: string;
 	logo: string;
+	ativa: boolean;
+	categorias: CategoriaFonteConfigurada[];
+}
+
+export interface CategoriaFonteConfigurada {
+	id: string;
+	categoria: string;
 	url: string;
 	ativa: boolean;
 	seletores: SeletoresSite;
@@ -73,17 +95,25 @@ export interface ConfiguracaoScraping {
 }
 
 export class ServicoConfiguracaoScraping {
-	private aplicarSeletores(
-		fonte: Omit<FonteConfigurada, "nome" | "seletores"> & {
+	private normalizarFonte(
+		fonte: Omit<FonteConfigurada, "nome" | "categorias"> & {
 			nome?: string;
+			categorias?: CategoriaFonteConfigurada[];
+			url?: string;
 			seletores?: SeletoresSite;
 		},
 	): FonteConfigurada {
+		const categorias = fonte.categorias?.length
+			? fonte.categorias.map((item) => ({ ...item, seletores: esquemaSeletores.parse(item.seletores ?? {}) }))
+			: fonte.url
+				? [{ id: "geral", categoria: "Definir categoria", url: fonte.url, ativa: false, seletores: esquemaSeletores.parse(fonte.seletores ?? {}) }]
+				: [];
 		return {
-			...fonte,
+			fonte: fonte.fonte,
 			nome: fonte.nome?.trim() || fonte.fonte,
 			logo: fonte.logo ?? "",
-			seletores: esquemaSeletores.parse(fonte.seletores ?? {}),
+			ativa: fonte.ativa,
+			categorias,
 		};
 	}
 
@@ -96,7 +126,7 @@ export class ServicoConfiguracaoScraping {
 		if (existente) {
 			return {
 				fontes: existente.fontes.map((fonte) =>
-					this.aplicarSeletores(fonte as FonteConfigurada),
+					this.normalizarFonte(fonte as FonteConfigurada),
 				),
 				atualizadaEm: existente.atualizadaEm,
 			};
@@ -112,17 +142,19 @@ export class ServicoConfiguracaoScraping {
 	async atualizar(dados: unknown): Promise<ConfiguracaoScraping> {
 		const valido = esquemaAtualizacao.parse(dados);
 		for (const fonte of valido.fontes) {
-			if (!fonte.ativa) continue;
-			if (!fonte.url) {
-				throw new Error(
-					`Configure uma URL válida antes de ativar a fonte ${fonte.nome ?? fonte.fonte}`,
-				);
+			if (fonte.ativa && !fonte.categorias.some((categoria) => categoria.ativa)) {
+				throw new Error(`Ative ao menos uma categoria antes de ativar a fonte ${fonte.nome ?? fonte.fonte}`);
 			}
-			for (const campo of ["item", "titulo", "preco", "imagem"] as const) {
-				if (!fonte.seletores[campo].trim()) {
+			for (const categoria of fonte.categorias.filter((item) => item.ativa)) {
+				if (!categoria.url) {
 					throw new Error(
-						`Configure o seletor obrigatório ${campo} antes de ativar a fonte ${fonte.nome ?? fonte.fonte}`,
+						`Configure uma URL válida para ${categoria.categoria} em ${fonte.nome ?? fonte.fonte}`,
 					);
+				}
+				for (const campo of ["item", "titulo", "preco", "imagem"] as const) {
+					if (!categoria.seletores[campo].trim()) {
+						throw new Error(`Configure o seletor obrigatório ${campo} para ${categoria.categoria} em ${fonte.nome ?? fonte.fonte}`);
+					}
 				}
 			}
 		}
@@ -138,7 +170,7 @@ export class ServicoConfiguracaoScraping {
 				existente?.fontes.find((item) => item.fonte === fonte.fonte)?.logo ||
 				"",
 			nome: fonte.nome ?? fonte.fonte,
-			seletores: { ...fonte.seletores },
+			categorias: fonte.categorias.map((categoria) => ({ ...categoria, seletores: { ...categoria.seletores } })),
 		}));
 		const atualizadaEm = new Date();
 		const configuracao = await ModeloConfiguracaoScraping.findOneAndUpdate(
@@ -150,26 +182,26 @@ export class ServicoConfiguracaoScraping {
 			.exec();
 		return {
 			fontes: configuracao.fontes.map((fonte) =>
-				this.aplicarSeletores(fonte as FonteConfigurada),
+				this.normalizarFonte(fonte as FonteConfigurada),
 			),
 			atualizadaEm: configuracao.atualizadaEm,
 		};
 	}
 
 	async adicionar(dados: unknown): Promise<ConfiguracaoScraping> {
-		const fonte = esquemaFonte
-			.extend({
-				nome: z.string().trim().min(1).max(100),
-				ativa: z.boolean().default(false),
-			})
-			.parse(dados);
+		const fonteValidada = esquemaFonte.parse(dados);
+		const fonte = {
+			...fonteValidada,
+			nome: z.string().trim().min(1).max(100).parse(fonteValidada.nome),
+			ativa: false,
+		};
 		const atual = await this.obterOuCriarPadrao();
 		if (atual.fontes.some((item) => item.fonte === fonte.fonte)) {
 			throw new Error("Já existe uma fonte com esse identificador");
 		}
 		// Uma fonte nova nunca entra em produção antes de os seletores serem
 		// revisados e salvos na página específica da fonte.
-		return this.atualizar({ fontes: [...atual.fontes, { ...fonte, ativa: false }] });
+		return this.atualizar({ fontes: [...atual.fontes, { ...fonte, ativa: false, categorias: [] }] });
 	}
 
 	async remover(nomeFonte: string): Promise<ConfiguracaoScraping> {

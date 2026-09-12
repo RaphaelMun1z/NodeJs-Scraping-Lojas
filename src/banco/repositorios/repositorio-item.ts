@@ -2,8 +2,6 @@ import type { ItemColetado } from "../../modelos/item-coletado.model.js";
 import { gerarChaveItem } from "../../utilitarios/chave-item.js";
 import { ModeloItemBanco } from "../modelos/item-banco.model.js";
 import { ModeloHistoricoPreco } from "../modelos/historico-preco.model.js";
-import type { ResultadoClassificacaoProduto } from "../../classificacao/provedor-classificacao.js";
-import { CATEGORIAS_PRODUTO } from "../../classificacao/categorias-produto.js";
 
 export interface ConsultaItens {
 	pagina: number;
@@ -31,8 +29,9 @@ export interface MetricasSincronizacaoFonte {
 export interface EstadoIndexacaoItem {
 	titulo: string;
 	grupoProdutoId?: string | null;
-	classificacaoProcessada?: boolean;
-	classificacaoVersao?: number | null;
+	categoriaNormalizada?: string | null;
+	matchingProcessado?: boolean;
+	matchingVersao?: number | null;
 }
 
 export class RepositorioItem {
@@ -41,22 +40,9 @@ export class RepositorioItem {
 			categoriaNormalizada: { $exists: true, $nin: [null, ""] },
 			$or: [{ ativo: true }, { ativo: { $exists: false } }],
 		});
-		const disponiveis = new Set<string>();
-		for (const categoriaNormalizada of categoriasSalvas) {
-			if (typeof categoriaNormalizada !== "string") continue;
-			const [categoria] = categoriaNormalizada.split(" > ");
-			if (!categoria) continue;
-			const subcategoria = categoriaNormalizada.includes(" > ") ? categoriaNormalizada.slice(categoriaNormalizada.indexOf(" > ") + 3) : undefined;
-			if (!(categoria in CATEGORIAS_PRODUTO)) continue;
-			const subcategoriasPermitidas = CATEGORIAS_PRODUTO[categoria as keyof typeof CATEGORIAS_PRODUTO];
-			if (subcategoria && !subcategoriasPermitidas.includes(subcategoria as never)) continue;
-			disponiveis.add(categoria);
-			if (subcategoria) disponiveis.add(categoriaNormalizada);
-		}
-		return Object.entries(CATEGORIAS_PRODUTO).flatMap(([categoria, subcategorias]) => [
-			disponiveis.has(categoria) ? categoria : undefined,
-			...subcategorias.map((subcategoria) => disponiveis.has(`${categoria} > ${subcategoria}`) ? `${categoria} > ${subcategoria}` : undefined),
-		].filter((item): item is string => Boolean(item)));
+		return categoriasSalvas
+			.filter((categoria): categoria is string => typeof categoria === "string" && Boolean(categoria.trim()))
+			.sort((a, b) => a.localeCompare(b, "pt-BR"));
 	}
 
 	async sugerirTitulos(texto: string, limite = 8): Promise<string[]> {
@@ -81,12 +67,24 @@ export class RepositorioItem {
 
 		const agora = new Date();
 		const chavesDosItens = itensUnicos.map((item) => gerarChaveItem(item));
+		const estadosAtuais = await ModeloItemBanco.find({ chave: { $in: chavesDosItens } })
+			.select("chave titulo categoriaNormalizada")
+			.lean()
+			.exec();
+		const estadoPorChave = new Map(estadosAtuais.map((item) => [item.chave, item]));
 		const operacoes = itensUnicos.map((item) => ({
 			updateOne: {
 				filter: { chave: gerarChaveItem(item) },
 				update: {
 					$set: {
+						...(estadoPorChave.has(gerarChaveItem(item)) && (estadoPorChave.get(gerarChaveItem(item))?.titulo !== item.titulo || estadoPorChave.get(gerarChaveItem(item))?.categoriaNormalizada !== item.categoria) ? { matchingProcessado: false } : {}),
 						fonte: item.fonte,
+						categoriaOriginal: item.categoria,
+						categoriaNormalizada: item.categoria,
+						categoria: item.categoria.split(" > ")[0],
+						subcategoria: item.categoria.includes(" > ") ? item.categoria.slice(item.categoria.indexOf(" > ") + 3) : null,
+						tipoProduto: "principal",
+						confiancaCategoria: 1,
 						titulo: item.titulo,
 						preco: item.preco,
 						precoAntigo: item.precoAntigo,
@@ -100,6 +98,8 @@ export class RepositorioItem {
 						grupoProdutoId: `grupo-${gerarChaveItem(item)}`,
 						primeiraColetaEm: agora,
 						novaNaUltimaColeta: true,
+						matchingProcessado: false,
+						matchingVersao: 0,
 					},
 				},
 				upsert: true,
@@ -164,14 +164,14 @@ export class RepositorioItem {
 		await ModeloHistoricoPreco.updateMany({ chaveProduto: chave }, { $set: { grupoProdutoId } }).exec();
 	}
 
-	async salvarClassificacao(chave: string, classificacao: ResultadoClassificacaoProduto): Promise<void> {
-		await ModeloItemBanco.updateOne({ chave }, { $set: { ...classificacao, confiancaCategoria: classificacao.confianca, classificacaoProcessada: true } }).exec();
+	async marcarMatchingProcessado(chave: string, versao: number): Promise<void> {
+		await ModeloItemBanco.updateOne({ chave }, { $set: { matchingProcessado: true, matchingVersao: versao } }).exec();
 	}
 
 	async consultarEstadosIndexacao(chaves: string[]): Promise<Map<string, EstadoIndexacaoItem>> {
 		if (chaves.length === 0) return new Map();
-		const itens = await ModeloItemBanco.find({ chave: { $in: chaves } }).select("chave titulo grupoProdutoId classificacaoProcessada classificacaoVersao").lean().exec();
-		return new Map(itens.map((item) => [item.chave, { titulo: item.titulo, grupoProdutoId: item.grupoProdutoId, classificacaoProcessada: item.classificacaoProcessada, classificacaoVersao: item.classificacaoVersao }]));
+		const itens = await ModeloItemBanco.find({ chave: { $in: chaves } }).select("chave titulo grupoProdutoId categoriaNormalizada matchingProcessado matchingVersao").lean().exec();
+		return new Map(itens.map((item) => [item.chave, { titulo: item.titulo, grupoProdutoId: item.grupoProdutoId, categoriaNormalizada: item.categoriaNormalizada, matchingProcessado: item.matchingProcessado, matchingVersao: item.matchingVersao }]));
 	}
 
 	async consultarNovidades(limite = 12): Promise<unknown[]> {
@@ -183,7 +183,7 @@ export class RepositorioItem {
 			.exec();
 	}
 
-	async sincronizarFonte(fonte: string, itens: ItemColetado[]): Promise<MetricasSincronizacaoFonte> {
+	async sincronizarFonte(fonte: string, categoria: string, itens: ItemColetado[]): Promise<MetricasSincronizacaoFonte> {
 		if (itens.length === 0) {
 			console.warn(
 				`${fonte}: nenhum produto retornado; sincronização ignorada para preservar os dados existentes.`,
@@ -197,7 +197,7 @@ export class RepositorioItem {
 		const existentes = await ModeloItemBanco.countDocuments({ chave: { $in: chavesEncontradas } }).exec();
 		await this.salvarMuitos(itens);
 		const resultado = await ModeloItemBanco.updateMany(
-			{ fonte, chave: { $nin: chavesEncontradas } },
+			{ fonte, categoriaNormalizada: categoria, chave: { $nin: chavesEncontradas } },
 			{ $set: { ativo: false } },
 		).exec();
 
@@ -262,7 +262,7 @@ export class RepositorioItem {
 				{ $sort: ordenacaoMongo },
 				{ $skip: deslocamento },
 				{ $limit: limite },
-				{ $project: { _id: 1, fonte: 1, titulo: 1, preco: 1, precoAntigo: 1, ativo: 1, imagemUrl: 1, url: 1, grupoProdutoId: 1, categoriaOriginal: 1, categoriaNormalizada: 1, categoria: 1, subcategoria: 1, tipoProduto: 1, confiancaCategoria: 1, classificacaoVersao: 1, primeiraColetaEm: 1, ultimaColetaEm: 1, menorPrecoHistorico: 1, precoHistorico: 1, descontoPercentual: 1 } },
+				{ $project: { _id: 1, fonte: 1, titulo: 1, preco: 1, precoAntigo: 1, ativo: 1, imagemUrl: 1, url: 1, grupoProdutoId: 1, categoriaOriginal: 1, categoriaNormalizada: 1, categoria: 1, subcategoria: 1, tipoProduto: 1, confiancaCategoria: 1, primeiraColetaEm: 1, ultimaColetaEm: 1, menorPrecoHistorico: 1, precoHistorico: 1, descontoPercentual: 1 } },
 			]).exec(),
 			ModeloItemBanco.countDocuments(filtro).exec(),
 		]);

@@ -50,7 +50,7 @@ export class AnalisadorSeletoresOllama {
 		}
 		const descartados = campos.filter((campo) => analise.seletores[campo] && seletores[campo] !== analise.seletores[campo]);
 		const observacoes = [...analise.observacoes, ...fallback.observacoes];
-		if (descartados.length) observacoes.push(`Seletores da IA rejeitados por nÃ£o encontrarem elementos vÃ¡lidos em todos os cards: ${descartados.join(", ")}.`);
+		if (descartados.length) observacoes.push(`Seletores da IA rejeitados por não encontrarem elementos válidos em todos os cards: ${descartados.join(", ")}.`);
 		return { seletores, confianca, observacoes: [...new Set(observacoes)] };
 	}
 

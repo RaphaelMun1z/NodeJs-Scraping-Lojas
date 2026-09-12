@@ -19,8 +19,22 @@ const esquemaFonte = new Schema(
 		fonte: { type: String, required: true },
 		nome: { type: String, required: true },
 		logo: { type: String, default: "" },
-		url: { type: String, default: "" },
 		ativa: { type: Boolean, default: false },
+		categorias: {
+			type: [new Schema(
+				{
+					id: { type: String, required: true },
+					categoria: { type: String, required: true },
+					url: { type: String, default: "" },
+					ativa: { type: Boolean, default: false },
+					seletores: { type: esquemaSeletores, required: true },
+				},
+				{ _id: false },
+			)],
+			default: [],
+		},
+		// Mantidos temporariamente para migrar configurações anteriores à v5.
+		url: { type: String, required: false },
 		seletores: { type: esquemaSeletores, required: false },
 	},
 	{ _id: false },

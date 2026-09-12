@@ -6,7 +6,7 @@ import {
 } from "../modelos/item-coletado.model.js";
 
 export class AnalisadorSite {
-	analisar(html: string, urlBase: string, fonte: string, seletores: SeletoresSite): ItemColetado[] {
+	analisar(html: string, urlBase: string, fonte: string, categoria: string, seletores: SeletoresSite): ItemColetado[] {
 		const $ = cheerio.load(html);
 		const itens: ItemColetado[] = [];
 
@@ -41,6 +41,7 @@ export class AnalisadorSite {
 
 			const resultado = esquemaItemColetado.safeParse({
 				fonte,
+				categoria,
 				titulo,
 				preco: this.converterPreco(textoPreco),
 				precoAntigo: this.converterPreco(textoPrecoAntigo),

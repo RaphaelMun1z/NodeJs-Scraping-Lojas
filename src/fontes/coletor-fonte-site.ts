@@ -9,6 +9,8 @@ import type { FonteProdutos } from "./fonte-produtos.js";
 export class ColetorFonteSite extends ColetorBase<ItemColetado> implements FonteProdutos {
 	constructor(
 		public readonly nome: string,
+		public readonly categoria: string,
+		public readonly identificadorColeta: string,
 		private readonly url: string,
 		private readonly clienteHttp: ClienteHttp,
 		private readonly analisador: AnalisadorSite,
@@ -42,6 +44,6 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 			throw new Error("A fonte retornou uma página de verificação/bloqueio");
 		}
 
-		return this.analisador.analisar(html, url, this.nome, seletores);
+		return this.analisador.analisar(html, url, this.nome, this.categoria, seletores);
 	}
 }

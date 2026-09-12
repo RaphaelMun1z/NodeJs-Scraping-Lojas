@@ -18,7 +18,6 @@ import { ServicoAutenticacao } from "./autenticacao/servico-autenticacao.js";
 import { ServicoConfiguracaoScraping } from "./configuracoes/servico-configuracao-scraping.js";
 import { ServicoEventosScraping } from "./monitoramento/servico-eventos-scraping.js";
 import { ServicoBuscaManual } from "./servicos/servico-busca-manual.js";
-import { ProvedorClassificacaoOllama } from "./classificacao/provedor-classificacao-ollama.js";
 import { ServicoLimpezaProdutos } from "./servicos/servico-limpeza-produtos.js";
 
 async function iniciarAplicacao(): Promise<void> {
@@ -58,25 +57,28 @@ async function iniciarAplicacao(): Promise<void> {
 			embeddings,
 			new ServicoMatchingProduto(indice, embeddings),
 			repositorioItem,
-			configuracaoAplicacao.coleta.classificacao.habilitada ? new ProvedorClassificacaoOllama(configuracaoAplicacao.coleta.classificacao.url, configuracaoAplicacao.coleta.classificacao.modelo) : undefined,
 		);
 	}
-	const criarFontesConfiguradas = (fontesConfiguradas: typeof configuracaoPersistida.fontes) => fontesConfiguradas.filter((configuracaoFonte) => Boolean(configuracaoFonte.url)).map((configuracaoFonte) => {
-		const { fonte: nome, url } = configuracaoFonte;
-		if (!url) throw new Error(`URL não configurada para a fonte ${nome}`);
-		return new ColetorFonteSite(
-			nome,
-			url,
-			clienteHttp,
-			new AnalisadorSite(),
-			configuracaoFonte.seletores,
-			async () => {
-				const atualizada = await configuracaoScraping.obterOuCriarPadrao();
-				const fonteAtual = atualizada.fontes.find((fonte) => fonte.fonte === nome);
-				return fonteAtual ? { url: fonteAtual.url, seletores: fonteAtual.seletores } : undefined;
-			},
-		);
-	});
+	const criarFontesConfiguradas = (fontesConfiguradas: typeof configuracaoPersistida.fontes) => fontesConfiguradas.flatMap((configuracaoFonte) =>
+		configuracaoFonte.categorias.filter((categoria) => categoria.ativa && Boolean(categoria.url)).map((categoria) => {
+			const nome = configuracaoFonte.fonte;
+			return new ColetorFonteSite(
+				nome,
+				categoria.categoria,
+				`${nome}:${categoria.id}`,
+				categoria.url,
+				clienteHttp,
+				new AnalisadorSite(),
+				categoria.seletores,
+				async () => {
+					const atualizada = await configuracaoScraping.obterOuCriarPadrao();
+					const fonteAtual = atualizada.fontes.find((fonte) => fonte.fonte === nome);
+					const categoriaAtual = fonteAtual?.categorias.find((item) => item.id === categoria.id);
+					return categoriaAtual ? { url: categoriaAtual.url, seletores: categoriaAtual.seletores } : undefined;
+				},
+			);
+		}),
+	);
 	const fontes = criarFontesConfiguradas(configuracaoPersistida.fontes);
 	const obterFontesConfiguradas = async () => criarFontesConfiguradas((await configuracaoScraping.obterOuCriarPadrao()).fontes);
 	const servicoColeta = new ServicoColeta(

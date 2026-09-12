@@ -17,7 +17,7 @@ export class ServicoMatchingProduto {
 		private readonly configuracao = configuracaoMatching,
 	) {}
 
-	async encontrarEquivalente(titulo: string, chaveIgnorada?: string, embeddingPronto?: number[], fonteIgnorada?: string): Promise<ResultadoMatchingProduto> {
+	async encontrarEquivalente(titulo: string, chaveIgnorada?: string, embeddingPronto?: number[], fonteIgnorada?: string, categoria?: string): Promise<ResultadoMatchingProduto> {
 		validarConfiguracaoMatching();
 		// Gera o embedding a partir do título normalizado.
 		const tituloNormalizado = normalizarTituloProduto(titulo);
@@ -26,7 +26,7 @@ export class ServicoMatchingProduto {
 			throw new Error(`Dimensão do embedding (${embedding.length}) diferente de EMBEDDING_DIMENSIONS (${this.configuracao.dimensaoEmbedding})`);
 		}
 		// Busca somente os candidatos mais próximos no Elasticsearch.
-		const candidatos = await this.indice.buscarCandidatos(tituloNormalizado, embedding, this.configuracao.candidatos, chaveIgnorada, fonteIgnorada);
+		const candidatos = await this.indice.buscarCandidatos(tituloNormalizado, embedding, this.configuracao.candidatos, chaveIgnorada, fonteIgnorada, categoria);
 		const avaliacoes = candidatos.map((candidato) => avaliarCandidato(titulo, candidato, { vetor: this.configuracao.pesoVetor, texto: this.configuracao.pesoTexto, tokens: this.configuracao.pesoTokens }));
 		const melhor = escolherMelhorMatch(avaliacoes, this.configuracao.threshold);
 		return { equivalente: melhor?.candidato ?? null, score: melhor?.scoreFinal ?? 0, candidatos: avaliacoes };

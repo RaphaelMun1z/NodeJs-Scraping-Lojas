@@ -1,12 +1,14 @@
 # Scraping Lojas
 
-Aplicação em Node.js/TypeScript que coleta produtos de uma loja HTML, valida os dados, opcionalmente grava-os no MongoDB e disponibiliza uma API REST para consulta.
+Aplicação em Node.js/TypeScript que coleta produtos de várias lojas, organiza URLs de coleta por categoria, agrupa ofertas equivalentes e disponibiliza uma API REST para consulta.
 
 ## Requisitos
 
 - Node.js 20+
 - MongoDB local ou uma URI acessível
 - Chromium do Playwright
+
+Para desenvolver o frontend Angular 22, use Node.js `^22.22.3`, `^24.15.0` ou `>=26.0.0`.
 
 ## Instalação
 
@@ -23,11 +25,10 @@ docker compose up -d
 
 ## Configuração
 
-Copie `.env.example` para `.env`, informe a URL da loja e ajuste os seletores em [`src/config/selectors.ts`](src/config/selectors.ts).
+Copie `.env.example` para `.env`. As lojas, categorias, URLs e seletores são cadastrados dinamicamente na área administrativa.
 
 | Variável | Obrigatória | Finalidade |
 | --- | --- | --- |
-| `SCRAPER_URL` | Sim | Página usada como origem da coleta. |
 | `MONGODB_URI` | Não | Conexão com o MongoDB. |
 | `PORTA_API` | Não | Porta da API; padrão `3000`. |
 | `SALVAR_COLETA` | Não | Persiste os itens quando `true`; padrão `false`. |
@@ -52,6 +53,29 @@ Produção:
 ```bash
 npm run build
 npm start
+```
+
+Frontend Angular em desenvolvimento (com proxy para a API na porta 3000):
+
+```bash
+cd frontend
+npm ci
+npm start
+```
+
+Validação do frontend:
+
+```bash
+cd frontend
+npm run lint
+npm test
+npm run build
+```
+
+Para executar toda a pilha, incluindo o frontend Angular em `http://localhost:8080`:
+
+```bash
+docker compose up --build
 ```
 
 ## API
@@ -83,7 +107,11 @@ GET /api/itens?pagina=1&limite=20&busca=produto
 | `src/servicos` | Contém o fluxo de negócio da coleta e evita execuções simultâneas. |
 | `src/utilitarios` | Reúne funções auxiliares, como geração de chaves de itens. |
 | `src/index.ts` | Compõe as dependências e inicia o ciclo de vida da aplicação. |
+| `frontend` | Aplicação Angular de catálogo e administração. |
+| `interface-produtos` | Frontend legado mantido temporariamente para homologação. |
 
 ## Persistência
 
 Quando `SALVAR_COLETA=true`, os itens são gravados em lote com `bulkWrite` e `upsert`. A chave usa a URL do item quando disponível e evita duplicidades entre coletas.
+
+Cada loja pode possuir várias configurações de coleta. Uma configuração contém a categoria informada pelo administrador, sua URL e seus próprios seletores CSS. A sincronização de produtos ocorre por loja e categoria, enquanto o matching compara produtos da mesma categoria em lojas diferentes para formar os grupos de ofertas.

@@ -37,14 +37,17 @@ export class ServicoColeta {
 		const nomesFontesAtivas = this.obterFontesAtivas ? new Set(await this.obterFontesAtivas()) : undefined;
 		const fontes = fontesDisponiveis.filter((item) => !nomesFontesAtivas || nomesFontesAtivas.has(item.nome));
 
-		await Promise.all(fontes.map(async (fonte) => {
-			const execucaoId = this.eventosScraping ? await this.eventosScraping.iniciarExecucao(fonte.nome, rodadaId) : undefined;
+		const coletasPorFonte = new Map<string, FonteProdutos[]>();
+		for (const fonte of fontes) coletasPorFonte.set(fonte.nome, [...(coletasPorFonte.get(fonte.nome) ?? []), fonte]);
+		await Promise.all([...coletasPorFonte.values()].map(async (coletasDaFonte) => {
+		for (const fonte of coletasDaFonte) {
+			const execucaoId = this.eventosScraping ? await this.eventosScraping.iniciarExecucao(fonte.nome, rodadaId, fonte.categoria) : undefined;
 			if (this.eventosScraping && !execucaoId) {
 				logger.warn({ fonte: fonte.nome }, "Coleta ignorada porque a fonte já está em execução");
-				return;
+				continue;
 			}
 			try {
-				if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Página da fonte carregada");
+				if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", `Coleta de ${fonte.categoria} iniciada`);
 				if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Início da etapa: Coleta");
 				const inicioFonte = Date.now();
 				let itens: Awaited<ReturnType<FonteProdutos["coletar"]>>;
@@ -54,24 +57,25 @@ export class ServicoColeta {
 				if (execucaoId) await this.eventosScraping!.atualizarMetricas(execucaoId, { produtosEncontrados: itens.length });
 
 				let metricas = { novos: 0, atualizados: 0, inativados: 0 };
-				if (this.salvarColeta) metricas = await this.repositorioItem.sincronizarFonte(fonte.nome, itens);
+				if (this.salvarColeta) metricas = await this.repositorioItem.sincronizarFonte(fonte.nome, fonte.categoria, itens);
 				if (execucaoId) {
 					await this.eventosScraping!.atualizarMetricas(execucaoId, { produtosNovos: metricas.novos, produtosAtualizados: metricas.atualizados, produtosInativados: metricas.inativados });
 				}
 				if (this.salvarColeta && this.servicoMatchingCatalogo && itens.length > 0) {
-					if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Classificação e indexação em andamento");
-					if (execucaoId) await this.eventosScraping!.atualizarProgresso(execucaoId, { coleta: 100, classificacao: 0, embeddings: 0, indexacao: 0 });
+					if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Matching e indexação em andamento");
+					if (execucaoId) await this.eventosScraping!.atualizarProgresso(execucaoId, { coleta: 100, embeddings: 0, indexacao: 0 });
 					await this.indexarComRetentativas(itens, fonte.nome, execucaoId);
-					logger.info({ fonte: fonte.nome }, "Classificação e indexação concluídas");
+					logger.info({ fonte: fonte.nome, categoria: fonte.categoria }, "Matching e indexação concluídos");
 				}
 				if (execucaoId) {
 					await this.eventosScraping!.concluirExecucao(execucaoId, { produtosEncontrados: itens.length, produtosNovos: metricas.novos, produtosAtualizados: metricas.atualizados, produtosInativados: metricas.inativados });
 				}
-				logger.info({ fonte: fonte.nome, produtos: itens.length, salvo: this.salvarColeta }, "Produtos encontrados na fonte");
+				logger.info({ fonte: fonte.nome, categoria: fonte.categoria, produtos: itens.length, salvo: this.salvarColeta }, "Produtos encontrados na coleta");
 			} catch (erro) {
 				if (execucaoId) await this.eventosScraping!.registrarErro(execucaoId, fonte.nome, erro);
 				logger.error({ fonte: fonte.nome, erro: erro instanceof Error ? { nome: erro.name, mensagem: erro.message, pilha: erro.stack } : erro }, "Erro na coleta da fonte");
 			}
+		}
 		}));
 
 		logger.info({ produtos: totalItens, duracaoMs: Date.now() - inicio, tempoTotalBuscasMs: tempoTotalBuscas }, "Coleta concluída");
@@ -81,7 +85,7 @@ export class ServicoColeta {
 	private async indexarComRetentativas(itens: Parameters<ServicoMatchingCatalogoProdutos["processarProdutosColetados"]>[0], fonte: string, execucaoId?: string): Promise<void> {
 		for (let tentativa = 1; tentativa <= 3; tentativa += 1) {
 			try {
-			await this.servicoMatchingCatalogo!.processarProdutosColetados(itens, async (progresso) => { if (execucaoId) await this.eventosScraping!.atualizarProgresso(execucaoId, progresso); }, async (etapa, estado) => { if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte, "info", `${estado === "inicio" ? "Início" : "Fim"} da etapa: ${etapa === "classificacao" ? "Classificação" : etapa === "embeddings" ? "Embeddings" : "Indexação"}`); });
+			await this.servicoMatchingCatalogo!.processarProdutosColetados(itens, async (progresso) => { if (execucaoId) await this.eventosScraping!.atualizarProgresso(execucaoId, progresso); }, async (etapa, estado) => { if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte, "info", `${estado === "inicio" ? "Início" : "Fim"} da etapa: ${etapa === "embeddings" ? "Embeddings" : "Indexação"}`); });
 				return;
 			} catch (erro) {
 				if (tentativa === 3) {

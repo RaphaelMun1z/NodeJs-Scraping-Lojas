@@ -43,9 +43,7 @@ services:
             LOG_LEVEL: ${LOG_LEVEL:-info}
             LOG_PRETTY: ${LOG_PRETTY:-false}
             AUTENTICACAO_COOKIE_SECURE: ${AUTENTICACAO_COOKIE_SECURE:-false}
-            CLASSIFICACAO_HABILITADA: ${CLASSIFICACAO_HABILITADA:-false}
             CLASSIFICADOR_URL: ${CLASSIFICADOR_URL:-http://ollama:11434/api/generate}
-            CLASSIFICADOR_MODELO: ${CLASSIFICADOR_MODELO:-llama3.2:3b}
             ANALISADOR_SELETORES_MODELO: ${ANALISADOR_SELETORES_MODELO:-gemma3:1b}
             ELASTICSEARCH_HABILITADO: ${ELASTICSEARCH_HABILITADO:-false}
             ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
@@ -71,7 +69,7 @@ services:
 
     frontend:
         build:
-            context: ./interface-produtos
+            context: ./frontend
             dockerfile: Dockerfile
         container_name: scraping-lojas-frontend
         restart: unless-stopped
@@ -107,7 +105,7 @@ services:
     ollama:
         image: ollama/ollama:latest
         container_name: scraping-lojas-ollama
-        profiles: ["classificacao"]
+        profiles: ["analise-seletores"]
         restart: unless-stopped
         ports:
             - "11434:11434"
