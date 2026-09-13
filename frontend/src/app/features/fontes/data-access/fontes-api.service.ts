@@ -43,12 +43,14 @@ export class FontesApiService {
       );
   }
 
-  add(source: Pick<ConfiguredSource, 'fonte' | 'nome' | 'logo'>): Observable<ScrapingConfig> {
+  add(
+    source: Pick<ConfiguredSource, 'fonte' | 'nome' | 'logo' | 'categorias'>,
+  ): Observable<ScrapingConfig> {
     return this.http
       .post<ApiResponse<ScrapingConfig>>(apiUrl('/admin/configuracoes/scraping/fontes'), {
         ...source,
         ativa: false,
-        categorias: [],
+        categorias: source.categorias,
       })
       .pipe(
         map((r) => r.dados),

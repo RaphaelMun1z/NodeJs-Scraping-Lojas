@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 import { FontesApiService } from '../../../fontes/data-access/fontes-api.service';
 import { ScrapingApiService } from '../../data-access/scraping-api.service';
 import { BuscaManualPage } from './busca-manual';
+import { APP_ICON_PROVIDERS } from '../../../../app-icons';
 
 describe('BuscaManualPage', () => {
   let fixture: ComponentFixture<BuscaManualPage>;
@@ -11,6 +12,7 @@ describe('BuscaManualPage', () => {
     await TestBed.configureTestingModule({
       imports: [BuscaManualPage],
       providers: [
+        ...APP_ICON_PROVIDERS,
         {
           provide: FontesApiService,
           useValue: {

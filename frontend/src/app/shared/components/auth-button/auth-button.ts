@@ -1,12 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
-import { faGithub, faGoogle } from '@fortawesome/free-brands-svg-icons';
-import { icon as renderFontAwesomeIcon } from '@fortawesome/fontawesome-svg-core';
+import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 type ButtonType = 'button' | 'submit' | 'reset';
 
 @Component({
   selector: 'app-auth-button',
+  imports: [LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -31,17 +30,18 @@ type ButtonType = 'button' | 'submit' | 'reset';
         (pointercancel)="pressed.set(false)"
       >
         @if (icon()) {
-          <i [attr.data-lucide]="icon()" aria-hidden="true"></i>
-        }
-        @if (brandSvg()) {
-          <span class="brand-icon" [innerHTML]="brandSvg()" aria-hidden="true"></span>
+          @if (iconName()) {
+            <svg [lucideIcon]="iconName()" aria-hidden="true"></svg>
+          }
         }
         {{ label() }}
       </button>
     </div>
   `,
   styles: `
-    :host { display: block; }
+    :host {
+      display: block;
+    }
     .button-layer {
       position: relative;
       z-index: 0;
@@ -67,7 +67,9 @@ type ButtonType = 'button' | 'submit' | 'reset';
       font-size: 12px;
       font-weight: 800;
       cursor: pointer;
-      transition: transform 120ms ease, background-color 120ms ease;
+      transition:
+        transform 120ms ease,
+        background-color 120ms ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -87,6 +89,10 @@ type ButtonType = 'button' | 'submit' | 'reset';
     button:hover {
       background: var(--auth-button-hover-color) !important;
     }
+    button:focus-visible {
+      outline: 3px solid rgb(36 86 223 / 28%);
+      outline-offset: 2px;
+    }
     button:active,
     button.is-pressed {
       transform: translate(4px, 4px);
@@ -105,29 +111,21 @@ type ButtonType = 'button' | 'submit' | 'reset';
   },
 })
 export class AuthButtonComponent {
-  private readonly sanitizer = inject(DomSanitizer);
   readonly label = input.required<string>();
   readonly icon = input('');
   readonly brandIcon = input<'google' | 'github' | ''>('');
   readonly type = input<ButtonType>('button');
   readonly width = input('170px');
-  readonly height = input('39px');
-  readonly borderRadius = input('9px');
-  readonly baseColor = input('#ffdd00');
-  readonly hoverColor = input('#f2d000');
-  readonly layerColor = input('#f5d200');
+  readonly height = input('var(--action-button-height)');
+  readonly borderRadius = input('var(--action-button-radius)');
+  readonly baseColor = input('var(--action-button-primary-background)');
+  readonly hoverColor = input('var(--action-button-primary-hover)');
+  readonly layerColor = input('var(--action-button-primary-layer)');
   readonly layerBorderColor = input('transparent');
   readonly textColor = input('#111');
   readonly disabled = input(false);
   protected readonly pressed = signal(false);
-  protected readonly brandSvg = computed(() => {
-    const brand = this.brandIcon();
-    if (brand === 'google') {
-      return this.sanitizer.bypassSecurityTrustHtml(renderFontAwesomeIcon(faGoogle).html.join(''));
-    }
-    if (brand === 'github') {
-      return this.sanitizer.bypassSecurityTrustHtml(renderFontAwesomeIcon(faGithub).html.join(''));
-    }
-    return null;
-  });
+  protected iconName(): string {
+    return this.icon() || (this.brandIcon() === 'google' ? 'globe-2' : this.brandIcon() === 'github' ? 'code-2' : '');
+  }
 }

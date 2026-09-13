@@ -38,4 +38,4 @@ O resultado de produção fica em `dist/live-promo-frontend/browser`. Na raiz do
 - `features/configuracoes`: limpeza e reset do sistema;
 - `shared`: componentes e pipes reutilizáveis.
 
-O inventário completo e a correspondência com o frontend legado estão em [MIGRATION_MAP.md](./MIGRATION_MAP.md). A pasta `interface-produtos` permanece no repositório como referência e fallback durante a homologação.
+Este diretório contém a implementação oficial da interface pública e administrativa do projeto.

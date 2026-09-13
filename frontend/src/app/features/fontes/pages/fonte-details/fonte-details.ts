@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  TemplateRef,
+  ViewChild,
+  inject,
+  signal,
+} from '@angular/core';
+import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
@@ -10,13 +18,16 @@ import {
 } from '../../../../core/models/domain.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { FontesApiService } from '../../data-access/fontes-api.service';
+import { PopupService } from '../../../../core/services/popup.service';
+import { DialogService } from '../../../../core/services/dialog.service';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-fonte-details',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatDialogModule, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <a routerLink="/admin/fontes" class="back">← Voltar para fontes</a>
+    <a routerLink="/admin/fontes" class="back"><svg lucideIcon="arrow-left" aria-hidden="true"></svg> Voltar para fontes</a>
     @if (loading()) {
       <div class="panel state">Carregando configuração…</div>
     } @else if (source()) {
@@ -26,9 +37,6 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
           <h1>Categorias da fonte</h1>
           <p>Cada categoria tem sua própria URL e pode reutilizar ou não os mesmos seletores.</p>
         </div>
-        <button class="btn primary" type="button" (click)="addCategory()">
-          ＋ Adicionar categoria
-        </button>
       </header>
       @if (feedback()) {
         <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
@@ -68,6 +76,9 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
                     placeholder="https://loja.com/notebooks"
                 /></label>
               </div>
+              @if (category.touched && category.invalid) {
+                <small class="field-error">{{ validationSummary(index) }}</small>
+              }
               <details open>
                 <summary>Seletores CSS</summary>
                 <div formGroupName="seletores" class="selector-grid">
@@ -96,14 +107,14 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
               </details>
               <div class="category-actions">
                 <button
-                  class="btn"
+                  class="btn secondary"
                   type="button"
                   [disabled]="testing() === index"
                   (click)="test(index)"
                 >
                   {{ testing() === index ? 'Testando…' : 'Testar seletores' }}</button
-                ><button class="btn" type="button" (click)="openAnalyzer(index)">
-                  Analisar HTML
+                ><button class="btn secondary" type="button" (click)="openAnalyzer(index)">
+                  <svg lucideIcon="scan-search" aria-hidden="true"></svg> Analisar HTML
                 </button>
               </div>
               @if (testResults()[index]; as result) {
@@ -136,63 +147,56 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
         }
         <div class="save-bar">
           <span>{{ categories.length }} categoria(s)</span
-          ><button class="btn primary" [disabled]="form.invalid || saving()">
+          ><button class="btn primary" type="submit" [disabled]="saving()">
             {{ saving() ? 'Salvando…' : 'Salvar configurações' }}
           </button>
         </div>
       </form>
     }
-    @if (analyzerIndex() !== null) {
-      <div
-        class="modal-backdrop"
-        tabindex="-1"
-        (click)="closeAnalyzerFromBackdrop($event)"
-        (keydown.escape)="closeAnalyzer()"
-      >
-        <section class="modal panel">
-          <header>
-            <div>
-              <span class="eyebrow">Assistente de seletores</span>
-              <h2>Analisar HTML de um card</h2>
-            </div>
-            <button class="icon-danger" (click)="closeAnalyzer()">×</button>
-          </header>
-          <p>
-            Cole o HTML de um ou mais cards. A análise sugere seletores; revise antes de salvar.
-          </p>
-          <textarea
-            [value]="html()"
-            (input)="setHtml($event)"
-            rows="14"
-            placeholder="<article class='product-card'>…"
-          ></textarea>
-          @if (analysis()) {
-            <div class="analysis-result">
-              <strong>Confiança média: {{ analysisConfidence() }}%</strong>
-              @for (note of analysis()?.observacoes ?? []; track note) {
-                <p>{{ note }}</p>
-              }
-            </div>
-          }
-          @if (analyzerError()) {
-            <div class="feedback error">{{ analyzerError() }}</div>
-          }
-          <footer>
-            <button class="btn" (click)="formatHtml()">Formatar HTML</button
-            ><button
-              class="btn primary"
-              [disabled]="!html().trim() || analyzing()"
-              (click)="analyze()"
-            >
-              {{ analyzing() ? 'Analisando…' : 'Analisar' }}
-            </button>
-            @if (analysis()) {
-              <button class="btn primary" (click)="applyAnalysis()">Aplicar seletores</button>
+    <ng-template #analyzerDialog>
+      <section class="modal panel">
+        <header>
+          <div>
+            <span class="eyebrow">Assistente de seletores</span>
+            <h2>Analisar HTML de um card</h2>
+          </div>
+          <button class="icon-danger" (click)="closeAnalyzer()">×</button>
+        </header>
+        <p>Cole o HTML de um ou mais cards. A análise sugere seletores; revise antes de salvar.</p>
+        <textarea
+          [value]="html()"
+          (input)="setHtml($event)"
+          rows="14"
+          placeholder="<article class='product-card'>…"
+        ></textarea>
+        @if (analysis()) {
+          <div class="analysis-result">
+            <strong>Confiança média: {{ analysisConfidence() }}%</strong>
+            @for (note of analysis()?.observacoes ?? []; track note) {
+              <p>{{ note }}</p>
             }
-          </footer>
-        </section>
-      </div>
-    }
+          </div>
+        }
+        @if (analyzerError()) {
+          <div class="feedback error">{{ analyzerError() }}</div>
+        }
+        <footer>
+          <button class="btn secondary" type="button" (click)="formatHtml()">Formatar HTML</button
+          ><button
+            class="btn primary"
+            [disabled]="!html().trim() || analyzing()"
+            (click)="analyze()"
+          >
+            {{ analyzing() ? 'Analisando…' : 'Analisar' }}
+          </button>
+          @if (analysis()) {
+            <button class="btn primary" type="button" (click)="applyAnalysis()">
+              Aplicar seletores
+            </button>
+          }
+        </footer>
+      </section>
+    </ng-template>
   `,
   styles: `
     .back {
@@ -262,6 +266,14 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
       grid-template-columns: 1fr 2fr;
       gap: 1rem;
       padding: 1.2rem;
+    }
+    .field-error {
+      color: #a33;
+      font-size: 11px;
+    }
+    .ng-invalid.ng-touched:not(form) {
+      border-color: #a33;
+      outline-color: #a33;
     }
     .selector-grid {
       grid-template-columns: repeat(3, 1fr);
@@ -337,15 +349,6 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
       border-radius: 12px;
       box-shadow: var(--shadow);
     }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: #0f172abf;
-      display: grid;
-      place-items: center;
-      padding: 1rem;
-      z-index: 80;
-    }
     .modal {
       width: min(850px, 100%);
       max-height: 95vh;
@@ -394,6 +397,11 @@ export class FonteDetailsPage {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(FontesApiService);
   private readonly errors = inject(ApiErrorService);
+  private readonly popup = inject(PopupService);
+  private readonly dialogs = inject(DialogService);
+  @ViewChild('analyzerDialog', { static: true })
+  private readonly analyzerDialog!: TemplateRef<unknown>;
+  private analyzerDialogRef?: MatDialogRef<unknown>;
   private config: ScrapingConfig | null = null;
   protected readonly source = signal<ConfiguredSource | null>(null);
   protected readonly loading = signal(true);
@@ -436,6 +444,7 @@ export class FonteDetailsPage {
     return this.fb.nonNullable.group({
       id: value?.id ?? crypto.randomUUID(),
       categoria: [value?.categoria ?? '', Validators.required],
+      icone: value?.icone ?? 'tag',
       url: [value?.url ?? '', [Validators.required, Validators.pattern(/^https?:\/\//i)]],
       ativa: value?.ativa ?? true,
       seletores: this.fb.nonNullable.group({
@@ -450,14 +459,20 @@ export class FonteDetailsPage {
       }),
     });
   }
-  protected addCategory(): void {
-    this.categories.push(this.categoryGroup());
-  }
-  protected removeCategory(index: number): void {
-    if (confirm('Remover esta categoria?')) this.categories.removeAt(index);
+  protected async removeCategory(index: number): Promise<void> {
+    if (
+      await this.popup.confirmDelete(
+        'Remover esta categoria?',
+        'A categoria será removida apenas ao salvar a fonte.',
+      )
+    )
+      this.categories.removeAt(index);
   }
   protected save(): void {
-    if (this.form.invalid || !this.config || !this.source()) return;
+    if (this.form.invalid || !this.config || !this.source()) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.saving.set(true);
     const source = this.source()!;
     const changed = { ...source, categorias: this.form.getRawValue().categories };
@@ -473,6 +488,24 @@ export class FonteDetailsPage {
       },
       error: (e) => this.fail(e),
     });
+  }
+  protected validationSummary(index: number): string {
+    const category = this.categories.at(index);
+    const errors: string[] = [];
+    if (category.controls.categoria.hasError('required')) errors.push('Categoria é obrigatória.');
+    if (category.controls.url.hasError('required')) errors.push('URL da página é obrigatória.');
+    if (category.controls.url.hasError('pattern'))
+      errors.push('URL deve começar com http:// ou https://.');
+    const selectors = category.controls.seletores.controls;
+    for (const [control, label] of [
+      ['item', 'Card do produto'],
+      ['titulo', 'Título'],
+      ['preco', 'Preço'],
+      ['imagem', 'Imagem'],
+    ] as const) {
+      if (selectors[control].hasError('required')) errors.push(`${label} é obrigatório.`);
+    }
+    return errors.join(' ');
   }
   protected test(index: number): void {
     const source = this.source(),
@@ -506,12 +539,14 @@ export class FonteDetailsPage {
     this.html.set('');
     this.analysis.set(null);
     this.analyzerError.set('');
+    this.analyzerDialogRef = this.dialogs.open(this.analyzerDialog, {
+      width: 'min(850px, calc(100vw - 32px))',
+      ariaLabel: 'Analisar HTML de um card',
+    });
   }
   protected closeAnalyzer(): void {
     this.analyzerIndex.set(null);
-  }
-  protected closeAnalyzerFromBackdrop(event: MouseEvent): void {
-    if (event.target === event.currentTarget) this.closeAnalyzer();
+    this.analyzerDialogRef?.close();
   }
   protected setHtml(event: Event): void {
     this.html.set((event.target as HTMLTextAreaElement).value);

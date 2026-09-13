@@ -37,6 +37,7 @@ const esquemaUrlFonte = z
 const esquemaCategoriaFonte = z.object({
 	id: z.string().max(64).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 	categoria: z.string().trim().min(1).max(100),
+	icone: z.string().max(40).default("tag"),
 	url: esquemaUrlFonte.default(""),
 	ativa: z.boolean().default(false),
 	seletores: esquemaSeletores.default(seletoresPadrao),
@@ -84,6 +85,7 @@ export interface FonteConfigurada {
 export interface CategoriaFonteConfigurada {
 	id: string;
 	categoria: string;
+	icone: string;
 	url: string;
 	ativa: boolean;
 	seletores: SeletoresSite;
@@ -104,7 +106,7 @@ export class ServicoConfiguracaoScraping {
 		},
 	): FonteConfigurada {
 		const categorias = fonte.categorias?.length
-			? fonte.categorias.map((item) => ({ ...item, seletores: esquemaSeletores.parse(item.seletores ?? {}) }))
+			? fonte.categorias.map((item) => ({ ...item, icone: item.icone ?? "tag", seletores: esquemaSeletores.parse(item.seletores ?? {}) }))
 			: fonte.url
 				? [{ id: "geral", categoria: "Definir categoria", url: fonte.url, ativa: false, seletores: esquemaSeletores.parse(fonte.seletores ?? {}) }]
 				: [];

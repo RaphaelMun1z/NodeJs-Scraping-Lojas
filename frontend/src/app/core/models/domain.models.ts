@@ -18,6 +18,7 @@ export interface Selectors {
 export interface SourceCategory {
   id: string;
   categoria: string;
+  icone: string;
   url: string;
   ativa: boolean;
   seletores: Selectors;

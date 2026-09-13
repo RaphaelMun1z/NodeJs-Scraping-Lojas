@@ -1,3 +1,4 @@
+import { LucideDynamicIcon } from '@lucide/angular';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthApiService } from '../../../../core/auth/auth-api.service';
@@ -6,90 +7,163 @@ import { ApiErrorService } from '../../../../core/services/api-error.service';
 
 @Component({
   selector: 'app-autenticacao',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="page-heading">
-      <span class="eyebrow">Segurança</span>
-      <h1>Autenticação em duas etapas</h1>
-      <p>Proteja o painel com códigos temporários do seu aplicativo autenticador.</p>
-    </section>
-    <section class="panel content">
-      <h2>Aplicativo autenticador</h2>
+    <header class="admin-header">
+      <h1>Segurança</h1>
+    </header>
+    <section class="admin-mfa">
+      <h2>Autenticação em dois fatores</h2>
       @if (!setup()) {
-        <p>
-          Gere um QR Code, leia com Google Authenticator, Authy ou equivalente e confirme um código.
-        </p>
-        <button class="btn primary" [disabled]="loading()" (click)="start()">Gerar QR Code</button>
+        <p class="admin-description">Proteja sua conta usando um aplicativo autenticador.</p>
+        <button class="btn primary" [disabled]="loading()" (click)="start()">
+          Configurar MFA <svg lucideIcon="shield-check" aria-hidden="true"></svg>
+        </button>
       } @else {
-        <div class="setup">
+        <div class="mfa-setup">
           @if (qr()) {
             <img [src]="qr()" alt="QR Code de configuração MFA" />
           }
           <div>
-            <p>Depois de ler o QR Code, informe o código de seis dígitos.</p>
+            <p>Escaneie o QR Code no aplicativo autenticador e informe o código gerado.</p>
             @if (setup()?.segredo) {
-              <code>{{ setup()?.segredo }}</code>
+              <div class="manual-secret">
+                Chave manual <code>{{ setup()?.segredo }}</code>
+              </div>
             }
-            <label>Código<input [formControl]="code" inputmode="numeric" maxlength="6" /></label
-            ><button
-              class="btn primary"
-              [disabled]="code.invalid || loading()"
-              (click)="activate()"
-            >
-              Ativar autenticação
+            <label class="mfa-code-field"
+              >Código de verificação<input
+                [formControl]="code"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Código de 6 dígitos"
+                aria-describedby="mfa-code-error"
+                [attr.aria-invalid]="code.invalid && code.touched"
+            /></label>
+            @if (code.invalid && code.touched) {
+              <small id="mfa-code-error" class="field-error">{{
+                code.hasError('required')
+                  ? 'Código de verificação é obrigatório.'
+                  : 'Informe exatamente 6 dígitos.'
+              }}</small>
+            }
+            <button class="btn primary" [disabled]="code.invalid || loading()" (click)="activate()">
+              Ativar MFA <svg lucideIcon="shield-check" aria-hidden="true"></svg>
             </button>
           </div>
         </div>
       }
       @if (feedback()) {
-        <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
+        <div class="admin-feedback" [class.error]="failed()">{{ feedback() }}</div>
       }
     </section>
   `,
   styles: `
-    .page-heading {
-      margin-bottom: 1.5rem;
+    .admin-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      max-width: var(--admin-container-width);
+      margin: 0 auto 24px;
     }
-    .page-heading h1 {
-      margin: 0.3rem 0;
+    .admin-header h1 {
+      margin: 0;
+      color: #151515;
+      font-size: 22px;
+      letter-spacing: -0.5px;
     }
-    .page-heading p,
-    .content > p {
-      color: var(--muted);
+    .admin-mfa {
+      max-width: var(--admin-container-width);
+      margin: 24px auto 0;
+      padding: 24px 30px;
+      border: 1px solid #e5e5e5;
+      border-radius: 10px;
+      background: #fff;
     }
-    .content {
-      padding: 1.5rem;
+    .admin-mfa h2 {
+      margin: 0 0 12px;
+      color: #151515;
+      font-size: 16px;
     }
-    .content h2 {
-      margin-top: 0;
+    .admin-description {
+      margin: 0 0 24px;
+      color: #727272;
+      font-size: 13px;
+      line-height: 1.5;
     }
-    .setup {
+    .mfa-setup {
       display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 2rem;
-      align-items: center;
+      justify-items: start;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e5e5;
     }
-    .setup img {
-      width: 220px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
+    .mfa-setup img {
+      width: 240px;
+      height: 240px;
+      border: 1px solid #e5e5e5;
     }
-    label {
+    .mfa-setup p {
+      margin: 0 0 12px;
+      color: #727272;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .mfa-code-field,
+    .manual-secret {
       display: grid;
-      gap: 0.4rem;
-      margin: 1rem 0;
-      font-weight: 800;
+      gap: 6px;
+      margin: 12px 0;
+      color: #444;
+      font-size: 12px;
     }
-    code {
+    .mfa-code-field input {
+      width: 260px;
+      height: 40px;
+      padding: 0 10px;
+      border: 1px solid #d6d6d6;
+      border-radius: 6px;
+      background: #fff;
+      color: #333;
+    }
+    .mfa-code-field input:focus {
+      border-color: #2456df;
+      outline: 2px solid rgb(36 86 223 / 12%);
+    }
+    .manual-secret code {
       display: block;
-      padding: 0.7rem;
-      background: var(--surface-2);
-      word-break: break-all;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #f5f6f7;
+      color: #333;
+      font-family: Consolas, monospace;
+      font-weight: 400;
+      overflow-wrap: anywhere;
+    }
+    .field-error {
+      color: #a33;
+      font-size: 11px;
+    }
+    .mfa-code-field input.ng-invalid.ng-touched {
+      border-color: #a33;
+    }
+    .admin-feedback {
+      min-height: 18px;
+      margin-top: 18px;
+      color: #18743c;
+      font-size: 12px;
+    }
+    .admin-feedback.error {
+      color: #a33;
     }
     @media (max-width: 650px) {
-      .setup {
-        grid-template-columns: 1fr;
+      .admin-mfa {
+        padding: 22px 18px;
+      }
+      .mfa-code-field input {
+        width: min(260px, 100%);
       }
     }
   `,
@@ -122,7 +196,10 @@ export class AutenticacaoPage {
     });
   }
   protected activate(): void {
-    if (this.code.invalid) return;
+    if (this.code.invalid) {
+      this.code.markAsTouched();
+      return;
+    }
     this.loading.set(true);
     this.auth.activateMfa(this.code.value).subscribe({
       next: () => {
@@ -138,3 +215,5 @@ export class AutenticacaoPage {
     });
   }
 }
+
+

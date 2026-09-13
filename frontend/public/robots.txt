@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /produtos
+Disallow: /admin/
+Disallow: /api/

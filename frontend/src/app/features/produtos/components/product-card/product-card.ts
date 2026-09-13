@@ -1,13 +1,13 @@
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CurrencyPipe } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Product, SourceIdentity } from '../../../../core/models/domain.models';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
-import { createIcons, Tag } from 'lucide';
 
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent],
+  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<article
     class="product-card"
@@ -16,7 +16,7 @@ import { createIcons, Tag } from 'lucide';
     [class.is-inactive]="product().ativo === false"
   >
     @if (product().precoHistorico) {
-      <span class="historical-price-badge"><i data-lucide="tag" aria-hidden="true"></i>Preço histórico</span>
+      <span class="historical-price-badge"><svg lucideIcon="tag" aria-hidden="true"></svg>Preço histórico</span>
     }
     <a class="product-image" [routerLink]="['/produtos', id()]">
       @if (imageUrl()) {
@@ -28,7 +28,7 @@ import { createIcons, Tag } from 'lucide';
     <div class="product-card-body">
       <div class="product-meta">
         <app-source-identity [name]="sourceLabel()" [logo]="source().logo ?? ''" /><span>•</span
-        >@if (isNew()) { <span class="listing-age is-new"><i data-lucide="sparkles" aria-hidden="true"></i>Novo</span> } @else { <span class="listing-age">{{ ageLabel() }}</span> }
+        >@if (isNew()) { <span class="listing-age is-new"><svg lucideIcon="sparkles" aria-hidden="true"></svg>Novo</span> } @else { <span class="listing-age">{{ ageLabel() }}</span> }
       </div>
       <h2>
         <a [routerLink]="['/produtos', id()]">{{ product().titulo }}</a>
@@ -175,7 +175,7 @@ import { createIcons, Tag } from 'lucide';
       animation: historical-shimmer 2.8s cubic-bezier(.45, .05, .55, .95) infinite;
     }
     .historical-price-badge > * { position: relative; z-index: 1; }
-    .historical-price-badge i[data-lucide], .historical-price-badge .lucide { display: inline-block !important; width: 18px; height: 18px; flex: 0 0 18px; color: #fff8d6; stroke-width: 2.4; }
+    .historical-price-badge svg, .historical-price-badge .lucide { display: inline-block !important; width: 18px; height: 18px; flex: 0 0 18px; color: #fff8d6; stroke-width: 2.4; }
     @keyframes historical-shimmer { 0%, 18% { transform: translateX(0) skewX(-12deg); } 72%, 100% { transform: translateX(310%) skewX(-12deg); } }
     @media (prefers-reduced-motion: reduce) { .historical-price-badge::after { animation: none; } }
     .product-prices {
@@ -217,7 +217,7 @@ import { createIcons, Tag } from 'lucide';
     .product-footer > span:first-child, .product-footer .external-link { display: none; }
   `,
 })
-export class ProductCardComponent implements AfterViewInit {
+export class ProductCardComponent {
   readonly product = input.required<Product>();
   readonly sources = input<Record<string, SourceIdentity>>({});
   readonly compact = input(false);
@@ -255,8 +255,5 @@ export class ProductCardComponent implements AfterViewInit {
   protected sourceLabel(): string {
     const value = this.source().nome.trim();
     return value ? value.charAt(0).toLocaleUpperCase('pt-BR') + value.slice(1) : value;
-  }
-  ngAfterViewInit(): void {
-    queueMicrotask(() => createIcons({ icons: { Tag } }));
   }
 }

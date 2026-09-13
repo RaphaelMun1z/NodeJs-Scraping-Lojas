@@ -1,51 +1,4 @@
-import { AfterViewChecked, ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import {
-  Activity,
-  ArrowRight,
-  Braces,
-  ChartNoAxesCombined,
-  Check,
-  ChevronDown,
-  createIcons,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  Download,
-  ExternalLink,
-  Filter,
-  Globe2,
-  Eye,
-  EyeOff,
-  Info,
-  KeyRound,
-  LockKeyhole,
-  List,
-  Mail,
-  LogOut,
-  Monitor,
-  Package,
-  Pencil,
-  Plus,
-  Printer,
-  RotateCcw,
-  Save,
-  ScanSearch,
-  Search,
-  SearchCheck,
-  ServerCog,
-  Settings,
-  Settings2,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  Timer,
-  Trash2,
-  TriangleAlert,
-  Tag,
-  Upload,
-  X,
-} from 'lucide';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthApiService } from './core/auth/auth-api.service';
 import { HeaderComponent } from './layout/header/header';
@@ -56,17 +9,9 @@ import { HeaderComponent } from './layout/header/header';
   template: `<app-header /><router-outlet />`,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App implements AfterViewChecked {
+export class App {
   private readonly auth = inject(AuthApiService);
   constructor() {
     this.auth.session().subscribe();
-  }
-  ngAfterViewChecked(): void {
-    createIcons({ icons: {
-      Activity, ArrowLeft, ArrowRight, Braces, ChartNoAxesCombined, Check, ChevronDown, ChevronLeft, ChevronRight,
-      Clock3, Download, ExternalLink, Filter, Globe2, Eye, EyeOff, Info, KeyRound, LockKeyhole, List, LogOut, Mail, Monitor,
-      Package, Pencil, Plus, Printer, RotateCcw, Save, ScanSearch, Search, SearchCheck,
-      ServerCog, Settings, Settings2, ShieldCheck, Sparkles, Store, Tag, Timer, Trash2, TriangleAlert, Upload, X,
-    } });
   }
 }

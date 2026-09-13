@@ -1,3 +1,4 @@
+import { LucideDynamicIcon } from '@lucide/angular';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,7 +8,7 @@ import { AuthButtonComponent } from '../../../../shared/components/auth-button/a
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, AuthButtonComponent],
+  imports: [ReactiveFormsModule, AuthButtonComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="auth-page">
@@ -43,13 +44,63 @@ import { AuthButtonComponent } from '../../../../shared/components/auth-button/a
           <div class="admin-error">{{ error() }}</div>
         }
         <form [formGroup]="form" (ngSubmit)="submit()">
-          <label><span class="field-label"><i data-lucide="mail" aria-hidden="true"></i>Endereço de e-mail</span><input type="email" formControlName="email" autocomplete="username" /></label>
-          <label class="password-label"><span class="field-label"><i data-lucide="lock-keyhole" aria-hidden="true"></i>Senha</span>
-            <input [type]="showPassword() ? 'text' : 'password'" formControlName="senha" autocomplete="current-password" />
-            <button type="button" class="password-toggle" (click)="showPassword.set(!showPassword())" [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'">{{ showPassword() ? '◉' : '◌' }}</button>
+          <label
+            ><span class="field-label"
+              ><svg lucideIcon="mail" aria-hidden="true"></svg>Endereço de e-mail
+              <em class="required-marker">*</em></span
+            ><input
+              id="login-email"
+              type="email"
+              formControlName="email"
+              autocomplete="username"
+              [attr.aria-invalid]="hasError('email')"
+              aria-describedby="login-email-error"
+          /></label>
+          @if (hasError('email')) {
+            <small id="login-email-error" class="field-error">{{ fieldError('email') }}</small>
+          }
+          <label class="password-label"
+            ><span class="field-label"
+              ><svg lucideIcon="lock-keyhole" aria-hidden="true"></svg>Senha
+              <em class="required-marker">*</em></span
+            >
+            <input
+              id="login-password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="senha"
+              autocomplete="current-password"
+              [attr.aria-invalid]="hasError('senha')"
+              aria-describedby="login-password-error"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+            >
+              {{ showPassword() ? '◉' : '◌' }}
+            </button>
           </label>
+          @if (hasError('senha')) {
+            <small id="login-password-error" class="field-error">{{ fieldError('senha') }}</small>
+          }
           @if (mfaRequired()) {
-            <label>Código de verificação<input type="text" formControlName="codigoTotp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" /></label>
+            <label
+              >Código de verificação<input
+                id="login-totp"
+                type="text"
+                formControlName="codigoTotp"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                [attr.aria-invalid]="hasError('codigoTotp')"
+                aria-describedby="login-totp-error"
+            /></label>
+            @if (hasError('codigoTotp')) {
+              <small id="login-totp-error" class="field-error">{{
+                fieldError('codigoTotp')
+              }}</small>
+            }
             <p class="admin-description">Informe o código do seu aplicativo autenticador.</p>
           }
           <div class="form-options">
@@ -133,7 +184,7 @@ import { AuthButtonComponent } from '../../../../shared/components/auth-button/a
     }
     input {
       width: 100%;
-      height: 42px;
+      height: 40px;
       padding: 0;
       border: 0;
       border-bottom: 1px solid #555;
@@ -230,6 +281,18 @@ import { AuthButtonComponent } from '../../../../shared/components/auth-button/a
       color: #a33;
       font-size: 12px;
     }
+    .field-error {
+      margin-top: -10px;
+      color: #a33;
+      font-size: 11px;
+    }
+    .required-marker {
+      color: #a33;
+      font-style: normal;
+    }
+    input.ng-invalid.ng-touched {
+      border-bottom-color: #a33;
+    }
     .signup-prompt {
       margin: 25px 0 0;
       color: #68717d;
@@ -260,7 +323,10 @@ export class LoginPage {
   protected readonly loading = signal(false);
   protected readonly error = signal('');
   protected submit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading.set(true);
     this.error.set('');
     const { email, senha, codigoTotp } = this.form.getRawValue();
@@ -271,6 +337,11 @@ export class LoginPage {
     this.auth.checkMfa(email, senha).subscribe({
       next: (required) => {
         if (required) {
+          this.form.controls.codigoTotp.setValidators([
+            Validators.required,
+            Validators.pattern(/^\d{6}$/),
+          ]);
+          this.form.controls.codigoTotp.updateValueAndValidity();
           this.mfaRequired.set(true);
           this.loading.set(false);
         } else this.login(email, senha);
@@ -280,6 +351,21 @@ export class LoginPage {
         this.loading.set(false);
       },
     });
+  }
+  protected hasError(control: 'email' | 'senha' | 'codigoTotp'): boolean {
+    const field = this.form.controls[control];
+    return field.invalid && (field.touched || field.dirty);
+  }
+  protected fieldError(control: 'email' | 'senha' | 'codigoTotp'): string {
+    const field = this.form.controls[control];
+    if (field.hasError('required'))
+      return control === 'email'
+        ? 'E-mail é obrigatório.'
+        : control === 'senha'
+          ? 'Senha é obrigatória.'
+          : 'Código de verificação é obrigatório.';
+    if (field.hasError('email')) return 'E-mail inválido.';
+    return 'Informe um código de 6 dígitos.';
   }
   private login(email: string, senha: string, codigoTotp?: string): void {
     this.auth.login(email, senha, codigoTotp).subscribe({
@@ -294,3 +380,5 @@ export class LoginPage {
     });
   }
 }
+
+

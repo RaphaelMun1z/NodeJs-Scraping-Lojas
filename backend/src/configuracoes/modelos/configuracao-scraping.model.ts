@@ -25,6 +25,7 @@ const esquemaFonte = new Schema(
 				{
 					id: { type: String, required: true },
 					categoria: { type: String, required: true },
+					icone: { type: String, default: "tag" },
 					url: { type: String, default: "" },
 					ativa: { type: Boolean, default: false },
 					seletores: { type: esquemaSeletores, required: true },

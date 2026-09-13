@@ -13,8 +13,8 @@ Para desenvolver o frontend Angular 22, use Node.js `^22.22.3`, `^24.15.0` ou `>
 ## Instalação
 
 ```bash
-npm install
-npx playwright install chromium
+npm --prefix backend install
+npm --prefix backend exec -- playwright install chromium
 ```
 
 Para subir um MongoDB local com Docker:
@@ -45,14 +45,14 @@ Copie `.env.example` para `.env`. As lojas, categorias, URLs e seletores são ca
 Desenvolvimento:
 
 ```bash
-npm run dev
+npm --prefix backend run dev
 ```
 
 Produção:
 
 ```bash
-npm run build
-npm start
+npm --prefix backend run build
+npm --prefix backend start
 ```
 
 Frontend Angular em desenvolvimento (com proxy para a API na porta 3000):
@@ -96,19 +96,18 @@ GET /api/itens?pagina=1&limite=20&busca=produto
 
 | Diretório | Responsabilidade |
 | --- | --- |
-| `src/agendadores` | Agenda e controla execuções automáticas da coleta. |
-| `src/analisadores` | Interpreta o HTML e transforma cards em itens validados. |
-| `src/api` | Configura a API REST, rotas, controladores e tratamento de erros. |
-| `src/banco` | Gerencia a conexão, o schema Mongoose e o repositório de itens. |
-| `src/clientes` | Obtém o HTML usando Playwright ou HTTP. |
-| `src/coletores` | Coordena a obtenção e a análise do conteúdo da loja. |
-| `src/config` | Centraliza configuração, seletores e logger. |
-| `src/modelos` | Define os tipos e a validação dos dados coletados. |
-| `src/servicos` | Contém o fluxo de negócio da coleta e evita execuções simultâneas. |
-| `src/utilitarios` | Reúne funções auxiliares, como geração de chaves de itens. |
-| `src/index.ts` | Compõe as dependências e inicia o ciclo de vida da aplicação. |
+| `backend/src/agendadores` | Agenda e controla execuções automáticas da coleta. |
+| `backend/src/analisadores` | Interpreta o HTML e transforma cards em itens validados. |
+| `backend/src/api` | Configura a API REST, rotas, controladores e tratamento de erros. |
+| `backend/src/banco` | Gerencia a conexão, o schema Mongoose e o repositório de itens. |
+| `backend/src/clientes` | Obtém o HTML usando Playwright ou HTTP. |
+| `backend/src/coletores` | Coordena a obtenção e a análise do conteúdo da loja. |
+| `backend/src/config` | Centraliza configuração, seletores e logger. |
+| `backend/src/modelos` | Define os tipos e a validação dos dados coletados. |
+| `backend/src/servicos` | Contém o fluxo de negócio da coleta e evita execuções simultâneas. |
+| `backend/src/utilitarios` | Reúne funções auxiliares, como geração de chaves de itens. |
+| `backend/src/index.ts` | Compõe as dependências e inicia o ciclo de vida da aplicação. |
 | `frontend` | Aplicação Angular de catálogo e administração. |
-| `interface-produtos` | Frontend legado mantido temporariamente para homologação. |
 
 ## Persistência
 

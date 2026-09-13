@@ -1,3 +1,4 @@
+import { LucideDynamicIcon } from '@lucide/angular';
 import { CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -21,11 +22,11 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
 
 @Component({
   selector: 'app-produto-details',
-  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent],
+  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="page-wrap detail-page">
-      <a routerLink="/produtos" class="back">← Voltar para produtos</a>
+      <a routerLink="/produtos" class="back"><svg lucideIcon="arrow-left" aria-hidden="true"></svg> Voltar para produtos</a>
       @if (error()) {
         <div class="state error">{{ error() }}</div>
       } @else if (loading()) {
@@ -58,7 +59,7 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
             </div>
             @if (item.url) {
               <a class="btn primary" [href]="item.url" target="_blank" rel="noreferrer"
-                >Ver na loja ↗</a
+                >Ver na loja <svg lucideIcon="external-link" aria-hidden="true"></svg></a
               >
             }
           </div>
@@ -94,7 +95,7 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
                   }
                   @if (offer.url) {
                     <a class="store-link" [href]="offer.url" target="_blank" rel="noopener noreferrer"
-                      >Ver oferta <i data-lucide="external-link" aria-hidden="true"></i></a
+                      >Ver oferta <svg lucideIcon="external-link" aria-hidden="true"></svg></a
                     >
                   }
                 </article>
@@ -461,3 +462,5 @@ export class ProdutoDetailsPage implements OnDestroy {
     this.chart?.destroy();
   }
 }
+
+

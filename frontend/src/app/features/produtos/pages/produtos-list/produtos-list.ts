@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
@@ -12,14 +20,16 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
 
 @Component({
   selector: 'app-produtos-list',
-  imports: [ReactiveFormsModule, ProductCardComponent, PaginationComponent],
+  imports: [ReactiveFormsModule, ProductCardComponent, PaginationComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="content-layout">
       <aside class="filters-panel">
         <div class="filters-heading">
           <h1>Filtros</h1>
-          <button class="text-button" type="button" (click)="clear()">Limpar <i data-lucide="rotate-ccw" aria-hidden="true"></i></button>
+          <button class="text-button" type="button" (click)="clear()">
+            Limpar <svg lucideIcon="rotate-ccw" aria-hidden="true"></svg>
+          </button>
         </div>
         <form [formGroup]="form">
           <section class="filter-section">
@@ -39,7 +49,11 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
                     <div class="category-subcategories">
                       @for (child of group.children; track child) {
                         <label class="radio-row"
-                          ><input type="radio" formControlName="categoria" [value]="group.name + ' > ' + child" />
+                          ><input
+                            type="radio"
+                            formControlName="categoria"
+                            [value]="group.name + ' > ' + child"
+                          />
                           <span>{{ child }}</span></label
                         >
                       }
@@ -58,8 +72,11 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
               @for (source of sources(); track source.fonte) {
                 <label class="radio-row"
                   ><input type="radio" formControlName="fonte" [value]="source.fonte" />
-                  @if (source.logo) { <img [src]="source.logo" [alt]="source.nome" /> }
-                  @else { <i class="source-filter-fallback" data-lucide="store" aria-hidden="true"></i> }
+                  @if (source.logo) {
+                    <img [src]="source.logo" [alt]="source.nome" />
+                  } @else {
+                    <svg class="source-filter-fallback" lucideIcon="store" aria-hidden="true"></svg>
+                  }
                   <span>{{ sourceLabel(source.nome) }}</span></label
                 >
               }
@@ -68,11 +85,32 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
           <section class="filter-section">
             <h2>Preço</h2>
             <div class="price-slider">
-              <div class="range-values"><span>R$ {{ minPriceLabel() }}</span><span>{{ maxPriceLabel() }}</span></div>
+              <div class="range-values">
+                <span>R$ {{ minPriceLabel() }}</span
+                ><span>{{ maxPriceLabel() }}</span>
+              </div>
               <div class="dual-range" aria-label="Faixa de preço">
                 <div class="dual-range-track"></div>
-                <input id="min-price" type="range" min="0" max="20000" step="50" formControlName="precoMin" aria-label="Preço mínimo" (input)="normalizePriceRange()" />
-                <input id="max-price" type="range" min="0" max="20000" step="50" formControlName="precoMax" aria-label="Preço máximo" (input)="normalizePriceRange()" />
+                <input
+                  id="min-price"
+                  type="range"
+                  min="0"
+                  max="20000"
+                  step="50"
+                  formControlName="precoMin"
+                  aria-label="Preço mínimo"
+                  (input)="normalizePriceRange()"
+                />
+                <input
+                  id="max-price"
+                  type="range"
+                  min="0"
+                  max="20000"
+                  step="50"
+                  formControlName="precoMax"
+                  aria-label="Preço máximo"
+                  (input)="normalizePriceRange()"
+                />
               </div>
             </div>
           </section>
@@ -105,7 +143,9 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
           <div class="toolbar-summary">
             <span class="result-status">{{ total() }} produto(s)</span>
             @if (form.value.ativo) {
-              <button class="filter-chip" type="button" (click)="clearActiveStatus()">Status: Somente ativos <i data-lucide="x" aria-hidden="true"></i></button>
+              <button class="filter-chip" type="button" (click)="clearActiveStatus()">
+                Status: Somente ativos <svg lucideIcon="x" aria-hidden="true"></svg>
+              </button>
             }
           </div>
           <label class="sort-control"
@@ -120,7 +160,10 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
         </div>
         @if (error()) {
           <div class="state">
-            {{ error() }} <button class="btn" (click)="load()">Tentar novamente</button>
+            {{ error() }}
+            <button class="btn primary" type="button" (click)="load()">
+              Tentar novamente <svg lucideIcon="rotate-ccw" aria-hidden="true"></svg>
+            </button>
           </div>
         } @else if (loading()) {
           <div class="products-grid">
@@ -184,7 +227,11 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
       color: var(--blue);
       font-size: 12px;
     }
-    .text-button .lucide { width: 16px; height: 16px; stroke-width: 2; }
+    .text-button .lucide {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+    }
     .filters form {
       display: grid;
     }
@@ -319,51 +366,237 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
       border-radius: 8px;
       background: #f0f2f3;
     }
-    .skeleton { position: relative; overflow: hidden; background: #e8ebf1; }
-    .skeleton::after { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 62%), transparent); content: ''; transform: translateX(-100%); animation: skeleton-shimmer 1.25s ease-in-out infinite; }
-    .skeleton-image { height: 190px; }
-    .skeleton-line { display: block; height: 11px; margin: 0 0 11px; border-radius: 5px; }
-    .skeleton-line.short { width: 32%; }
-    .skeleton-line.title { width: 88%; height: 16px; margin-top: 16px; }
-    .skeleton-line.price { width: 45%; height: 22px; margin-top: 18px; }
-    .skeleton-line.footer { width: 70%; margin-top: 20px; }
-    @keyframes skeleton-shimmer { 100% { transform: translateX(100%); } }
-    /* Filtro alinhado ao CSS do frontend legado. */
-    .content-layout { grid-template-columns: 244px minmax(0, 1fr); min-height: calc(100vh - 116px); }
-    .filters-panel { padding: 30px; }
-    .filter-section { padding: 25px 0; border-bottom: 1px solid var(--line); }
-    .filter-section h2 { margin: 0 0 16px; font-size: 15px; }
-    .radio-list { gap: 11px; }
-    .radio-row, .check-row { gap: 8px; color: #4d4d4d; font-size: 12px; }
-    .radio-row strong { color: #333; font-weight: 600; }
-    .category-filter-group { display: grid; gap: 7px; }
-    .category-filter-heading { min-width: 0; }
-    .category-filter-heading strong, .category-subcategories .radio-row span { overflow: visible; text-overflow: clip; white-space: nowrap; }
-    .category-subcategories { display: grid; gap: 8px; margin-left: 25px; padding-left: 10px; border-left: 1px solid #e1e5ef; }
-    .price-slider > label { display: none; }
-    .price-slider { display: grid; gap: 8px; }
-    .range-values { display: flex; justify-content: space-between; color: #333; font-size: 12px; font-weight: 600; }
-    .dual-range { position: relative; height: 28px; margin: 2px 7px 0; }
-    .dual-range-track { position: absolute; top: 12px; right: 0; left: 0; height: 4px; border-radius: 4px; background: #dfe3eb; }
-    .dual-range input[type='range'] { position: absolute; top: 0; left: -7px; width: calc(100% + 14px); height: 28px; margin: 0; pointer-events: none; appearance: none; background: transparent; accent-color: var(--blue); }
-    .dual-range input[type='range']::-webkit-slider-runnable-track { height: 4px; background: transparent; }
-    .dual-range input[type='range']::-moz-range-track { height: 4px; background: transparent; }
-    .dual-range input[type='range']::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -6px; border: 2px solid #fff; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); cursor: pointer; pointer-events: auto; appearance: none; }
-    .dual-range input[type='range']::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); cursor: pointer; pointer-events: auto; }
-    #min-price { z-index: 2; }
-    #max-price { z-index: 3; }
-    .radio-row img { width: 20px; height: 20px; object-fit: contain; }
-    .source-filter-fallback { display: inline-grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border-radius: 8px; background: #eef2ff; color: var(--blue); }
-    .products-area { padding: 22px 28px 42px; }
-    .new-products { margin-bottom: 28px; padding: 24px 0 0; }
-    .new-products-grid, .products-grid { gap: 18px; }
-    .toolbar { margin-bottom: 20px; }
-    .result-status { font-size: 12px; }
-    .toolbar-summary { gap: 10px; }
-    .filter-chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid #ddd; border-radius: 17px; background: #fff; color: #555; font: inherit; font-size: 11px; cursor: pointer; }
-    .filter-chip .lucide { width: 15px; height: 15px; color: #222; stroke-width: 2; }
-    .sort-control { gap: 9px; font-size: 12px; }
-    .sort-control select { height: auto; padding: 8px 28px 8px 10px; }
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background: #e8ebf1;
+    }
+    .skeleton::after {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgb(255 255 255 / 62%), transparent);
+      content: '';
+      transform: translateX(-100%);
+      animation: skeleton-shimmer 1.25s ease-in-out infinite;
+    }
+    .skeleton-image {
+      height: 190px;
+    }
+    .skeleton-line {
+      display: block;
+      height: 11px;
+      margin: 0 0 11px;
+      border-radius: 5px;
+    }
+    .skeleton-line.short {
+      width: 32%;
+    }
+    .skeleton-line.title {
+      width: 88%;
+      height: 16px;
+      margin-top: 16px;
+    }
+    .skeleton-line.price {
+      width: 45%;
+      height: 22px;
+      margin-top: 18px;
+    }
+    .skeleton-line.footer {
+      width: 70%;
+      margin-top: 20px;
+    }
+    @keyframes skeleton-shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+    /* Filtro alinhado aos tokens visuais compartilhados. */
+    .content-layout {
+      grid-template-columns: 244px minmax(0, 1fr);
+      min-height: calc(100vh - 116px);
+    }
+    .filters-panel {
+      padding: 30px;
+    }
+    .filter-section {
+      padding: 25px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .filter-section h2 {
+      margin: 0 0 16px;
+      font-size: 15px;
+    }
+    .radio-list {
+      gap: 11px;
+    }
+    .radio-row,
+    .check-row {
+      gap: 8px;
+      color: #4d4d4d;
+      font-size: 12px;
+    }
+    .radio-row strong {
+      color: #333;
+      font-weight: 600;
+    }
+    .category-filter-group {
+      display: grid;
+      gap: 7px;
+    }
+    .category-filter-heading {
+      min-width: 0;
+    }
+    .category-filter-heading strong,
+    .category-subcategories .radio-row span {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: nowrap;
+    }
+    .category-subcategories {
+      display: grid;
+      gap: 8px;
+      margin-left: 25px;
+      padding-left: 10px;
+      border-left: 1px solid #e1e5ef;
+    }
+    .price-slider > label {
+      display: none;
+    }
+    .price-slider {
+      display: grid;
+      gap: 8px;
+    }
+    .range-values {
+      display: flex;
+      justify-content: space-between;
+      color: #333;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .dual-range {
+      position: relative;
+      height: 28px;
+      margin: 2px 7px 0;
+    }
+    .dual-range-track {
+      position: absolute;
+      top: 12px;
+      right: 0;
+      left: 0;
+      height: 4px;
+      border-radius: 4px;
+      background: #dfe3eb;
+    }
+    .dual-range input[type='range'] {
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: calc(100% + 14px);
+      height: 28px;
+      margin: 0;
+      pointer-events: none;
+      appearance: none;
+      background: transparent;
+      accent-color: var(--blue);
+    }
+    .dual-range input[type='range']::-webkit-slider-runnable-track {
+      height: 4px;
+      background: transparent;
+    }
+    .dual-range input[type='range']::-moz-range-track {
+      height: 4px;
+      background: transparent;
+    }
+    .dual-range input[type='range']::-webkit-slider-thumb {
+      width: 16px;
+      height: 16px;
+      margin-top: -6px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 1px var(--blue);
+      cursor: pointer;
+      pointer-events: auto;
+      appearance: none;
+    }
+    .dual-range input[type='range']::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 1px var(--blue);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    #min-price {
+      z-index: 2;
+    }
+    #max-price {
+      z-index: 3;
+    }
+    .radio-row img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+    .source-filter-fallback {
+      display: inline-grid;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      place-items: center;
+      border-radius: 8px;
+      background: #eef2ff;
+      color: var(--blue);
+    }
+    .products-area {
+      padding: 22px 28px 42px;
+    }
+    .new-products {
+      margin-bottom: 28px;
+      padding: 24px 0 0;
+    }
+    .new-products-grid,
+    .products-grid {
+      gap: 18px;
+    }
+    .toolbar {
+      margin-bottom: 20px;
+    }
+    .result-status {
+      font-size: 12px;
+    }
+    .toolbar-summary {
+      gap: 10px;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid #ddd;
+      border-radius: 17px;
+      background: #fff;
+      color: #555;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .filter-chip .lucide {
+      width: 15px;
+      height: 15px;
+      color: #222;
+      stroke-width: 2;
+    }
+    .sort-control {
+      gap: 9px;
+      font-size: 12px;
+    }
+    .sort-control select {
+      height: auto;
+      padding: 8px 28px 8px 10px;
+    }
   `,
 })
 export class ProdutosListPage {
@@ -384,7 +617,9 @@ export class ProdutosListPage {
   protected readonly products = signal<Product[]>([]);
   protected readonly newest = signal<Product[]>([]);
   protected readonly newestPage = signal(1);
-  protected readonly newestVisible = computed(() => this.newest().slice((this.newestPage() - 1) * 4, this.newestPage() * 4));
+  protected readonly newestVisible = computed(() =>
+    this.newest().slice((this.newestPage() - 1) * 4, this.newestPage() * 4),
+  );
   protected readonly sources = signal<SourceIdentity[]>([]);
   protected readonly sourceMap = signal<Record<string, SourceIdentity>>({});
   protected readonly categories = signal<string[]>([]);
@@ -396,8 +631,17 @@ export class ProdutosListPage {
       if (child && !groups.get(name)!.includes(child)) groups.get(name)!.push(child);
     }
     return [...groups.entries()]
-      .sort(([a], [b]) => a === 'Outros' ? 1 : b === 'Outros' ? -1 : a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
-      .map(([name, children]) => ({ name, children: children.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })) }));
+      .sort(([a], [b]) =>
+        a === 'Outros'
+          ? 1
+          : b === 'Outros'
+            ? -1
+            : a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+      )
+      .map(([name, children]) => ({
+        name,
+        children: children.sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })),
+      }));
   });
   protected readonly loading = signal(true);
   protected readonly error = signal('');
@@ -405,7 +649,9 @@ export class ProdutosListPage {
   protected readonly totalPages = signal(0);
   protected readonly total = signal(0);
   protected readonly skeletons = Array.from({ length: 8 });
-  protected minPriceLabel(): string { return String(this.form.controls.precoMin.value ?? 0); }
+  protected minPriceLabel(): string {
+    return String(this.form.controls.precoMin.value ?? 0);
+  }
   protected maxPriceLabel(): string {
     const value = this.form.controls.precoMax.value;
     return value == null || value >= 20000 ? 'Sem limite' : `R$ ${value}`;
@@ -421,7 +667,8 @@ export class ProdutosListPage {
     const min = this.form.controls.precoMin.value ?? 0;
     const max = this.form.controls.precoMax.value ?? 20000;
     if (min > max) {
-      if (document.activeElement === document.getElementById('min-price')) this.form.controls.precoMax.setValue(min);
+      if (document.activeElement === document.getElementById('min-price'))
+        this.form.controls.precoMax.setValue(min);
       else this.form.controls.precoMin.setValue(max);
     }
   }
@@ -492,3 +739,5 @@ export class ProdutosListPage {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
+
+

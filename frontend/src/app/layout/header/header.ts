@@ -5,12 +5,15 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProdutosApiService } from '../../features/produtos/data-access/produtos-api.service';
 import { AuthApiService } from '../../core/auth/auth-api.service';
+import { LucideDynamicIcon } from '@lucide/angular';
 @Component({
   selector: 'app-header',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<header class="topbar">
-    <a routerLink="/produtos" class="brand">Live Promo</a>
+    <a routerLink="/produtos" class="brand" aria-label="Comparaê">
+      <img src="/comparae_logo.png" alt="Comparaê" />
+    </a>
     <div class="global-search">
       <form (submit)="search($event)">
         <input
@@ -18,7 +21,7 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
           placeholder="iPhone 17 Pro Max..."
           aria-label="Buscar produtos"
           autocomplete="off"
-        /><button type="submit">Buscar <i data-lucide="search" aria-hidden="true"></i></button>
+        /><button type="submit">Buscar <svg lucideIcon="search" aria-hidden="true"></svg></button>
       </form>
       @if (suggestions().length) {
         <div class="suggestions">
@@ -53,11 +56,18 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
       background: #fff;
     }
     .brand {
-      color: #111;
-      font-size: 25px;
-      font-weight: 700;
-      letter-spacing: -1.5px;
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      height: 38px;
       white-space: nowrap;
+    }
+    .brand img {
+      display: block;
+      width: auto;
+      height: 34px;
+      max-width: min(154px, 24vw);
+      object-fit: contain;
     }
     .global-search {
       position: relative;
@@ -151,7 +161,11 @@ import { AuthApiService } from '../../core/auth/auth-api.service';
         flex: 1;
       }
       .brand {
-        font-size: 21px;
+        height: 32px;
+      }
+      .brand img {
+        height: 28px;
+        max-width: 128px;
       }
       .account-avatar {
         width: 36px;

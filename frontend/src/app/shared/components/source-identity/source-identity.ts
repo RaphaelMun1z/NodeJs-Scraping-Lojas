@@ -1,14 +1,16 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-source-identity',
+  imports: [LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="source-identity" [class.large]="large()">
       @if (logo()) {
         <img [src]="logo()" [alt]="name()" (error)="hide($event)" />
       }
-      <i class="source-fallback" data-lucide="store" aria-hidden="true"></i>
+      <svg class="source-fallback" lucideIcon="store" aria-hidden="true"></svg>
       <span>{{ name() }}</span>
     </span>
   `,
@@ -46,9 +48,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
     }
     .source-identity.large {
       color: #171717;
-      font-size: 20px;
-      font-weight: 700;
-      gap: 9px;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+      gap: 8px;
     }
     .source-identity.large img,
     .source-identity.large .source-fallback {

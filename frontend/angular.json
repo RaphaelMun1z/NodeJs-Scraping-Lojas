@@ -23,13 +23,14 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": ["sweetalert2"],
             "assets": [
               {
                 "glob": "**/*",
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"]
+            "styles": ["node_modules/sweetalert2/dist/sweetalert2.min.css", "src/styles.scss"]
           },
           "configurations": {
             "production": {

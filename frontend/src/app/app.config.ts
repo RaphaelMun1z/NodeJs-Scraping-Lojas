@@ -6,10 +6,12 @@ import {
 import { registerLocaleData } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import localePt from '@angular/common/locales/pt';
-import { provideRouter } from '@angular/router';
+import { provideRouter, TitleStrategy } from '@angular/router';
 import { LOCALE_ID } from '@angular/core';
 import { routes } from './app.routes';
 import { csrfInterceptor } from './core/interceptors/csrf.interceptor';
+import { APP_ICON_PROVIDERS } from './app-icons';
+import { AppTitleStrategy } from './core/seo/app-title.strategy';
 
 registerLocaleData(localePt);
 
@@ -18,7 +20,9 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    { provide: TitleStrategy, useClass: AppTitleStrategy },
     provideHttpClient(withInterceptors([csrfInterceptor])),
+    ...APP_ICON_PROVIDERS,
     { provide: LOCALE_ID, useValue: 'pt-BR' },
   ],
 };

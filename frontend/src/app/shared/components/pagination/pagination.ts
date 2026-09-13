@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-pagination',
+  imports: [LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (totalPages() > 1) {
@@ -15,7 +17,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
           [disabled]="page() === 1"
           (click)="changed.emit(page() - 1)"
         >
-          ← Anterior
+          <svg lucideIcon="arrow-left" aria-hidden="true"></svg> Anterior
         </button>
         <span>Página {{ page() }} de {{ totalPages() }}</span>
         <button
@@ -24,7 +26,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
           [disabled]="page() === totalPages()"
           (click)="changed.emit(page() + 1)"
         >
-          Próxima →
+          Próxima <svg lucideIcon="arrow-right" aria-hidden="true"></svg>
         </button>
       </nav>
     }

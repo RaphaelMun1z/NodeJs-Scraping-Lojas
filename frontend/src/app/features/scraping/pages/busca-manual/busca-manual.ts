@@ -5,203 +5,362 @@ import { Product } from '../../../../core/models/domain.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { FontesApiService } from '../../../fontes/data-access/fontes-api.service';
 import { ScrapingApiService } from '../../data-access/scraping-api.service';
+import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
+import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-busca-manual',
-  imports: [FormsModule, CurrencyPipe],
+  imports: [FormsModule, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="page-heading">
-      <span class="eyebrow">Consulta sem persistência</span>
-      <h1>Busca manual</h1>
-      <p>Faça uma coleta pontual nas fontes selecionadas e exporte os resultados.</p>
+    <header class="admin-header">
+      <div>
+        <h1>Busca manual</h1>
+        <p>Execute uma busca sem salvar os resultados no banco de dados.</p>
+      </div>
     </header>
-    <section class="panel controls">
-      <h2>Fontes da busca</h2>
-      <div class="source-options">
-        @for (source of sources(); track source.fonte) {
-          <label
-            ><input
-              type="checkbox"
-              [checked]="selected().has(source.fonte)"
-              (change)="toggle(source.fonte, $event)"
-            />{{ source.nome }}</label
-          >
-        }
-      </div>
-      <button
-        class="btn primary"
-        [disabled]="searching() || selected().size === 0"
-        (click)="search()"
-      >
-        {{ searching() ? 'Buscando…' : '⌕ Iniciar busca' }}
-      </button>
-    </section>
-    @if (error()) {
-      <div class="feedback error">{{ error() }}</div>
-    }
-    @if (sourceErrors().length) {
-      <div class="feedback error">
-        @for (item of sourceErrors(); track item.fonte) {
-          <p>
-            <strong>{{ item.fonte }}:</strong> {{ item.mensagem }}
-          </p>
-        }
-      </div>
-    }
-    @if (hasResult()) {
-      <section class="panel results">
-        <header>
-          <div>
-            <h2>Resultados</h2>
-            <span>{{ filtered().length }} de {{ products().length }} produtos</span>
-          </div>
-          <div>
-            <button class="btn" (click)="exportCsv()">Baixar CSV</button
-            ><button class="btn" (click)="print()">Imprimir / PDF</button>
-          </div>
-        </header>
-        <div class="result-filters">
+    <section class="panel manual-search-page controls">
+      <div class="manual-search-toolbar">
+        <fieldset class="manual-search-sources source-options">
+          <legend>Fontes</legend>
+          @for (source of sources(); track source.fonte) {
+            <label>
+              <input
+                type="checkbox"
+                [checked]="selected().has(source.fonte)"
+                (change)="toggle(source.fonte, $event)"
+              />
+              <app-source-identity [name]="source.nome" />
+            </label>
+          }
+        </fieldset>
+        <label class="manual-search-multiple-filter">
           <input
+            type="checkbox"
+            [ngModel]="multipleStores()"
+            (ngModelChange)="multipleStores.set($event)"
+          />
+          Presente em mais de uma loja
+        </label>
+        <button
+          class="btn primary"
+          type="button"
+          [disabled]="searching() || selected().size === 0"
+          (click)="search()"
+        >
+          {{ searching() ? 'Buscando…' : 'Executar busca' }}
+          <svg lucideIcon="search" aria-hidden="true"></svg>
+        </button>
+      </div>
+      @if (error()) {
+        <div class="feedback error">{{ error() }}</div>
+      }
+      <div class="manual-search-actions">
+        <label class="manual-search-text-filter">
+          <span>Buscar no resultado</span>
+          <input
+            type="search"
             [ngModel]="query()"
             (ngModelChange)="query.set($event)"
-            placeholder="Filtrar pelo título"
-          /><label class="multiple-filter"
-            ><input
-              type="checkbox"
-              [ngModel]="multipleStores()"
-              (ngModelChange)="multipleStores.set($event)"
-            />
-            Presente em mais de uma loja</label
-          ><select [ngModel]="storeFilter()" (ngModelChange)="storeFilter.set($event)">
-            <option value="">Todas as lojas</option>
-            @for (source of resultSources(); track source) {
-              <option [value]="source">{{ source }}</option>
-            }
-          </select>
+            placeholder="Nome do produto"
+          />
+        </label>
+        <select
+          class="manual-search-store-filter"
+          [ngModel]="storeFilter()"
+          (ngModelChange)="storeFilter.set($event)"
+        >
+          <option value="">Todas as lojas</option>
+          @for (source of resultSources(); track source) {
+            <option [value]="source">{{ source }}</option>
+          }
+        </select>
+        <strong>{{ filtered().length }} produto(s)</strong>
+        <button
+          class="btn secondary"
+          type="button"
+          [disabled]="!hasResult() || !filtered().length"
+          (click)="exportCsv()"
+        >
+          Exportar CSV <svg lucideIcon="download" aria-hidden="true"></svg>
+        </button>
+        <button
+          class="btn secondary"
+          type="button"
+          [disabled]="!hasResult() || !filtered().length"
+          (click)="print()"
+        >
+          Exportar PDF <svg lucideIcon="printer" aria-hidden="true"></svg>
+        </button>
+      </div>
+      @if (sourceErrors().length) {
+        <div class="manual-search-errors">
+          @for (item of sourceErrors(); track item.fonte) {
+            <div class="feedback error">
+              <strong>{{ item.fonte }}:</strong> {{ item.mensagem }}
+            </div>
+          }
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
+      }
+      <div class="manual-search-table-wrap">
+        <table class="manual-search-table">
+          <thead>
+            <tr>
+              <th>Fonte</th>
+              <th>Produto</th>
+              <th>Preço</th>
+              <th>Preço antigo</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filtered(); track item.url) {
               <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Fonte</th>
-                <th>Preço atual</th>
-                <th>Preço anterior</th>
-                <th>Link</th>
+                <td><app-source-identity [name]="item.fonte" /></td>
+                <td>{{ item.titulo }}</td>
+                <td>{{ item.preco | currency: 'BRL' }}</td>
+                <td>{{ item.precoAntigo ? (item.precoAntigo | currency: 'BRL') : '—' }}</td>
+                <td>
+                  @if (item.url) {
+                    <a [href]="item.url" target="_blank" rel="noopener noreferrer">Abrir</a>
+                  }
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (item of filtered(); track item.url) {
-                <tr>
-                  <td>
-                    <strong>{{ item.titulo }}</strong>
-                  </td>
-                  <td>{{ item.categoria }}</td>
-                  <td>{{ item.fonte }}</td>
-                  <td>{{ item.preco | currency: 'BRL' }}</td>
-                  <td>{{ item.precoAntigo | currency: 'BRL' }}</td>
-                  <td>
-                    @if (item.url) {
-                      <a [href]="item.url" target="_blank" rel="noopener noreferrer">Abrir ↗</a>
-                    }
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
-    }
+            }
+            @if (!filtered().length) {
+              <tr>
+                <td colspan="5" class="manual-search-empty">
+                  {{
+                    hasResult()
+                      ? 'Nenhum produto encontrado com esses filtros.'
+                      : 'Execute uma busca para visualizar os produtos.'
+                  }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
   `,
   styles: `
-    .page-heading {
-      margin-bottom: 1.5rem;
+    .admin-header {
+      margin: 0 auto 24px;
     }
-    .page-heading h1 {
-      margin: 0.2rem 0;
+    .admin-header h1 {
+      margin: 0 0 8px;
+      color: #151515;
+      font-size: 22px;
+      letter-spacing: -0.5px;
     }
-    .page-heading p {
-      color: var(--muted);
+    .admin-header p {
+      margin: 0;
+      color: #727272;
+      font-size: 13px;
+      line-height: 1.5;
     }
-    .controls,
-    .results {
-      padding: 1.2rem;
+    .manual-search-page {
+      padding: 28px 30px 30px;
+      overflow: hidden;
     }
-    .controls h2 {
-      margin-top: 0;
-    }
-    .source-options {
+    .manual-search-toolbar,
+    .manual-search-actions {
       display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin: 1rem 0;
-    }
-    .source-options label {
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 0.65rem 0.8rem;
-      font-weight: 700;
-    }
-    .results {
-      margin-top: 1rem;
-    }
-    .results > header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
     }
-    .results h2 {
-      margin: 0.2rem 0;
-    }
-    .results header span {
-      color: var(--muted);
-    }
-    .results header div:last-child {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .result-filters {
+    .manual-search-toolbar {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) auto 220px;
-      gap: 0.7rem;
-      margin: 1rem 0;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
     }
-    .multiple-filter {
+    .manual-search-toolbar .btn.primary {
+      grid-column: 1 / -1;
+      justify-self: end;
+      padding: 0 18px;
+    }
+    .manual-search-sources {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .manual-search-sources legend {
+      margin-right: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .manual-search-sources label {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      white-space: nowrap;
-      font-size: 0.8rem;
-      font-weight: 700;
+      gap: 6px;
+      padding: 7px 10px;
+      border: 1px solid #e0e3ea;
+      border-radius: 7px;
+      background: #fff;
+      color: #4d4d4d;
+      font-size: 12px;
     }
-    .table-wrap {
-      overflow: auto;
+    .manual-search-sources .source-identity {
+      color: #4d4d4d;
     }
-    td:first-child {
-      min-width: 320px;
+    .manual-search-sources .source-fallback {
+      width: 22px;
+      height: 22px;
+    }
+    .manual-search-sources input {
+      accent-color: var(--blue);
+    }
+    .manual-search-multiple-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 0 11px;
+      border: 1px solid #d6d6d6;
+      border-radius: 7px;
+      background: #fff;
+      color: #4d4d4d;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .manual-search-multiple-filter:has(input:checked) {
+      border-color: #b9c9ff;
+      background: #f1f4ff;
+      color: var(--blue);
+    }
+    .manual-search-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+      align-items: end;
+      gap: 10px 14px;
+      margin: 14px 0 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .manual-search-actions strong {
+      align-self: center;
+      color: #111;
+      font-size: 13px;
+    }
+    .manual-search-text-filter {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .manual-search-text-filter input {
+      width: 360px;
+      height: 36px;
+      padding: 0 11px;
+      border: 1px solid #d6d6d6;
+      border-radius: 7px;
+      background: #fff;
+      color: #333;
+      font-size: 12px;
+      outline: none;
+    }
+    .manual-search-text-filter input:focus {
+      border-color: var(--blue);
+      outline: 2px solid rgb(36 86 223 / 12%);
+    }
+    .manual-search-store-filter {
+      height: 36px;
+      padding: 0 9px;
+      border: 1px solid #d6d6d6;
+      border-radius: 7px;
+      background: #fff;
+      color: #333;
+      font-size: 12px;
+    }
+    .manual-search-actions .btn {
+      min-width: 112px;
+    }
+    .manual-search-errors {
+      display: grid;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .manual-search-errors .feedback {
+      margin: 0;
+    }
+    .manual-search-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .manual-search-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .manual-search-table th,
+    .manual-search-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+    .manual-search-table th {
+      background: #f8f9fb;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .manual-search-table tr:last-child td {
+      border-bottom: 0;
+    }
+    .manual-search-table td:nth-child(2) {
+      min-width: 280px;
+      color: #222;
+    }
+    .manual-search-table a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .manual-search-empty {
+      padding: 28px !important;
+      color: var(--muted);
+      text-align: center !important;
     }
     @media print {
-      app-header,
-      .controls,
-      .result-filters,
-      .results button {
+      .manual-search-toolbar,
+      .manual-search-actions,
+      .manual-search-page .feedback,
+      .manual-search-errors {
         display: none !important;
       }
-      .results {
+      .manual-search-page {
         border: 0;
         box-shadow: none;
       }
     }
-    @media (max-width: 700px) {
-      .results > header {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 1rem;
+    @media (max-width: 650px) {
+      .manual-search-page {
+        padding: 22px 18px;
       }
-      .result-filters {
+      .manual-search-toolbar,
+      .manual-search-actions {
         grid-template-columns: 1fr;
+      }
+      .manual-search-toolbar .btn.primary {
+        grid-row: 3;
+        justify-self: stretch;
+      }
+      .manual-search-text-filter input,
+      .manual-search-store-filter {
+        width: 100%;
+      }
+      .manual-search-actions .btn {
+        width: 100%;
       }
     }
   `,
@@ -290,15 +449,8 @@ export class BuscaManualPage {
   protected exportCsv(): void {
     const quote = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
     const rows = [
-      ['Produto', 'Categoria', 'Fonte', 'Preço atual', 'Preço anterior', 'URL'],
-      ...this.filtered().map((i) => [
-        i.titulo,
-        i.categoria,
-        i.fonte,
-        i.preco,
-        i.precoAntigo,
-        i.url,
-      ]),
+      ['Fonte', 'Produto', 'Preço', 'Preço antigo', 'URL'],
+      ...this.filtered().map((i) => [i.fonte, i.titulo, i.preco, i.precoAntigo, i.url]),
     ];
     const blob = new Blob(['\ufeff' + rows.map((r) => r.map(quote).join(';')).join('\r\n')], {
       type: 'text/csv;charset=utf-8',
