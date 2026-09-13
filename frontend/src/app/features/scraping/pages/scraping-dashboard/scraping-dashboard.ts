@@ -126,8 +126,8 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
               <thead>
                 <tr>
                   <th>Início</th>
-                  <th>Rodada</th>
                   <th>Fonte</th>
+                  <th>Categoria</th>
                   <th>Status</th>
                   <th>Duração</th>
                   <th>Produtos</th>
@@ -140,15 +140,14 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                     <td class="history-date">
                       {{ item.iniciadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}
                     </td>
-                    <td>{{ roundLabel(item) }}</td>
                     <td>
                       <app-source-identity
                         [name]="sourceName(item.fonte)"
                         [logo]="sourceLogo(item.fonte)"
                       />
-                      @if (item.categoria) {
-                        <small class="monitor-category">{{ item.categoria }}</small>
-                      }
+                    </td>
+                    <td>
+                      {{ item.categoria || '—' }}
                     </td>
                     <td>
                       <span class="history-status" [class]="statusClass(item)"
@@ -159,10 +158,7 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                     </td>
                     <td>{{ item.duracaoMs | duration }}</td>
                     <td class="history-products">
-                      <strong>{{ item.produtosEncontrados ?? 0 }}</strong>
-                      @if (item.produtosPersistidos !== undefined) {
-                        <small>{{ item.produtosPersistidos }} persistido(s)</small>
-                      }
+                      <strong>{{ item.produtosPersistidos ?? 0 }}</strong>
                     </td>
                     <td>
                       <button
@@ -178,7 +174,7 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                 }
                 @if (!executions().length) {
                   <tr>
-                    <td class="empty-history" colspan="7">Nenhuma execução registrada.</td>
+                    <td class="empty-history" colspan="6">Nenhuma execução registrada.</td>
                   </tr>
                 }
               </tbody>
@@ -207,7 +203,7 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                     <span>Categoria: {{ item.categoria }}</span>
                   }
                   <span>Início: {{ item.iniciadoEm | date: 'HH:mm:ss' }}</span
-                  ><span>Erro: {{ item.erro || item.ultimaMensagem || 'Falha não detalhada' }}</span
+                  ><span>Resumo: {{ failureMessage(item) }}</span
                   ><span>Produtos encontrados: {{ item.produtosEncontrados ?? 0 }}</span>
                 </article>
               }
@@ -992,7 +988,10 @@ export class ScrapingDashboardPage {
   }
   protected loadHistory(page: number): void {
     this.page.set(page);
-    this.api.executions({ pagina: page, limite: 20, ...this.filters.getRawValue() }).subscribe({
+    // A API agrupa as execuções pelo rodadaId. Uma página representa uma
+    // rodada completa, portanto todas as fontes executadas naquela rodada
+    // permanecem juntas na tabela.
+    this.api.executions({ pagina: page, limite: 1, ...this.filters.getRawValue() }).subscribe({
       next: (result) => {
         this.executions.set(result.dados);
         this.pages.set(result.paginacao.totalPaginas);
@@ -1001,10 +1000,17 @@ export class ScrapingDashboardPage {
     });
   }
   protected sourceName(source: string): string {
-    return this.sourceIdentities().find((item) => item.fonte === source)?.nome ?? source;
+    return this.findSourceIdentity(source)?.nome ?? source;
   }
   protected sourceLogo(source: string): string {
-    return this.sourceIdentities().find((item) => item.fonte === source)?.logo ?? '';
+    return this.findSourceIdentity(source)?.logo ?? '';
+  }
+  private findSourceIdentity(source: string): SourceIdentity | undefined {
+    const chave = source.trim().toLocaleLowerCase();
+    return this.sourceIdentities().find((item) =>
+      item.fonte.trim().toLocaleLowerCase() === chave ||
+      item.nome.trim().toLocaleLowerCase() === chave,
+    );
   }
   protected previousStatusPage(): void {
     this.statusPage.update((page) => Math.max(0, page - 1));
@@ -1049,9 +1055,6 @@ export class ScrapingDashboardPage {
     this.logs.set([]);
     this.logsDialogRef?.close();
   }
-  protected roundLabel(item: ScrapingExecution): string {
-    return this.page() === 1 ? 'Principal' : (item.rodadaId?.slice(0, 8) ?? 'legada');
-  }
   protected statusLabel(item: ScrapingExecution): string {
     return item.status === 'executando'
       ? 'Executando'
@@ -1072,6 +1075,31 @@ export class ScrapingDashboardPage {
       : item.status === 'erro' || item.erro
         ? 'x'
         : 'check';
+  }
+  protected failureMessage(item: ScrapingExecution): string {
+    const detalhe = `${item.erro ?? ''} ${item.ultimaMensagem ?? ''}`.toLocaleLowerCase();
+    const produtos = item.produtosEncontrados ?? 0;
+    const motivo = item.erro?.trim();
+
+    if (/elasticsearch|indexa|matching/.test(detalhe)) {
+      return produtos > 0
+        ? `A coleta encontrou ${produtos} produto(s), mas a indexação não foi concluída. Os detalhes estão nos logs.`
+        : 'Não foi possível concluir o processamento dos produtos. Consulte os logs para mais detalhes.';
+    }
+    if (/timeout|timed[ _-]?out|err_connection|tempo limite|navigation/.test(detalhe)) {
+      return 'A loja demorou para responder. Tente novamente ou revise a URL da fonte.';
+    }
+    if (/bloqueio|verifica|cloudflare|security verification|human/.test(detalhe)) {
+      return 'A loja solicitou uma verificação e a coleta não pôde ser concluída.';
+    }
+    if (produtos > 0) {
+      return motivo
+        ? `A coleta encontrou ${produtos} produto(s), mas houve uma falha ao finalizar o processamento. Motivo registrado: ${motivo}`
+        : `A coleta encontrou ${produtos} produto(s), mas houve uma falha ao finalizar o processamento.`;
+    }
+    return motivo
+      ? `A coleta não foi concluída. Motivo registrado: ${motivo}`
+      : 'Não foi possível concluir a coleta desta fonte. Consulte os detalhes nos logs.';
   }
   protected progressLabel(item: ScrapingExecution): string {
     const progress = item.progresso?.geral ?? 0;

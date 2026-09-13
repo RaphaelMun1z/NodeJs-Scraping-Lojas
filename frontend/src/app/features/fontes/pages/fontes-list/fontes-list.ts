@@ -1102,6 +1102,15 @@ export class FontesListPage {
     const config = this.config();
     if (!config) return;
     const category = this.categoryForm.getRawValue() as SourceCategory;
+    // Os seletores pertencem à fonte e são compartilhados pelas categorias.
+    // Apenas a URL e o limite de páginas variam por categoria.
+    const seletoresDaFonte = source.categorias[0]?.seletores;
+    const categoryWithInheritedSelectors: SourceCategory = {
+      ...category,
+      seletores: seletoresDaFonte
+        ? { ...seletoresDaFonte, maxPaginas: category.seletores.maxPaginas }
+        : category.seletores,
+    };
     const changed: ScrapingConfig = {
       ...config,
       fontes: config.fontes.map((item) =>
@@ -1110,9 +1119,9 @@ export class FontesListPage {
               ...item,
               categorias: this.editingCategoryId() === category.id
                 ? item.categorias.map((itemCategory) =>
-                    itemCategory.id === category.id ? category : itemCategory,
+                    itemCategory.id === category.id ? categoryWithInheritedSelectors : itemCategory,
                   )
-                : [...item.categorias, category],
+                : [...item.categorias, categoryWithInheritedSelectors],
             }
           : item,
       ),

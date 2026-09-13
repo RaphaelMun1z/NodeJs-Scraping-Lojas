@@ -99,7 +99,7 @@ interface ProgressoTeste {
                 ></span>
                 <div>
                   <span class="eyebrow">Fonte de coleta</span>
-                  <h2>URL da fonte</h2>
+                  <h2>URL para teste</h2>
                 </div>
               </div>
               <label class="url-label"
@@ -923,22 +923,23 @@ export class FonteDetailsPage {
   private aplicarCategoria(category: SourceCategory | null): void {
     this.category.set(category);
     if (!category) return;
+    const seletoresDaFonte = this.source()?.categorias[0]?.seletores ?? category.seletores;
     const pagination = category.seletores;
     this.form.patchValue(
       {
-        item: category.seletores.item,
-        imagem: category.seletores.imagem,
-        titulo: category.seletores.titulo,
-        precoAntigo: category.seletores.precoAntigo,
-        preco: category.seletores.preco,
-        url: category.seletores.url,
-        carregarMais: category.seletores.carregarMais,
-        paginaVirtualizada: category.seletores.paginaVirtualizada,
-        tipoPaginacao: pagination.tipoPaginacao ?? 'nenhuma',
-        seletorProximaPagina: pagination.seletorProximaPagina ?? '',
+        item: seletoresDaFonte.item,
+        imagem: seletoresDaFonte.imagem,
+        titulo: seletoresDaFonte.titulo,
+        precoAntigo: seletoresDaFonte.precoAntigo,
+        preco: seletoresDaFonte.preco,
+        url: seletoresDaFonte.url,
+        carregarMais: seletoresDaFonte.carregarMais,
+        paginaVirtualizada: seletoresDaFonte.paginaVirtualizada,
+        tipoPaginacao: seletoresDaFonte.tipoPaginacao ?? 'nenhuma',
+        seletorProximaPagina: seletoresDaFonte.seletorProximaPagina ?? '',
         maxPaginas: pagination.maxPaginas ?? 10,
-        parametroPagina: pagination.parametroPagina ?? 'page',
-        urlPaginacaoTemplate: pagination.urlPaginacaoTemplate ?? '',
+        parametroPagina: seletoresDaFonte.parametroPagina ?? 'page',
+        urlPaginacaoTemplate: seletoresDaFonte.urlPaginacaoTemplate ?? '',
         urlColeta: category.url,
       },
       { emitEvent: false },
@@ -1105,7 +1106,9 @@ export class FonteDetailsPage {
     const changed = {
       ...current,
       categorias: current.categorias.map((item) =>
-        item.id === category.id ? { ...item, url: value.urlColeta, seletores: selectors } : item,
+        item.id === category.id
+          ? { ...item, seletores: selectors }
+          : { ...item, seletores: { ...selectors, maxPaginas: item.seletores.maxPaginas } },
       ),
     };
     this.api

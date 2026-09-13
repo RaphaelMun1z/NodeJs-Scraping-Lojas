@@ -9,6 +9,7 @@ import { configuracaoAplicacao } from "./config/aplicacao.config.js";
 import { logger } from "./config/logger.js";
 import { ServicoColeta } from "./servicos/servico-coleta.js";
 import { ProvedorEmbeddingHttp } from "./embeddings/provedor-embedding-http.js";
+import { ProvedorEmbeddingLocal } from "./embeddings/provedor-embedding-local.js";
 import { criarClienteElasticsearch } from "./elasticsearch/cliente-elasticsearch.js";
 import { RepositorioIndiceProdutos } from "./elasticsearch/repositorio-indice-produtos.js";
 import {
@@ -62,11 +63,13 @@ async function iniciarAplicacao(): Promise<void> {
 		const indice = new RepositorioIndiceProdutos(clienteElasticsearch);
 		repositorioIndiceProdutos = indice;
 		await indice.garantirIndice();
-		const embeddings = new ProvedorEmbeddingHttp(
-			configuracaoMatching.embeddingUrl!,
-			configuracaoMatching.embeddingModelo!,
-			configuracaoMatching.embeddingApiKey,
-		);
+		const embeddings = configuracaoMatching.embeddingUrl
+			? new ProvedorEmbeddingHttp(
+					configuracaoMatching.embeddingUrl,
+					configuracaoMatching.embeddingModelo,
+					configuracaoMatching.embeddingApiKey,
+			  )
+			: new ProvedorEmbeddingLocal(configuracaoMatching.dimensaoEmbedding);
 		servicoMatchingCatalogo = new ServicoMatchingCatalogoProdutos(
 			indice,
 			embeddings,
@@ -191,6 +194,6 @@ async function iniciarAplicacao(): Promise<void> {
 }
 
 iniciarAplicacao().catch((erro) => {
-	logger.fatal({ erro }, "Falha ao iniciar a aplicação");
+	logger.fatal({ erro: erro instanceof Error ? { nome: erro.name, mensagem: erro.message, pilha: erro.stack } : erro }, "Falha ao iniciar a aplicação");
 	process.exit(1);
 });

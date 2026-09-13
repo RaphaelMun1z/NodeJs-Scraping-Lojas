@@ -337,8 +337,8 @@ export class ClienteHttp {
     url: string,
     seletorAguardar?: string,
     navegadorVisivel = false,
-  ): Promise<void> {
-    await pagina.goto(url, {
+  ): Promise<number | undefined> {
+    const resposta = await pagina.goto(url, {
       waitUntil: "domcontentloaded",
       timeout: this.tempoLimiteMs,
     });
@@ -352,7 +352,7 @@ export class ClienteHttp {
     const pausaMs = Number(process.env.NAVEGADOR_PAUSA_MS ?? 3_000);
     if (pausaMs > 0) await pagina.waitForTimeout(pausaMs);
     await this.aguardarVisualizacao(pagina, navegadorVisivel);
-    if (!seletorAguardar) return;
+    if (!seletorAguardar) return resposta?.status();
     try {
       await pagina
         .locator(seletorAguardar)
@@ -366,6 +366,14 @@ export class ClienteHttp {
     } catch {
       /* o coletor identifica páginas de bloqueio ou sem itens */
     }
+    return resposta?.status();
+  }
+  private removerParametrosVazios(url: string): string {
+    const resultado = new URL(url);
+    for (const [nome, valor] of [...resultado.searchParams.entries()]) {
+      if (!valor) resultado.searchParams.delete(nome);
+    }
+    return resultado.toString();
   }
   private async carregarMais(
     pagina: Page,
@@ -404,8 +412,35 @@ export class ClienteHttp {
     navegadorVisivel = false,
   ): Promise<boolean> {
     if (!seletor) return false;
-    const botao = pagina.locator(seletor).first();
-    if ((await botao.count()) === 0 || !(await botao.isVisible())) return false;
+    const candidatos = pagina.locator(seletor);
+    const quantidade = await candidatos.count();
+    if (quantidade === 0) return false;
+
+    // Algumas lojas renderizam uma paginação para desktop e outra para
+    // mobile. O primeiro resultado do seletor pode estar oculto no modo
+    // headless, apesar de haver outro candidato válido. Para links, o href
+    // também é suficiente para paginar e não depende da visibilidade.
+    let botao = candidatos.first();
+    let primeiroHabilitado: typeof botao | undefined;
+    for (let indice = 0; indice < quantidade; indice += 1) {
+      const candidato = candidatos.nth(indice);
+      const desabilitado =
+        (await candidato.getAttribute("aria-disabled")) === "true" ||
+        /\bdisabled\b/i.test((await candidato.getAttribute("class")) ?? "");
+      if (desabilitado) continue;
+      primeiroHabilitado ??= candidato;
+      const hrefCandidato = await candidato.getAttribute("href");
+      if (hrefCandidato && hrefCandidato !== "#") {
+        botao = candidato;
+        break;
+      }
+      if (await candidato.isVisible()) {
+        botao = candidato;
+        break;
+      }
+    }
+    botao = primeiroHabilitado ?? botao;
+
     const desabilitado =
       (await botao.getAttribute("aria-disabled")) === "true" ||
       /\bdisabled\b/i.test((await botao.getAttribute("class")) ?? "");
@@ -415,7 +450,13 @@ export class ClienteHttp {
       const proximaUrl = new URL(href, pagina.url()).toString();
       if (urlsVisitadas.includes(proximaUrl)) return false;
       await this.aguardarVisualizacao(pagina, navegadorVisivel);
-      await this.navegar(pagina, proximaUrl, seletorItens, navegadorVisivel);
+      const status = await this.navegar(pagina, proximaUrl, seletorItens, navegadorVisivel);
+      if (status === 404) {
+        const urlAlternativa = this.removerParametrosVazios(proximaUrl);
+        if (urlAlternativa === proximaUrl) return false;
+        const statusAlternativo = await this.navegar(pagina, urlAlternativa, seletorItens, navegadorVisivel);
+        if (statusAlternativo === 404) return false;
+      }
       return true;
     }
     const assinaturaAntes = await this.assinaturaPagina(pagina, seletorItens);
@@ -441,7 +482,19 @@ export class ClienteHttp {
     } catch {
       return false;
     }
-    await pagina.waitForTimeout(350);
+    // A troca de assinatura pode ocorrer antes de a lista terminar de ser
+    // preenchida. Aguarde a rede e a estabilização mínima antes da próxima
+    // iteração; isso é especialmente importante no modo headless.
+    try {
+      await pagina.waitForLoadState("networkidle", { timeout: 5_000 });
+    } catch {
+      /* algumas lojas mantêm requisições abertas continuamente */
+    }
+    const pausaPaginacaoMs = Math.max(
+      0,
+      Number(process.env.NAVEGADOR_PAGINACAO_PAUSA_MS ?? 1_500),
+    );
+    if (pausaPaginacaoMs > 0) await pagina.waitForTimeout(pausaPaginacaoMs);
     await this.aguardarVisualizacao(pagina, navegadorVisivel);
     return true;
   }

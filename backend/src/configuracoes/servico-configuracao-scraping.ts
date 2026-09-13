@@ -227,7 +227,7 @@ export class ServicoConfiguracaoScraping {
 		}
 		// Uma fonte nova nunca entra em produção antes de os seletores serem
 		// revisados e salvos na página específica da fonte.
-		return this.atualizar({ fontes: [...atual.fontes, { ...fonte, ativa: false, categorias: [] }] });
+		return this.atualizar({ fontes: [...atual.fontes, { ...fonte, ativa: false, categorias: fonte.categorias ?? [] }] });
 	}
 
 	async remover(nomeFonte: string): Promise<ConfiguracaoScraping> {
