@@ -133,6 +133,9 @@ import { LucideDynamicIcon } from '@lucide/angular';
       display: grid;
       gap: 5px;
     }
+    .admin-sidebar-nav > .admin-nav-section:first-child {
+      order: 3;
+    }
     .admin-nav-section {
       display: grid;
       gap: 2px;
@@ -306,5 +309,4 @@ export class AdminShellComponent {
     this.auth.logout().subscribe(() => void this.router.navigateByUrl('/produtos'));
   }
 }
-
 

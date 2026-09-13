@@ -31,7 +31,7 @@ services:
             NODE_ENV: production
             PORTA_API: 3000
             MONGODB_URI: mongodb://mongodb:27017/scraping_lojas
-            SALVAR_COLETA: ${SALVAR_COLETA:-false}
+            SALVAR_COLETA: ${SALVAR_COLETA:-true}
             REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
             USER_AGENT: ${USER_AGENT:-Mozilla/5.0 (compatible; ScrapingLojas/2.0)}
             NAVEGADOR_VISIVEL: "false"
@@ -43,8 +43,7 @@ services:
             LOG_LEVEL: ${LOG_LEVEL:-info}
             LOG_PRETTY: ${LOG_PRETTY:-false}
             AUTENTICACAO_COOKIE_SECURE: ${AUTENTICACAO_COOKIE_SECURE:-false}
-            CLASSIFICADOR_URL: ${CLASSIFICADOR_URL:-http://ollama:11434/api/generate}
-            ANALISADOR_SELETORES_MODELO: ${ANALISADOR_SELETORES_MODELO:-gemma3:1b}
+            AUTENTICACAO_SESSAO_HORAS: ${AUTENTICACAO_SESSAO_HORAS:-168}
             ELASTICSEARCH_HABILITADO: ${ELASTICSEARCH_HABILITADO:-false}
             ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
             ELASTICSEARCH_INDICE: ${ELASTICSEARCH_INDICE:-produtos}
@@ -102,18 +101,7 @@ services:
             timeout: 10s
             retries: 10
 
-    ollama:
-        image: ollama/ollama:latest
-        container_name: scraping-lojas-ollama
-        profiles: ["analise-seletores"]
-        restart: unless-stopped
-        ports:
-            - "11434:11434"
-        volumes:
-            - scraping_lojas_ollama:/root/.ollama
-
 volumes:
     scraping_lojas_dados:
     scraping_lojas_app_dados:
     scraping_lojas_elasticsearch:
-    scraping_lojas_ollama:

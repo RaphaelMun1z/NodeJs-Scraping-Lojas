@@ -51,9 +51,9 @@ export class ScrapingApiService {
       )
       .pipe(map((r) => r.dados));
   }
-  manualSearch(fontes: string[]): Observable<ManualSearchResult> {
+  manualSearch(fontes: string[], busca: string): Observable<ManualSearchResult> {
     return this.http
-      .post<ApiResponse<ManualSearchResult>>(apiUrl('/admin/busca-manual'), { fontes })
+      .post<ApiResponse<ManualSearchResult>>(apiUrl('/admin/busca-manual'), { fontes, busca })
       .pipe(map((r) => r.dados));
   }
 }

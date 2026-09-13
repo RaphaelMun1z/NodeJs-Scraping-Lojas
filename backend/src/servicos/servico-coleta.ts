@@ -52,23 +52,66 @@ export class ServicoColeta {
 				const inicioFonte = Date.now();
 				let itens: Awaited<ReturnType<FonteProdutos["coletar"]>>;
 				try { itens = await fonte.coletar(); } finally { if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Fim da etapa: Coleta"); }
+				const diagnostico = fonte.obterDiagnosticoColeta?.();
 				tempoTotalBuscas += Date.now() - inicioFonte;
 				totalItens += itens.length;
 				if (execucaoId) await this.eventosScraping!.atualizarMetricas(execucaoId, { produtosEncontrados: itens.length });
+				if (execucaoId && diagnostico) await this.eventosScraping!.registrarLog(
+					execucaoId,
+					fonte.nome,
+					"info",
+					`Paginação: ${diagnostico.paginasProcessadas} página(s) processada(s) (${diagnostico.produtosPorPagina.join(", ")} cards por página)`,
+				);
 
-				let metricas = { novos: 0, atualizados: 0, inativados: 0 };
+				let metricas = {
+					brutos: itens.length,
+					unicos: itens.length,
+					persistidos: 0,
+					novos: 0,
+					atualizados: 0,
+					inativados: 0,
+				};
+				if (execucaoId && !this.salvarColeta) await this.eventosScraping!.registrarLog(
+					execucaoId,
+					fonte.nome,
+					"aviso",
+					"Persistência de produtos está desativada para esta execução",
+				);
 				if (this.salvarColeta) metricas = await this.repositorioItem.sincronizarFonte(fonte.nome, fonte.categoria, itens);
 				if (execucaoId) {
-					await this.eventosScraping!.atualizarMetricas(execucaoId, { produtosNovos: metricas.novos, produtosAtualizados: metricas.atualizados, produtosInativados: metricas.inativados });
+					await this.eventosScraping!.atualizarMetricas(execucaoId, {
+						produtosUnicos: metricas.unicos,
+						produtosPersistidos: metricas.persistidos,
+						produtosNovos: metricas.novos,
+						produtosAtualizados: metricas.atualizados,
+						produtosInativados: metricas.inativados,
+					});
+					await this.eventosScraping!.registrarLog(
+						execucaoId,
+						fonte.nome,
+						"info",
+						`Coleta: ${metricas.brutos} parseados, ${metricas.unicos} únicos, ${metricas.persistidos} persistidos, ${metricas.novos} novos e ${metricas.atualizados} atualizados`,
+					);
 				}
+				let produtosIndexados = 0;
 				if (this.salvarColeta && this.servicoMatchingCatalogo && itens.length > 0) {
 					if (execucaoId) await this.eventosScraping!.registrarLog(execucaoId, fonte.nome, "info", "Matching e indexação em andamento");
 					if (execucaoId) await this.eventosScraping!.atualizarProgresso(execucaoId, { coleta: 100, embeddings: 0, indexacao: 0 });
 					await this.indexarComRetentativas(itens, fonte.nome, execucaoId);
+					produtosIndexados = itens.length;
+					if (execucaoId) await this.eventosScraping!.atualizarMetricas(execucaoId, { produtosIndexados });
 					logger.info({ fonte: fonte.nome, categoria: fonte.categoria }, "Matching e indexação concluídos");
 				}
 				if (execucaoId) {
-					await this.eventosScraping!.concluirExecucao(execucaoId, { produtosEncontrados: itens.length, produtosNovos: metricas.novos, produtosAtualizados: metricas.atualizados, produtosInativados: metricas.inativados });
+					await this.eventosScraping!.concluirExecucao(execucaoId, {
+						produtosEncontrados: itens.length,
+						produtosUnicos: metricas.unicos,
+						produtosPersistidos: metricas.persistidos,
+						produtosIndexados,
+						produtosNovos: metricas.novos,
+						produtosAtualizados: metricas.atualizados,
+						produtosInativados: metricas.inativados,
+					});
 				}
 				logger.info({ fonte: fonte.nome, categoria: fonte.categoria, produtos: itens.length, salvo: this.salvarColeta }, "Produtos encontrados na coleta");
 			} catch (erro) {

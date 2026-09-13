@@ -5,7 +5,6 @@ import { ApiResponse } from '../../../core/models/api.models';
 import {
   ConfiguredSource,
   ScrapingConfig,
-  SelectorAnalysis,
   SelectorTestResult,
   SourceIdentity,
 } from '../../../core/models/domain.models';
@@ -74,6 +73,8 @@ export class FontesApiService {
     categoria: string;
     url: string;
     seletores: ConfiguredSource['categorias'][number]['seletores'];
+    navegadorVisivel?: boolean;
+    execucaoId?: string;
   }): Observable<SelectorTestResult> {
     return this.http
       .post<ApiResponse<SelectorTestResult>>(
@@ -82,12 +83,9 @@ export class FontesApiService {
       )
       .pipe(map((r) => r.dados));
   }
-
-  analyzeHtml(html: string): Observable<SelectorAnalysis> {
-    return this.http
-      .post<ApiResponse<SelectorAnalysis>>(apiUrl('/admin/configuracoes/scraping/analisar-html'), {
-        html,
-      })
-      .pipe(map((r) => r.dados));
+  testProgressUrl(execucaoId: string): string {
+    return apiUrl(
+      `/admin/configuracoes/scraping/testar-seletores/${encodeURIComponent(execucaoId)}/progresso`,
+    );
   }
 }

@@ -1,20 +1,35 @@
 import { LucideDynamicIcon } from '@lucide/angular';
 import { CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Product, SourceIdentity } from '../../../../core/models/domain.models';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
+import { SelectorSlotComponent } from '../../../../shared/components/selector-slot/selector-slot';
+import { Selectors } from '../../../../core/models/domain.models';
 
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
+  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon, SelectorSlotComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<article
     class="product-card"
     [class.compact]="compact()"
+    [class.highlight-item]="highlight() === 'item'"
+    [class.highlight-image]="highlight() === 'imagem'"
+    [class.highlight-title]="highlight() === 'titulo'"
+    [class.highlight-old-price]="highlight() === 'precoAntigo'"
+    [class.highlight-current-price]="highlight() === 'preco'"
+    [class.highlight-url]="highlight() === 'url'"
     [class.is-historical-price]="historical()"
     [class.is-inactive]="product().ativo === false"
   >
+    @if (preview()) {
+      <app-selector-slot class="preview-image-slot" label="Imagem" icon="image" [configured]="!!selectors().imagem" [active]="highlight() === 'imagem'" ariaLabel="Configurar imagem" [showLabel]="!previewData()?.imagemUrl" (activated)="slotSelected.emit('imagem')">@if (previewData()?.imagemUrl) { <img [src]="previewData()!.imagemUrl" [alt]="previewData()!.titulo" /> }</app-selector-slot>
+      <div class="preview-card-body">
+        <app-selector-slot class="preview-title-slot" label="Título" icon="type" [configured]="!!selectors().titulo" [active]="highlight() === 'titulo'" ariaLabel="Configurar título" [showLabel]="!previewData()?.titulo" (activated)="slotSelected.emit('titulo')">@if (previewData()?.titulo) { <span class="preview-value">{{ previewData()!.titulo }}</span> }</app-selector-slot>
+        <div class="preview-prices"><app-selector-slot class="preview-old-price-slot" label="Preço anterior" icon="badge-minus" [configured]="!!selectors().precoAntigo" [active]="highlight() === 'precoAntigo'" ariaLabel="Configurar preço anterior" [showLabel]="!previewData()?.precoAntigo" (activated)="slotSelected.emit('precoAntigo')">@if (previewData()?.precoAntigo) { <span class="preview-value">{{ previewData()!.precoAntigo | currency:'BRL' }}</span> }</app-selector-slot><app-selector-slot class="preview-current-price-slot" label="Novo preço" icon="badge-dollar-sign" [configured]="!!selectors().preco" [active]="highlight() === 'preco'" ariaLabel="Configurar novo preço" [showLabel]="!previewData()?.preco" (activated)="slotSelected.emit('preco')">@if (previewData()?.preco) { <span class="preview-value">{{ previewData()!.preco | currency:'BRL' }}</span> }</app-selector-slot></div>
+      </div>
+    } @else {
     @if (product().precoHistorico) {
       <span class="historical-price-badge"><svg lucideIcon="tag" aria-hidden="true"></svg>Preço histórico</span>
     }
@@ -45,6 +60,7 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
         </div>
       </div>
     </div>
+    }
   </article>`,
   styles: `
     :host { display: contents; }
@@ -62,6 +78,14 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
         border-color 0.2s,
         transform 0.2s;
     }
+    .preview-image-slot { height: 190px; border-radius: 8px 8px 0 0; }
+    .preview-image-slot img { max-width:100%; max-height:100%; padding:12px; object-fit:contain; mix-blend-mode:multiply; }
+    .preview-card-body { display: flex; flex: 1; flex-direction: column; padding: 13px; gap: 11px; }
+    .preview-title-slot { height: 56px; }
+    .preview-prices { display: grid; gap: 8px; margin-top: auto; }
+    .preview-old-price-slot { height: 27px; width: 54%; }
+    .preview-current-price-slot { height: 40px; }
+    .preview-value { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .product-card.is-historical-price {
       border-color: #d8a900;
     }
@@ -72,6 +96,20 @@ import { SourceIdentityComponent } from '../../../../shared/components/source-id
     .product-card.is-inactive {
       opacity: 0.52;
       filter: grayscale(0.35);
+    }
+    .product-card.highlight-item,
+    .product-card.highlight-image .product-image,
+    .product-card.highlight-title h2,
+    .product-card.highlight-old-price .old-price,
+    .product-card.highlight-current-price .current-price-row,
+    .product-card.highlight-url .product-image,
+    .product-card.highlight-url h2 {
+      position: relative;
+      z-index: 1;
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+      background-color: #eef3ff;
+      box-shadow: 0 0 0 4px rgb(36 86 223 / 12%);
     }
     .product-card.compact {
       border-radius: 6px;
@@ -221,6 +259,11 @@ export class ProductCardComponent {
   readonly product = input.required<Product>();
   readonly sources = input<Record<string, SourceIdentity>>({});
   readonly compact = input(false);
+  readonly preview = input(false);
+  readonly selectors = input<Partial<Selectors>>({});
+  readonly previewData = input<Product | null>(null);
+  readonly highlight = input<'item' | 'imagem' | 'titulo' | 'precoAntigo' | 'preco' | 'url' | ''>('');
+  readonly slotSelected = output<'imagem' | 'titulo' | 'precoAntigo' | 'preco'>();
   protected readonly id = computed(() => this.product()._id ?? this.product().id ?? '');
   protected readonly imageUrl = computed(() => {
     const value = this.product().imagemUrl?.trim() ?? '';

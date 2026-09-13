@@ -6,6 +6,7 @@ export class ControladorBuscaManual {
 
 	executar = async (requisicao: Request, resposta: Response): Promise<void> => {
 		const fontes = Array.isArray(requisicao.body?.fontes) ? requisicao.body.fontes.filter((fonte: unknown): fonte is string => typeof fonte === "string") : [];
-		resposta.json({ dados: await this.servicoBusca.executar(fontes) });
+		const busca = typeof requisicao.body?.busca === "string" ? requisicao.body.busca.trim() : "";
+		resposta.json({ dados: await this.servicoBusca.executar(fontes, busca) });
 	};
 }

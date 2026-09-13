@@ -3,6 +3,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
 
 type ButtonType = 'button' | 'submit' | 'reset';
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonState = 'default' | 'active' | 'inactive';
 
 @Component({
   selector: 'app-ui-button',
@@ -10,11 +11,17 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span
-      [class]="'button-layer ' + variantClass() + (iconOnly() ? ' icon-only' : '') + (pressed() ? ' is-pressed' : '')"
+      [class]="
+        'button-layer ' +
+        variantClass() +
+        (iconOnly() ? ' icon-only' : '') +
+        (pressed() ? ' is-pressed' : '')
+      "
     >
       <button
         [attr.type]="type()"
         [attr.aria-label]="iconOnly() ? ariaLabel() : null"
+        [attr.title]="title() || null"
         [disabled]="disabled() || loading()"
         [class.is-pressed]="pressed()"
         (pointerdown)="pressed.set(true)"
@@ -79,7 +86,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
       font-weight: 800;
       line-height: 1;
       cursor: pointer;
-      transition: transform 120ms ease, background-color 120ms ease;
+      transition:
+        transform 120ms ease,
+        background-color 120ms ease;
     }
     button:hover:not(:disabled) {
       background: var(--ui-button-hover);
@@ -136,7 +145,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
       animation: spin 700ms linear infinite;
     }
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
   `,
   host: {
@@ -155,8 +166,10 @@ export class UiButtonComponent {
   readonly imageUrl = input('');
   readonly iconOnly = input(false);
   readonly ariaLabel = input('');
+  readonly title = input('');
   readonly type = input<ButtonType>('button');
   readonly variant = input<ButtonVariant>('primary');
+  readonly state = input<ButtonState>('default');
   readonly disabled = input(false);
   readonly loading = input(false);
   readonly loadingLabel = input('Carregando…');
@@ -170,6 +183,8 @@ export class UiButtonComponent {
   }
 
   protected background(): string {
+    if (this.state() === 'active') return '#2f9e5b';
+    if (this.state() === 'inactive') return '#c93636';
     return this.variant() === 'primary'
       ? 'var(--action-button-primary-background)'
       : this.variant() === 'danger'
@@ -178,6 +193,8 @@ export class UiButtonComponent {
   }
 
   protected hover(): string {
+    if (this.state() === 'active') return '#25834a';
+    if (this.state() === 'inactive') return '#a92d2d';
     return this.variant() === 'primary'
       ? 'var(--action-button-primary-hover)'
       : this.variant() === 'danger'
@@ -186,6 +203,8 @@ export class UiButtonComponent {
   }
 
   protected layer(): string {
+    if (this.state() === 'active') return '#1f6f3e';
+    if (this.state() === 'inactive') return '#842525';
     return this.variant() === 'primary'
       ? 'var(--action-button-primary-layer)'
       : this.variant() === 'danger'

@@ -11,6 +11,21 @@ const esquemaSeletores = z.object({
 	url: z.string().max(1_000).default(""),
 	paginaVirtualizada: z.boolean().default(false),
 	carregarMais: z.string().max(1_000).default(""),
+	tipoPaginacao: z.enum(["nenhuma", "proximaPagina", "url"]).default("nenhuma"),
+	seletorProximaPagina: z.string().max(1_000).default(""),
+	maxPaginas: z.number().int().min(1).max(100).default(10),
+	parametroPagina: z.string().trim().max(100).default("page"),
+	urlPaginacaoTemplate: z.string().max(2_048).default(""),
+}).superRefine((seletores, contexto) => {
+	if (seletores.tipoPaginacao === "proximaPagina" && !seletores.seletorProximaPagina.trim()) {
+		contexto.addIssue({ code: "custom", path: ["seletorProximaPagina"], message: "Informe o seletor da próxima página" });
+	}
+	if (seletores.tipoPaginacao === "url" && !seletores.parametroPagina.trim() && !seletores.urlPaginacaoTemplate.trim()) {
+		contexto.addIssue({ code: "custom", path: ["parametroPagina"], message: "Informe o parâmetro ou o template da paginação" });
+	}
+	if (seletores.urlPaginacaoTemplate && !seletores.urlPaginacaoTemplate.includes("{pagina}")) {
+		contexto.addIssue({ code: "custom", path: ["urlPaginacaoTemplate"], message: "O template deve conter {pagina}" });
+	}
 });
 const seletoresPadrao = {
 	item: "",
@@ -21,6 +36,11 @@ const seletoresPadrao = {
 	url: "",
 	paginaVirtualizada: false,
 	carregarMais: "",
+	tipoPaginacao: "nenhuma" as const,
+	seletorProximaPagina: "",
+	maxPaginas: 10,
+	parametroPagina: "page",
+	urlPaginacaoTemplate: "",
 };
 const esquemaUrlFonte = z
 	.string()
@@ -100,15 +120,19 @@ export class ServicoConfiguracaoScraping {
 	private normalizarFonte(
 		fonte: Omit<FonteConfigurada, "nome" | "categorias"> & {
 			nome?: string;
-			categorias?: CategoriaFonteConfigurada[];
-			url?: string;
-			seletores?: SeletoresSite;
-		},
+		categorias?: CategoriaFonteConfigurada[];
+		url?: string;
+		seletores?: SeletoresSite;
+	},
 	): FonteConfigurada {
 		const categorias = fonte.categorias?.length
-			? fonte.categorias.map((item) => ({ ...item, icone: item.icone ?? "tag", seletores: esquemaSeletores.parse(item.seletores ?? {}) }))
+			? fonte.categorias.map((item) => ({
+				...item,
+				icone: item.icone ?? "tag",
+				seletores: esquemaSeletores.parse(item.seletores ?? {}),
+			}))
 			: fonte.url
-				? [{ id: "geral", categoria: "Definir categoria", url: fonte.url, ativa: false, seletores: esquemaSeletores.parse(fonte.seletores ?? {}) }]
+				? [{ id: "geral", categoria: "Definir categoria", icone: "tag", url: fonte.url, ativa: false, seletores: esquemaSeletores.parse(fonte.seletores ?? {}) }]
 				: [];
 		return {
 			fonte: fonte.fonte,
@@ -178,7 +202,7 @@ export class ServicoConfiguracaoScraping {
 		const configuracao = await ModeloConfiguracaoScraping.findOneAndUpdate(
 			{ chave: "principal" },
 			{ $set: { fontes, atualizadaEm } },
-			{ upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+			{ upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
 		)
 			.lean()
 			.exec();

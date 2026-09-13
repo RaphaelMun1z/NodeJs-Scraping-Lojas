@@ -10,6 +10,11 @@ const esquemaSeletores = new Schema(
 		url: { type: String, default: "" },
 		paginaVirtualizada: { type: Boolean, default: false },
 		carregarMais: { type: String, default: "" },
+		tipoPaginacao: { type: String, enum: ["nenhuma", "proximaPagina", "url"], default: "nenhuma" },
+		seletorProximaPagina: { type: String, default: "" },
+		maxPaginas: { type: Number, min: 1, max: 100, default: 10 },
+		parametroPagina: { type: String, default: "page" },
+		urlPaginacaoTemplate: { type: String, default: "" },
 	},
 	{ _id: false },
 );

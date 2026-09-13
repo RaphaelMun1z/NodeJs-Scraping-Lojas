@@ -13,6 +13,11 @@ export interface Selectors {
   url: string;
   paginaVirtualizada: boolean;
   carregarMais: string;
+  tipoPaginacao: 'nenhuma' | 'proximaPagina' | 'url';
+  seletorProximaPagina: string;
+  maxPaginas: number;
+  parametroPagina: string;
+  urlPaginacaoTemplate: string;
 }
 
 export interface SourceCategory {
@@ -92,6 +97,9 @@ export interface ScrapingExecution {
   finalizadoEm?: string;
   duracaoMs?: number;
   produtosEncontrados?: number;
+  produtosUnicos?: number;
+  produtosPersistidos?: number;
+  produtosIndexados?: number;
   produtosNovos?: number;
   produtosAtualizados?: number;
   produtosInativados?: number;
@@ -133,12 +141,12 @@ export interface SelectorTestResult {
   quantidadeProdutos: number;
   produtos: Product[];
   previewImagem?: string;
-}
-
-export interface SelectorAnalysis {
-  seletores: Partial<Selectors>;
-  confianca?: Partial<Record<keyof Selectors, number>>;
-  observacoes?: string[];
+  paginacao: {
+    tipo: Selectors['tipoPaginacao'];
+    paginasProcessadas: number;
+    urlsVisitadas: string[];
+    motivoParada: string;
+  };
 }
 
 export interface Administrator {

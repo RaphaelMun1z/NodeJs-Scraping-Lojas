@@ -1,5 +1,14 @@
-import "dotenv/config";
+import { config as carregarAmbiente } from "dotenv";
+import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { z } from "zod";
+
+// O backend pode ser iniciado a partir de backend/ ou da raiz do repositório.
+// Carregamos explicitamente o .env compartilhado sem sobrescrever variáveis
+// fornecidas pelo processo (como as do Docker).
+carregarAmbiente({
+	path: resolve(fileURLToPath(new URL("../../../.env", import.meta.url))),
+});
 
 const esquemaConfiguracao = z.object({
 	PORTA_API: z.coerce.number().int().positive().default(3000),
@@ -14,7 +23,7 @@ const esquemaConfiguracao = z.object({
 		.default("Mozilla/5.0 (compatible; ScrapingLojas/2.0)"),
 	SALVAR_COLETA: z
 		.enum(["true", "false"])
-		.default("false")
+		.default("true")
 		.transform((valor) => valor === "true"),
 	CRON_EXPRESSAO: z.string().min(1).default("*/30 * * * *"),
 	CRON_FUSO_HORARIO: z.string().min(1).default("America/Sao_Paulo"),
@@ -25,8 +34,6 @@ const esquemaConfiguracao = z.object({
 	SCRAPING_RETENCAO_EXECUCOES: z.coerce.number().int().positive().default(100),
 	SCRAPING_RETENCAO_LOGS: z.coerce.number().int().positive().default(2000),
 	HISTORICO_PRECO_RETENCAO_DIAS: z.coerce.number().int().nonnegative().default(730),
-	CLASSIFICADOR_URL: z.string().url().default("http://127.0.0.1:11434/api/generate"),
-	ANALISADOR_SELETORES_MODELO: z.string().min(1).default("gemma3:1b"),
 });
 
 // Valida a configuração na inicialização para falhar cedo com uma mensagem clara.
@@ -45,7 +52,6 @@ export const configuracaoAplicacao = {
 		salvarColeta: ambiente.SALVAR_COLETA,
 		executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
 		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
-		analisadorSeletores: { url: ambiente.CLASSIFICADOR_URL, modelo: ambiente.ANALISADOR_SELETORES_MODELO },
 	},
 	agendamento: {
 		expressao: ambiente.CRON_EXPRESSAO,

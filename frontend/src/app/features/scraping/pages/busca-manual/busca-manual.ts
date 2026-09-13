@@ -6,58 +6,39 @@ import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { FontesApiService } from '../../../fontes/data-access/fontes-api.service';
 import { ScrapingApiService } from '../../data-access/scraping-api.service';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
-import { LucideDynamicIcon } from '@lucide/angular';
+import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
 
 @Component({
   selector: 'app-busca-manual',
-  imports: [FormsModule, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
+  imports: [FormsModule, CurrencyPipe, SourceIdentityComponent, UiButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <header class="admin-header">
       <div>
         <h1>Busca manual</h1>
-        <p>Execute uma busca sem salvar os resultados no banco de dados.</p>
       </div>
     </header>
     <section class="panel manual-search-page controls">
       <div class="manual-search-toolbar">
-        <fieldset class="manual-search-sources source-options">
-          <legend>Fontes</legend>
-          @for (source of sources(); track source.fonte) {
-            <label>
-              <input
-                type="checkbox"
-                [checked]="selected().has(source.fonte)"
-                (change)="toggle(source.fonte, $event)"
-              />
-              <app-source-identity [name]="source.nome" />
-            </label>
-          }
-        </fieldset>
-        <label class="manual-search-multiple-filter">
-          <input
-            type="checkbox"
-            [ngModel]="multipleStores()"
-            (ngModelChange)="multipleStores.set($event)"
-          />
-          Presente em mais de uma loja
-        </label>
-        <button
-          class="btn primary"
+        <!-- <app-ui-button
+          class="manual-search-execute-button"
+          label="Executar busca"
+          icon="search"
           type="button"
           [disabled]="searching() || selected().size === 0"
+          [loading]="searching()"
+          loadingLabel="Buscando..."
           (click)="search()"
-        >
+        />
           {{ searching() ? 'Buscando…' : 'Executar busca' }}
-          <svg lucideIcon="search" aria-hidden="true"></svg>
-        </button>
+        </app-ui-button> -->
       </div>
       @if (error()) {
         <div class="feedback error">{{ error() }}</div>
       }
       <div class="manual-search-actions">
         <label class="manual-search-text-filter">
-          <span>Buscar no resultado</span>
+          <span>Buscar produto</span>
           <input
             type="search"
             [ngModel]="query()"
@@ -65,33 +46,60 @@ import { LucideDynamicIcon } from '@lucide/angular';
             placeholder="Nome do produto"
           />
         </label>
-        <select
-          class="manual-search-store-filter"
-          [ngModel]="storeFilter()"
-          (ngModelChange)="storeFilter.set($event)"
-        >
-          <option value="">Todas as lojas</option>
-          @for (source of resultSources(); track source) {
-            <option [value]="source">{{ source }}</option>
+        <fieldset class="manual-search-store-filters">
+          <legend>Lojas da busca</legend>
+          @for (source of resultSources(); track source.fonte) {
+            <label>
+              <input
+                type="checkbox"
+                [checked]="selected().has(source.fonte)"
+                (change)="toggle(source.fonte, $event)"
+              />
+              <app-source-identity [name]="source.nome" [logo]="source.logo" />
+            </label>
           }
-        </select>
-        <strong>{{ filtered().length }} produto(s)</strong>
-        <button
-          class="btn secondary"
-          type="button"
-          [disabled]="!hasResult() || !filtered().length"
-          (click)="exportCsv()"
-        >
-          Exportar CSV <svg lucideIcon="download" aria-hidden="true"></svg>
-        </button>
-        <button
-          class="btn secondary"
-          type="button"
-          [disabled]="!hasResult() || !filtered().length"
-          (click)="print()"
-        >
-          Exportar PDF <svg lucideIcon="printer" aria-hidden="true"></svg>
-        </button>
+        </fieldset>
+        <div class="manual-search-execute-row">
+          <label class="manual-search-multiple-filter">
+            <input
+              type="checkbox"
+              [ngModel]="multipleStores()"
+              (ngModelChange)="multipleStores.set($event)"
+            />
+            Presente em mais de uma loja
+          </label>
+          <app-ui-button
+            class="manual-search-execute-button"
+            label="Executar busca"
+            icon="search"
+            type="button"
+            [disabled]="searching() || selected().size === 0"
+            [loading]="searching()"
+            loadingLabel="Buscando..."
+            (click)="search()"
+          />
+        </div>
+        <div class="manual-search-results-actions">
+          <strong class="manual-search-result-count">{{ filtered().length }} produto(s)</strong>
+          <div class="manual-search-export-actions">
+            <app-ui-button
+              label="Exportar CSV"
+              icon="download"
+              variant="secondary"
+              type="button"
+              [disabled]="!hasResult() || !filtered().length"
+              (click)="exportCsv()"
+            />
+            <app-ui-button
+              label="Exportar PDF"
+              icon="printer"
+              variant="secondary"
+              type="button"
+              [disabled]="!hasResult() || !filtered().length"
+              (click)="print()"
+            />
+          </div>
+        </div>
       </div>
       @if (sourceErrors().length) {
         <div class="manual-search-errors">
@@ -171,16 +179,21 @@ import { LucideDynamicIcon } from '@lucide/angular';
       flex-wrap: wrap;
     }
     .manual-search-toolbar {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--line);
+      display: none;
     }
-    .manual-search-toolbar .btn.primary {
+    .manual-search-execute-row {
       grid-column: 1 / -1;
-      justify-self: end;
-      padding: 0 18px;
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .manual-search-execute-button {
+      display: inline-block;
+    }
+    .manual-search-execute-row app-ui-button {
+      max-width: 100%;
     }
     .manual-search-sources {
       display: flex;
@@ -237,9 +250,9 @@ import { LucideDynamicIcon } from '@lucide/angular';
     }
     .manual-search-actions {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto auto auto;
-      align-items: end;
-      gap: 10px 14px;
+      grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
+      align-items: start;
+      gap: 16px 20px;
       margin: 14px 0 12px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--line);
@@ -249,15 +262,26 @@ import { LucideDynamicIcon } from '@lucide/angular';
       color: #111;
       font-size: 13px;
     }
+    .manual-search-results-actions {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
     .manual-search-text-filter {
       display: grid;
+      grid-column: 1 / -1;
       gap: 5px;
       color: var(--muted);
       font-size: 11px;
       font-weight: 500;
     }
     .manual-search-text-filter input {
-      width: 360px;
+      width: 100%;
+      max-width: none;
       height: 36px;
       padding: 0 11px;
       border: 1px solid #d6d6d6;
@@ -271,17 +295,55 @@ import { LucideDynamicIcon } from '@lucide/angular';
       border-color: var(--blue);
       outline: 2px solid rgb(36 86 223 / 12%);
     }
-    .manual-search-store-filter {
-      height: 36px;
-      padding: 0 9px;
+    .manual-search-store-filters {
+      display: flex;
+      grid-column: 1 / -1;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      width: 100%;
+    }
+    .manual-search-store-filters legend {
+      margin-right: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .manual-search-store-filters label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 36px;
+      padding: 5px 9px;
       border: 1px solid #d6d6d6;
       border-radius: 7px;
       background: #fff;
-      color: #333;
+      color: #4d4d4d;
       font-size: 12px;
+      cursor: pointer;
     }
-    .manual-search-actions .btn {
+    .manual-search-store-filters label:has(input:checked) {
+      border-color: #b9c9ff;
+      background: #f1f4ff;
+      color: var(--blue);
+    }
+    .manual-search-store-filters input {
+      margin: 0;
+      accent-color: var(--blue);
+    }
+    .manual-search-store-filters app-source-identity {
+      display: inline-flex;
+    }
+    .manual-search-actions app-ui-button {
       min-width: 112px;
+    }
+    .manual-search-export-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
     }
     .manual-search-errors {
       display: grid;
@@ -351,16 +413,28 @@ import { LucideDynamicIcon } from '@lucide/angular';
       .manual-search-actions {
         grid-template-columns: 1fr;
       }
-      .manual-search-toolbar .btn.primary {
-        grid-row: 3;
-        justify-self: stretch;
+      .manual-search-execute-row {
+        grid-column: 1 / -1;
+        align-items: stretch;
+        flex-direction: column;
+        justify-content: stretch;
       }
-      .manual-search-text-filter input,
-      .manual-search-store-filter {
+      .manual-search-text-filter input {
+        width: 100%;
+        max-width: none;
+      }
+      .manual-search-actions app-ui-button {
         width: 100%;
       }
-      .manual-search-actions .btn {
-        width: 100%;
+      .manual-search-results-actions {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .manual-search-export-actions {
+        display: grid;
+        justify-content: stretch;
+        gap: 10px;
       }
     }
   `,
@@ -369,7 +443,7 @@ export class BuscaManualPage {
   private readonly api = inject(ScrapingApiService);
   private readonly sourceApi = inject(FontesApiService);
   private readonly errors = inject(ApiErrorService);
-  protected readonly sources = signal<{ fonte: string; nome: string }[]>([]);
+  protected readonly sources = signal<{ fonte: string; nome: string; logo: string }[]>([]);
   protected readonly selected = signal(new Set<string>());
   protected readonly products = signal<Product[]>([]);
   protected readonly sourceErrors = signal<{ fonte: string; mensagem: string }[]>([]);
@@ -377,7 +451,6 @@ export class BuscaManualPage {
   protected readonly error = signal('');
   protected readonly hasResult = signal(false);
   protected readonly query = signal('');
-  protected readonly storeFilter = signal('');
   protected readonly multipleStores = signal(false);
   private readonly normalizedTitle = (value: string) =>
     value
@@ -395,15 +468,12 @@ export class BuscaManualPage {
     }
     return counts;
   });
-  protected readonly resultSources = computed(() =>
-    [...new Set(this.products().map((item) => item.fonte))].sort(),
-  );
+  protected readonly resultSources = computed(() => {
+    return [...this.sources()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  });
   protected readonly filtered = computed(() => {
-    const query = this.query().toLocaleLowerCase('pt-BR');
     return this.products().filter(
       (item) =>
-        (!query || item.titulo.toLocaleLowerCase('pt-BR').includes(query)) &&
-        (!this.storeFilter() || item.fonte === this.storeFilter()) &&
         (!this.multipleStores() ||
           (this.titleStoreCount().get(this.normalizedTitle(item.titulo))?.size ?? 0) > 1),
     );
@@ -411,8 +481,7 @@ export class BuscaManualPage {
   constructor() {
     this.sourceApi.config().subscribe((config) => {
       const sources = config.fontes
-        .filter((f) => f.ativa)
-        .map((f) => ({ fonte: f.fonte, nome: f.nome }));
+        .map((f) => ({ fonte: f.fonte, nome: f.nome, logo: f.logo ?? '' }));
       this.sources.set(sources);
       this.selected.set(new Set(sources.map((f) => f.fonte)));
     });
@@ -427,13 +496,18 @@ export class BuscaManualPage {
     });
   }
   protected search(): void {
+    const busca = this.query().trim();
     if (this.selected().size === 0) {
       this.error.set('Selecione ao menos uma fonte para iniciar a busca.');
       return;
     }
+    if (!busca) {
+      this.error.set('Informe um produto para iniciar a busca.');
+      return;
+    }
     this.searching.set(true);
     this.error.set('');
-    this.api.manualSearch([...this.selected()]).subscribe({
+    this.api.manualSearch([...this.selected()], busca).subscribe({
       next: (r) => {
         this.products.set(r.itens);
         this.sourceErrors.set(r.erros);

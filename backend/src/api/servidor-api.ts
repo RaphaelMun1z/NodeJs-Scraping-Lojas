@@ -22,78 +22,126 @@ import type { RepositorioIndiceProdutos } from "../elasticsearch/repositorio-ind
 import type { ServicoLimpezaProdutos } from "../servicos/servico-limpeza-produtos.js";
 import type { ServicoColeta } from "../servicos/servico-coleta.js";
 import { ClienteHttp } from "../clientes/cliente-http.js";
-import { AnalisadorSeletoresOllama } from "../analisadores/analisador-seletores-ollama.js";
+import { ServicoProgressoTesteSeletores } from "./servicos/servico-progresso-teste-seletores.js";
 import { ServicoResetSistema } from "../servicos/servico-reset-sistema.js";
-import { configuracaoAplicacao } from "../config/aplicacao.config.js";
 
 export class ServidorApi {
-	private readonly aplicacao: Express;
-	private servidor?: Server;
+  private readonly aplicacao: Express;
+  private servidor?: Server;
 
-	constructor(
-		private readonly repositorioItem: RepositorioItem,
-		private readonly conexaoBanco: ConexaoBanco,
-		private readonly autenticacao: ServicoAutenticacao,
-		private readonly configuracaoScraping: ServicoConfiguracaoScraping,
-		private readonly eventosScraping: ServicoEventosScraping,
-		private readonly obterProximaExecucao: () => Date | null,
-		private readonly servicoBuscaManual: ServicoBuscaManual,
-		private readonly repositorioIndice?: RepositorioIndiceProdutos,
-		private readonly servicoColeta?: ServicoColeta,
-		private readonly limpezaProdutos?: ServicoLimpezaProdutos,
-		private readonly clienteHttpConfiguracao: ClienteHttp = new ClienteHttp(),
-	) {
-		this.aplicacao = express();
-		this.configurar();
-	}
+  constructor(
+    private readonly repositorioItem: RepositorioItem,
+    private readonly conexaoBanco: ConexaoBanco,
+    private readonly autenticacao: ServicoAutenticacao,
+    private readonly configuracaoScraping: ServicoConfiguracaoScraping,
+    private readonly eventosScraping: ServicoEventosScraping,
+    private readonly obterProximaExecucao: () => Date | null,
+    private readonly servicoBuscaManual: ServicoBuscaManual,
+    private readonly repositorioIndice?: RepositorioIndiceProdutos,
+    private readonly servicoColeta?: ServicoColeta,
+    private readonly limpezaProdutos?: ServicoLimpezaProdutos,
+    private readonly clienteHttpConfiguracao: ClienteHttp = new ClienteHttp(),
+  ) {
+    this.aplicacao = express();
+    this.configurar();
+  }
 
-	iniciar(porta: number): void {
-		this.servidor = this.aplicacao.listen(porta, () => {
-			logger.info({ porta }, "API REST iniciada");
-		});
-	}
+  iniciar(porta: number): void {
+    this.servidor = this.aplicacao.listen(porta, () => {
+      logger.info({ porta }, "API REST iniciada");
+    });
+  }
 
-	async parar(): Promise<void> {
-		await this.clienteHttpConfiguracao.fechar();
-		if (!this.servidor) return;
+  async parar(): Promise<void> {
+    await this.clienteHttpConfiguracao.fechar();
+    if (!this.servidor) return;
 
-		await new Promise<void>((resolver, rejeitar) => {
-			this.servidor?.close((erro) =>
-				erro ? rejeitar(erro) : resolver(),
-			);
-		});
-	}
+    await new Promise<void>((resolver, rejeitar) => {
+      this.servidor?.close((erro) => (erro ? rejeitar(erro) : resolver()));
+    });
+  }
 
-	private configurar(): void {
-		const controladorItem = new ControladorItem(this.repositorioItem, this.repositorioIndice);
-		const controladorAutenticacao = new ControladorAutenticacao(this.autenticacao);
-		if (!this.limpezaProdutos) throw new Error("Serviço de limpeza de produtos não configurado");
-		const controladorConfiguracao = new ControladorConfiguracaoScraping(this.configuracaoScraping, this.limpezaProdutos, this.clienteHttpConfiguracao, undefined, new AnalisadorSeletoresOllama(configuracaoAplicacao.coleta.analisadorSeletores.url, configuracaoAplicacao.coleta.analisadorSeletores.modelo), new ServicoResetSistema(this.repositorioIndice), this.autenticacao);
-		if (!this.servicoColeta) throw new Error("Serviço de coleta não configurado");
-		const controladorMonitoramento = new ControladorMonitoramentoScraping(this.eventosScraping, this.obterProximaExecucao, this.servicoColeta);
-		const controladorBuscaManual = new ControladorBuscaManual(this.servicoBuscaManual);
+  private configurar(): void {
+    const controladorItem = new ControladorItem(
+      this.repositorioItem,
+      this.repositorioIndice,
+    );
+    const controladorAutenticacao = new ControladorAutenticacao(
+      this.autenticacao,
+    );
+    if (!this.limpezaProdutos)
+      throw new Error("Serviço de limpeza de produtos não configurado");
+    const progressoTeste = new ServicoProgressoTesteSeletores();
+    const controladorConfiguracao = new ControladorConfiguracaoScraping(
+      this.configuracaoScraping,
+      this.limpezaProdutos,
+      this.clienteHttpConfiguracao,
+      undefined,
+      new ServicoResetSistema(this.repositorioIndice),
+      this.autenticacao,
+      progressoTeste,
+    );
+    if (!this.servicoColeta)
+      throw new Error("Serviço de coleta não configurado");
+    const controladorMonitoramento = new ControladorMonitoramentoScraping(
+      this.eventosScraping,
+      this.obterProximaExecucao,
+      this.servicoColeta,
+    );
+    const controladorBuscaManual = new ControladorBuscaManual(
+      this.servicoBuscaManual,
+    );
 
-		this.aplicacao.disable("x-powered-by");
-		this.aplicacao.use(express.json({ limit: "1mb" }));
+    this.aplicacao.disable("x-powered-by");
+    this.aplicacao.use(express.json({ limit: "1mb" }));
 
-		this.aplicacao.get("/api/saude", (_requisicao, resposta) => {
-			const bancoConectado = this.conexaoBanco.estaConectado();
-			resposta
-				.status(bancoConectado ? 200 : 503)
-				.json({ bancoConectado });
-		});
+    this.aplicacao.get("/api/saude", (_requisicao, resposta) => {
+      const bancoConectado = this.conexaoBanco.estaConectado();
+      resposta.status(bancoConectado ? 200 : 503).json({ bancoConectado });
+    });
 
-		this.aplicacao.use("/api/itens", criarRotasItens(controladorItem));
-		this.aplicacao.get("/api/fontes", async (_requisicao, resposta, proximo) => {
-			try {
-				const configuracao = await this.configuracaoScraping.obterOuCriarPadrao();
-				resposta.json({ dados: configuracao.fontes.map(({ fonte, nome, logo, ativa }) => ({ fonte, nome, logo, ativa })) });
-			} catch (erro) { proximo(erro); }
-		});
-		this.aplicacao.use("/api/autenticacao", criarRotasAutenticacao(controladorAutenticacao, this.autenticacao));
-		this.aplicacao.use("/api/admin/configuracoes/scraping", criarRotasConfiguracaoScraping(controladorConfiguracao, this.autenticacao));
-		this.aplicacao.use("/api/admin/scraping", criarRotasMonitoramentoScraping(controladorMonitoramento, this.autenticacao));
-		this.aplicacao.use("/api/admin/busca-manual", criarRotasBuscaManual(controladorBuscaManual, this.autenticacao));
-		this.aplicacao.use(tratadorErros);
-	}
+    this.aplicacao.use("/api/itens", criarRotasItens(controladorItem));
+    this.aplicacao.get(
+      "/api/fontes",
+      async (_requisicao, resposta, proximo) => {
+        try {
+          const configuracao =
+            await this.configuracaoScraping.obterOuCriarPadrao();
+          resposta.json({
+            dados: configuracao.fontes.map(({ fonte, nome, logo, ativa }) => ({
+              fonte,
+              nome,
+              logo,
+              ativa,
+            })),
+          });
+        } catch (erro) {
+          proximo(erro);
+        }
+      },
+    );
+    this.aplicacao.use(
+      "/api/autenticacao",
+      criarRotasAutenticacao(controladorAutenticacao, this.autenticacao),
+    );
+    this.aplicacao.use(
+      "/api/admin/configuracoes/scraping",
+      criarRotasConfiguracaoScraping(
+        controladorConfiguracao,
+        this.autenticacao,
+      ),
+    );
+    this.aplicacao.use(
+      "/api/admin/scraping",
+      criarRotasMonitoramentoScraping(
+        controladorMonitoramento,
+        this.autenticacao,
+      ),
+    );
+    this.aplicacao.use(
+      "/api/admin/busca-manual",
+      criarRotasBuscaManual(controladorBuscaManual, this.autenticacao),
+    );
+    this.aplicacao.use(tratadorErros);
+  }
 }

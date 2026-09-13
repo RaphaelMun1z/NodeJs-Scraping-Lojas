@@ -2,13 +2,22 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { NgTemplateOutlet } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ConfiguredSource, ScrapingConfig, SourceCategory } from '../../../../core/models/domain.models';
+import { ConfiguredSource, ScrapingConfig, Selectors, SourceCategory } from '../../../../core/models/domain.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { FontesApiService } from '../../data-access/fontes-api.service';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
 import { PopupService } from '../../../../core/services/popup.service';
 import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
 import { LucideDynamicIcon } from '@lucide/angular';
+
+type PaginationDefaults = Pick<
+  Selectors,
+  | 'tipoPaginacao'
+  | 'seletorProximaPagina'
+  | 'maxPaginas'
+  | 'parametroPagina'
+  | 'urlPaginacaoTemplate'
+>;
 
 @Component({
   selector: 'app-fontes-list',
@@ -229,13 +238,48 @@ import { LucideDynamicIcon } from '@lucide/angular';
               </div>
             }
             @if (categorySource() === source.fonte && !editingCategoryId()) {
-              <form class="inline-category-form" [formGroup]="categoryForm" (ngSubmit)="saveCategory(source)">
-                <input formControlName="categoria" placeholder="Nome da categoria" />
-                <select formControlName="icone" aria-label="Ícone da categoria">
-                  @for (item of categoryIcons; track item.name) {
-                    <option [value]="item.name">{{ item.label }}</option>
+              <form class="inline-category-form category-edit-form" [formGroup]="categoryForm" (ngSubmit)="saveCategory(source)">
+                <div class="category-icon-control">
+                  <app-ui-button
+                    [icon]="categoryForm.controls.icone.value"
+                    [iconOnly]="true"
+                    height="32px"
+                    iconSize="32px"
+                    ariaLabel="Escolher ícone da categoria"
+                    title="Escolher ícone"
+                    variant="secondary"
+                    type="button"
+                    (click)="toggleIconPicker()"
+                  />
+                  @if (iconPickerOpen()) {
+                    <div class="category-icon-picker" role="dialog" aria-label="Escolher ícone">
+                      <input
+                        class="icon-search"
+                        type="search"
+                        placeholder="Buscar ícone"
+                        aria-label="Buscar ícone pelo nome"
+                        [value]="iconSearch()"
+                        (input)="setIconSearch($event)"
+                      />
+                      <div class="category-icon-options">
+                        @for (item of filteredCategoryIcons(); track item.name) {
+                          <app-ui-button
+                            [icon]="item.name"
+                            [iconOnly]="true"
+                            height="32px"
+                            iconSize="32px"
+                            [ariaLabel]="item.label"
+                            [attr.title]="item.label"
+                            variant="secondary"
+                            type="button"
+                            (click)="selectCategoryIcon(item.name)"
+                          />
+                        }
+                      </div>
+                    </div>
                   }
-                </select>
+                </div>
+                <input formControlName="categoria" placeholder="Nome da categoria" />
                 <input formControlName="url" type="url" placeholder="https://loja.com/categoria" />
                 <app-ui-button
                   icon="x"
@@ -954,6 +998,11 @@ export class FontesListPage {
       url: '',
       paginaVirtualizada: false,
       carregarMais: '',
+		tipoPaginacao: this.fb.nonNullable.control<Selectors['tipoPaginacao']>('nenhuma'),
+		seletorProximaPagina: '',
+		maxPaginas: 10,
+		parametroPagina: 'page',
+		urlPaginacaoTemplate: '',
     }),
   });
   protected get categories() {
@@ -1009,7 +1058,7 @@ export class FontesListPage {
   }
   protected startCategory(source: string): void {
     this.editingCategoryId.set(null);
-    this.resetCategoryForm();
+    this.resetCategoryForm(this.paginationDefaultsForSource(source));
     this.categorySource.set(source);
   }
   protected startEditCategory(source: ConfiguredSource, category: SourceCategory): void {
@@ -1082,7 +1131,26 @@ export class FontesListPage {
       },
     });
   }
-  private resetCategoryForm(): void {
+  private paginationDefaultsForSource(sourceName: string): PaginationDefaults {
+    const source = this.config()?.fontes.find((item) => item.fonte === sourceName);
+    const pagination = source?.categorias[0]?.seletores;
+    return {
+      tipoPaginacao: pagination?.tipoPaginacao ?? 'nenhuma',
+      seletorProximaPagina: pagination?.seletorProximaPagina ?? '',
+      maxPaginas: pagination?.maxPaginas ?? 10,
+      parametroPagina: pagination?.parametroPagina ?? 'page',
+      urlPaginacaoTemplate: pagination?.urlPaginacaoTemplate ?? '',
+    };
+  }
+  private resetCategoryForm(
+    pagination: PaginationDefaults = {
+      tipoPaginacao: 'nenhuma' as const,
+      seletorProximaPagina: '',
+      maxPaginas: 10,
+      parametroPagina: 'page',
+      urlPaginacaoTemplate: '',
+    },
+  ): void {
     this.categoryForm.reset({
       id: crypto.randomUUID(),
       categoria: '',
@@ -1098,6 +1166,7 @@ export class FontesListPage {
         url: '',
         paginaVirtualizada: false,
         carregarMais: '',
+        ...pagination,
       },
     });
   }
@@ -1144,6 +1213,11 @@ export class FontesListPage {
         url: '',
         paginaVirtualizada: false,
         carregarMais: '',
+		tipoPaginacao: this.fb.nonNullable.control<Selectors['tipoPaginacao']>('nenhuma'),
+		seletorProximaPagina: '',
+		maxPaginas: 10,
+		parametroPagina: 'page',
+		urlPaginacaoTemplate: '',
       }),
     });
   }

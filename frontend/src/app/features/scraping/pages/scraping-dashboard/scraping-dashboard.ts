@@ -17,6 +17,7 @@ import {
   ScrapingExecution,
   ScrapingLog,
   ScrapingSummary,
+  SourceIdentity,
 } from '../../../../core/models/domain.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { DialogService } from '../../../../core/services/dialog.service';
@@ -24,6 +25,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { DurationPipe } from '../../../../shared/pipes/duration.pipe';
 import { PaginationComponent } from '../../../../shared/components/pagination/pagination';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
+import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
 import { FontesApiService } from '../../../fontes/data-access/fontes-api.service';
 import { LogsStreamService } from '../../data-access/logs-stream.service';
 import { ScrapingApiService } from '../../data-access/scraping-api.service';
@@ -36,6 +38,7 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
     DurationPipe,
     PaginationComponent,
     SourceIdentityComponent,
+    UiButtonComponent,
     MatDialogModule,
     LucideDynamicIcon,
   ],
@@ -50,14 +53,19 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
             <small>Próxima busca</small><strong>{{ nextSearchLabel() }}</strong>
           </div>
         </div>
-        <button
-          class="btn primary monitor-run-button"
+        <app-ui-button
+          class="monitor-run-button"
+          label="Iniciar busca"
+          icon="search"
           type="button"
           [disabled]="executing()"
+          [loading]="executing()"
+          loadingLabel="Iniciando..."
           (click)="execute()"
         >
-          {{ executing() ? 'Iniciando…' : 'Iniciar busca' }}
-        </button>
+          <svg lucideIcon="search" aria-hidden="true"></svg
+          ><span class="monitor-run-label">{{ executing() ? 'Iniciando…' : 'Iniciar busca' }}</span>
+        </app-ui-button>
       </div>
     </header>
     @if (error()) {
@@ -77,7 +85,8 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
           ><span>Produtos listados atualmente</span>
         </article>
         <article class="monitor-stat">
-          <svg lucideIcon="package" aria-hidden="true"></svg><strong>{{ item.produtosSalvos }}</strong
+          <svg lucideIcon="package" aria-hidden="true"></svg
+          ><strong>{{ item.produtosSalvos }}</strong
           ><span>Produtos salvos</span>
         </article>
         <article class="monitor-stat">
@@ -95,19 +104,21 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
             <fieldset class="monitor-history-sources">
               <legend>Fonte</legend>
               <label><input type="radio" formControlName="fonte" value="" /> Todas</label>
-              @for (source of sources(); track source) {
+              @for (source of sourceIdentities(); track source.fonte) {
                 <label
-                  ><input type="radio" formControlName="fonte" [value]="source" />
-                  {{ source }}</label
-                >
+                  ><input
+                    type="radio"
+                    formControlName="fonte"
+                    [value]="source.fonte" /><app-source-identity
+                    [name]="source.nome"
+                    [logo]="source.logo ?? ''"
+                /></label>
               }
             </fieldset>
             <div class="monitor-history-date-filters">
               <label>De <input type="date" formControlName="dataInicio" /></label>
               <label>Até <input type="date" formControlName="dataFim" /></label>
-              <button class="btn secondary" type="submit">
-                <svg lucideIcon="filter" aria-hidden="true"></svg> Filtrar
-              </button>
+              <app-ui-button label="Filtrar" icon="filter" type="submit" variant="primary" />
             </div>
           </form>
           <div class="monitor-history-wrap">
@@ -131,7 +142,10 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                     </td>
                     <td>{{ roundLabel(item) }}</td>
                     <td>
-                      <app-source-identity [name]="item.fonte" />
+                      <app-source-identity
+                        [name]="sourceName(item.fonte)"
+                        [logo]="sourceLogo(item.fonte)"
+                      />
                       @if (item.categoria) {
                         <small class="monitor-category">{{ item.categoria }}</small>
                       }
@@ -144,7 +158,12 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                       >
                     </td>
                     <td>{{ item.duracaoMs | duration }}</td>
-                    <td>{{ item.produtosEncontrados ?? 0 }}</td>
+                    <td class="history-products">
+                      <strong>{{ item.produtosEncontrados ?? 0 }}</strong>
+                      @if (item.produtosPersistidos !== undefined) {
+                        <small>{{ item.produtosPersistidos }} persistido(s)</small>
+                      }
+                    </td>
                     <td>
                       <button
                         class="history-details-button"
@@ -179,10 +198,10 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
               @for (item of failedStatuses(); track item._id) {
                 <article class="monitor-source-card monitor-source-error">
                   <div class="monitor-card-title">
-                    <app-source-identity [name]="item.fonte" /><span
-                      class="monitor-status-badge erro"
-                      >Erro</span
-                    >
+                    <app-source-identity
+                      [name]="sourceName(item.fonte)"
+                      [logo]="sourceLogo(item.fonte)"
+                    /><span class="monitor-status-badge erro">Erro</span>
                   </div>
                   @if (item.categoria) {
                     <span>Categoria: {{ item.categoria }}</span>
@@ -198,13 +217,36 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
         <section class="monitor-panel monitor-status-panel">
           <div class="monitor-panel-heading">
             <h2>Status por fonte</h2>
-            <span class="monitor-live">● Ao vivo</span>
+            <div class="status-navigation">
+              <span class="monitor-live">● Ao vivo</span>
+              @if (statusPageCount() > 1) {
+                <button
+                  type="button"
+                  class="status-nav-button"
+                  aria-label="Status anteriores"
+                  [disabled]="statusPage() === 0"
+                  (click)="previousStatusPage()"
+                >
+                  <svg lucideIcon="chevron-left" aria-hidden="true"></svg></button
+                ><span class="status-page-indicator"
+                  >{{ statusPage() + 1 }}/{{ statusPageCount() }}</span
+                ><button
+                  type="button"
+                  class="status-nav-button"
+                  aria-label="Próximos status"
+                  [disabled]="statusPage() >= statusPageCount() - 1"
+                  (click)="nextStatusPage()"
+                >
+                  <svg lucideIcon="chevron-right" aria-hidden="true"></svg>
+                </button>
+              }
+            </div>
           </div>
           @if (!statuses().length) {
             <div class="empty-state">Nenhuma fonte em execução.</div>
           } @else {
             <div class="monitor-status-grid">
-              @for (item of statuses(); track item._id) {
+              @for (item of statusPageItems(); track item._id) {
                 <article class="monitor-source-card">
                   <div class="monitor-card-title">
                     <app-source-identity [name]="item.fonte" /><span
@@ -286,8 +328,10 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
             @for (log of visibleLogs(); track log._id) {
               <div class="monitor-log" [class]="log.nivel">
                 <time>{{ log.criadoEm | date: 'HH:mm:ss' }}</time
-                ><strong>{{ log.fonte }}</strong
-                ><span>{{ log.mensagem }}</span>
+                ><app-source-identity
+                  [name]="sourceName(log.fonte)"
+                  [logo]="sourceLogo(log.fonte)"
+                /><span>{{ log.mensagem }}</span>
               </div>
             }
             @if (!visibleLogs().length) {
@@ -339,11 +383,10 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
     }
     .monitor-header-actions {
       display: flex;
+      flex: 1;
       align-items: center;
+      justify-content: flex-end;
       gap: 18px;
-    }
-    .monitor-run-button {
-      min-width: 150px;
     }
     .monitor-summary {
       display: grid;
@@ -379,15 +422,11 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
     }
     .monitor-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 300px;
+      grid-template-columns: minmax(0, 1fr);
       align-items: start;
       gap: 18px;
       max-width: var(--admin-container-width);
       margin: 0 auto;
-    }
-    .monitor-aside {
-      display: grid;
-      gap: 18px;
     }
     .monitor-panel {
       margin: 0 0 18px;
@@ -395,9 +434,6 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
       border: 1px solid #e5e5e5;
       border-radius: 10px;
       background: #fff;
-    }
-    .monitor-aside .monitor-panel {
-      margin: 0;
     }
     .monitor-panel-heading {
       display: flex;
@@ -421,8 +457,35 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-    .monitor-aside .monitor-status-grid {
-      grid-template-columns: 1fr;
+    .status-navigation {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-nav-button {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid #d7ddea;
+      border-radius: 7px;
+      background: #fff;
+      color: #52627f;
+      cursor: pointer;
+    }
+    .status-nav-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+    .status-nav-button svg {
+      width: 16px;
+      height: 16px;
+    }
+    .source-filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .monitor-source-card {
       display: grid;
@@ -494,6 +557,24 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
       gap: 5px;
       color: #727272;
       font-size: 11px;
+    }
+    .monitor-history-sources label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 14px 8px 0;
+      color: #505866;
+      cursor: pointer;
+    }
+    .monitor-history-sources input[type='radio'] {
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      accent-color: #2456df;
+    }
+    .monitor-history-sources app-source-identity {
+      display: inline-flex;
+      align-items: center;
     }
     .monitor-history-filters input:not([type='radio']),
     .monitor-history-filters select {
@@ -747,6 +828,7 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
         gap: 12px;
       }
       .monitor-header-actions {
+        flex: none;
         width: 100%;
         justify-content: space-between;
       }
@@ -810,6 +892,8 @@ export class ScrapingDashboardPage {
   protected readonly statuses = signal<ScrapingExecution[]>([]);
   protected readonly executions = signal<ScrapingExecution[]>([]);
   protected readonly sources = signal<string[]>([]);
+  protected readonly sourceIdentities = signal<SourceIdentity[]>([]);
+  protected readonly statusPage = signal(0);
   protected readonly page = signal(1);
   protected readonly pages = signal(0);
   protected readonly error = signal('');
@@ -831,6 +915,12 @@ export class ScrapingDashboardPage {
   );
   protected readonly failedStatuses = computed(() =>
     this.statuses().filter((item) => item.status === 'erro' || !!item.erro),
+  );
+  protected readonly statusPageItems = computed(() =>
+    this.statuses().slice(this.statusPage() * 3, this.statusPage() * 3 + 3),
+  );
+  protected readonly statusPageCount = computed(() =>
+    Math.max(1, Math.ceil(this.statuses().length / 3)),
   );
   protected readonly filters = this.fb.nonNullable.group({
     fonte: '',
@@ -855,16 +945,25 @@ export class ScrapingDashboardPage {
     const destroy = inject(DestroyRef);
     const clock = window.setInterval(() => this.now.set(Date.now()), 1000);
     destroy.onDestroy(() => window.clearInterval(clock));
+    const refresh = window.setInterval(() => {
+      this.loadStatus();
+      this.loadHistory(this.page());
+    }, 10_000);
+    destroy.onDestroy(() => window.clearInterval(refresh));
     this.loadStatus();
     this.loadHistory(1);
-    this.sourceApi
-      .config()
-      .subscribe((config) => this.sources.set(config.fontes.map((source) => source.fonte)));
+    this.sourceApi.config().subscribe((config) => {
+      this.sources.set(config.fontes.map((source) => source.fonte));
+      this.sourceIdentities.set(config.fontes);
+    });
     this.streams
       .connect()
       .pipe(retry({ delay: 3000 }), takeUntilDestroyed(destroy))
       .subscribe((event) => {
         if (event.type === 'execution') {
+          const executionAlreadyListed = this.executions().some(
+            (item) => item._id === event.data._id,
+          );
           this.statuses.update((items) => [
             event.data,
             ...items.filter((item) => item._id !== event.data._id),
@@ -873,6 +972,9 @@ export class ScrapingDashboardPage {
             items.map((item) => (item._id === event.data._id ? event.data : item)),
           );
           if (this.selected()?._id === event.data._id) this.selected.set(event.data);
+          if (!executionAlreadyListed) this.loadHistory(this.page());
+          if (event.data.status === 'concluido' || event.data.status === 'erro')
+            this.loadStatus();
         }
         if (event.type === 'log' && this.selected()?._id === event.data.execucaoId)
           this.logs.update((items) => [...items, event.data]);
@@ -882,6 +984,7 @@ export class ScrapingDashboardPage {
     this.api.status().subscribe({
       next: (result) => {
         this.statuses.set(result.dados);
+        this.statusPage.set(0);
         this.summary.set(result.resumo);
       },
       error: (error) => this.error.set(this.errors.message(error)),
@@ -896,6 +999,18 @@ export class ScrapingDashboardPage {
       },
       error: (error) => this.error.set(this.errors.message(error)),
     });
+  }
+  protected sourceName(source: string): string {
+    return this.sourceIdentities().find((item) => item.fonte === source)?.nome ?? source;
+  }
+  protected sourceLogo(source: string): string {
+    return this.sourceIdentities().find((item) => item.fonte === source)?.logo ?? '';
+  }
+  protected previousStatusPage(): void {
+    this.statusPage.update((page) => Math.max(0, page - 1));
+  }
+  protected nextStatusPage(): void {
+    this.statusPage.update((page) => Math.min(this.statusPageCount() - 1, page + 1));
   }
   protected execute(): void {
     if (this.executing()) return;
@@ -963,4 +1078,3 @@ export class ScrapingDashboardPage {
     return progress >= 100 ? 'Concluída' : progress > 0 ? 'Em andamento' : 'Calculando…';
   }
 }
-

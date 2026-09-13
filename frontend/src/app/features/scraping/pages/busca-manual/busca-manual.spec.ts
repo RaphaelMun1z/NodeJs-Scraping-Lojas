@@ -39,7 +39,9 @@ describe('BuscaManualPage', () => {
   it('impede uma busca sem fontes selecionadas', () => {
     const element = fixture.nativeElement as HTMLElement;
     const checkboxes = Array.from(
-      element.querySelectorAll<HTMLInputElement>('.source-options input[type="checkbox"]'),
+      element.querySelectorAll<HTMLInputElement>(
+        '.manual-search-store-filters input[type="checkbox"]',
+      ),
     );
 
     for (const checkbox of checkboxes) {
@@ -47,7 +49,9 @@ describe('BuscaManualPage', () => {
       fixture.detectChanges();
     }
 
-    const searchButton = element.querySelector<HTMLButtonElement>('.controls .btn.primary');
+    const searchButton = element.querySelector<HTMLButtonElement>(
+      '.manual-search-execute-button button',
+    );
     expect(searchButton?.disabled).toBe(true);
   });
 });

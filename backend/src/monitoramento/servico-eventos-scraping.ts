@@ -12,6 +12,9 @@ export interface EventoScraping {
 
 export interface MetricasScraping {
 	produtosEncontrados?: number;
+	produtosUnicos?: number;
+	produtosPersistidos?: number;
+	produtosIndexados?: number;
 	produtosNovos?: number;
 	produtosAtualizados?: number;
 	produtosInativados?: number;

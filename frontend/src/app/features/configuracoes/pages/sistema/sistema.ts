@@ -28,27 +28,6 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
       <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
     }
 
-    <section class="system-card system-search-card">
-      <div>
-        <div class="system-title-row">
-          <h2>Busca manual</h2>
-          <button class="info-help" type="button" aria-label="Sobre a busca manual">
-            <svg lucideIcon="info" aria-hidden="true"></svg>
-            <span class="info-popup" role="tooltip"
-              >Inicia uma coleta imediatamente, sem esperar o próximo horário agendado.</span
-            >
-          </button>
-        </div>
-      </div>
-      <app-ui-button
-        class="system-button"
-        label="Iniciar busca"
-        icon="search"
-        [disabled]="busy()"
-        (click)="runScraping()"
-      />
-    </section>
-
     <div class="system-alert-divider"><span>Zona de alerta</span></div>
 
     <section class="system-card system-danger-card">
@@ -87,7 +66,7 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
         </div>
       </div>
       <app-ui-button
-        class="system-reset-button system-button"
+        class="system-button"
         label="Resetar sistema"
         icon="triangle-alert"
         variant="danger"
@@ -321,16 +300,6 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
     .danger-outline:hover:not(:disabled) {
       border-color: #c62828;
       background: #fff1f1;
-    }
-    .system-reset-button {
-      border-color: #cf252a !important;
-      background: #cf252a !important;
-      color: #fff !important;
-      box-shadow: none !important;
-    }
-    .system-reset-button:hover:not(:disabled) {
-      border-color: #ad1e23 !important;
-      background: #ad1e23 !important;
     }
     .system-critical-card {
       margin-bottom: 0;

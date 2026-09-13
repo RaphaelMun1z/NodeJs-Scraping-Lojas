@@ -7,7 +7,9 @@
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
 		"start": "node dist/index.js",
-		"matching:test": "tsx src/matching/testes-matching.ts"
+		"matching:test": "tsx src/matching/testes-matching.ts",
+		"coleta:test": "tsx src/coleta/testes-opcoes-coleta.ts",
+		"coleta-real:test": "tsx src/coleta/testes-coleta-real-paginacao.ts"
 	},
 	"dependencies": {
 		"@elastic/elasticsearch": "^8.19.2",

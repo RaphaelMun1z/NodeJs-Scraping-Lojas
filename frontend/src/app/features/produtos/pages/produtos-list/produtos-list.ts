@@ -698,6 +698,8 @@ export class ProdutosListPage {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((params) => this.load(params.get('busca') ?? ''));
+    const refresh = window.setInterval(() => this.load(), 10_000);
+    destroyRef.onDestroy(() => window.clearInterval(refresh));
   }
   protected load(search = this.route.snapshot.queryParamMap.get('busca') ?? ''): void {
     this.loading.set(true);
@@ -739,5 +741,4 @@ export class ProdutosListPage {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
-
 

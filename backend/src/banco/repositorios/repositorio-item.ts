@@ -21,6 +21,9 @@ export interface ResultadoConsultaItens {
 }
 
 export interface MetricasSincronizacaoFonte {
+	brutos: number;
+	unicos: number;
+	persistidos: number;
 	novos: number;
 	atualizados: number;
 	inativados: number;
@@ -188,7 +191,7 @@ export class RepositorioItem {
 			console.warn(
 				`${fonte}: nenhum produto retornado; sincronização ignorada para preservar os dados existentes.`,
 			);
-			return { novos: 0, atualizados: 0, inativados: 0 };
+			return { brutos: 0, unicos: 0, persistidos: 0, novos: 0, atualizados: 0, inativados: 0 };
 		}
 
 		const chavesEncontradas = Array.from(
@@ -206,7 +209,14 @@ export class RepositorioItem {
 				`${fonte}: ${resultado.modifiedCount} produto(s) marcado(s) como inativo(s).`,
 			);
 		}
-		return { novos: chavesEncontradas.length - existentes, atualizados: existentes, inativados: resultado.modifiedCount };
+		return {
+			brutos: itens.length,
+			unicos: chavesEncontradas.length,
+			persistidos: chavesEncontradas.length,
+			novos: chavesEncontradas.length - existentes,
+			atualizados: existentes,
+			inativados: resultado.modifiedCount,
+		};
 	}
 
 	async consultar({

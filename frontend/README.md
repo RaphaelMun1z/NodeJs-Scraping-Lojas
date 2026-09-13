@@ -33,7 +33,7 @@ O resultado de produção fica em `dist/live-promo-frontend/browser`. Na raiz do
 - `core`: autenticação, interceptador CSRF, contratos HTTP e tratamento de erros;
 - `layout`: cabeçalho público e shell administrativo;
 - `features/produtos`: catálogo, filtros, novidades, detalhe, ofertas e histórico;
-- `features/fontes`: fontes, categorias dinâmicas, seletores, testes e análise de HTML;
+- `features/fontes`: fontes, categorias dinâmicas, seletores e testes;
 - `features/scraping`: monitoramento SSE, histórico, logs e busca manual;
 - `features/configuracoes`: limpeza e reset do sistema;
 - `shared`: componentes e pipes reutilizáveis.

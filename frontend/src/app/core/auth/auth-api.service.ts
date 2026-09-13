@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { catchError, map, Observable, of, tap } from 'rxjs';
 import { ApiResponse } from '../models/api.models';
@@ -22,10 +22,13 @@ export class AuthApiService {
         this.administratorState.set(admin);
         this.checkedState.set(true);
       }),
-      catchError(() => {
-        this.administratorState.set(null);
-        this.checkedState.set(true);
-        return of(null);
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          this.administratorState.set(null);
+          this.checkedState.set(true);
+          return of(null);
+        }
+        return of(this.administratorState());
       }),
     );
   }
@@ -48,14 +51,22 @@ export class AuthApiService {
       })
       .pipe(
         map((response) => response.dados),
-        tap((admin) => this.administratorState.set(admin)),
+        tap((admin) => {
+          this.administratorState.set(admin);
+          this.checkedState.set(true);
+        }),
       );
   }
 
   logout(): Observable<void> {
     return this.http
       .post<void>(apiUrl('/autenticacao/logout'), {})
-      .pipe(tap(() => this.administratorState.set(null)));
+      .pipe(
+        tap(() => {
+          this.administratorState.set(null);
+          this.checkedState.set(true);
+        }),
+      );
   }
 
   startMfa(): Observable<MfaSetup> {

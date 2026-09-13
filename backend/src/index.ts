@@ -11,7 +11,10 @@ import { ServicoColeta } from "./servicos/servico-coleta.js";
 import { ProvedorEmbeddingHttp } from "./embeddings/provedor-embedding-http.js";
 import { criarClienteElasticsearch } from "./elasticsearch/cliente-elasticsearch.js";
 import { RepositorioIndiceProdutos } from "./elasticsearch/repositorio-indice-produtos.js";
-import { configuracaoMatching, validarConfiguracaoMatching } from "./matching/configuracao-matching.js";
+import {
+	configuracaoMatching,
+	validarConfiguracaoMatching,
+} from "./matching/configuracao-matching.js";
 import { ServicoMatchingProduto } from "./matching/servico-matching-produto.js";
 import { ServicoMatchingCatalogoProdutos } from "./matching/servico-matching-catalogo-produtos.js";
 import { ServicoAutenticacao } from "./autenticacao/servico-autenticacao.js";
@@ -32,14 +35,26 @@ async function iniciarAplicacao(): Promise<void> {
 
 	const repositorioItem = new RepositorioItem();
 	await repositorioItem.garantirGruposIndividuais();
-	await repositorioItem.removerHistoricoAntigo(configuracaoAplicacao.coleta.historicoRetencaoDias);
+	await repositorioItem.removerHistoricoAntigo(
+		configuracaoAplicacao.coleta.historicoRetencaoDias,
+	);
 	const autenticacao = new ServicoAutenticacao();
 	const configuracaoScraping = new ServicoConfiguracaoScraping();
-	const eventosScraping = new ServicoEventosScraping(undefined, undefined, () => configuracaoScraping.obterFontesAtivas().then((fontes) => fontes.map((fonte) => fonte.fonte)));
+	const eventosScraping = new ServicoEventosScraping(
+		undefined,
+		undefined,
+		() =>
+			configuracaoScraping
+				.obterFontesAtivas()
+				.then((fontes) => fontes.map((fonte) => fonte.fonte)),
+	);
 	await eventosScraping.prepararRetencao();
-	const configuracaoPersistida = await configuracaoScraping.obterOuCriarPadrao();
+	const configuracaoPersistida =
+		await configuracaoScraping.obterOuCriarPadrao();
 	let servicoMatchingCatalogo: ServicoMatchingCatalogoProdutos | undefined;
-	let clienteElasticsearch: ReturnType<typeof criarClienteElasticsearch> | undefined;
+	let clienteElasticsearch:
+		| ReturnType<typeof criarClienteElasticsearch>
+		| undefined;
 	let repositorioIndiceProdutos: RepositorioIndiceProdutos | undefined;
 	if (configuracaoMatching.habilitado) {
 		validarConfiguracaoMatching();
@@ -59,40 +74,68 @@ async function iniciarAplicacao(): Promise<void> {
 			repositorioItem,
 		);
 	}
-	const criarFontesConfiguradas = (fontesConfiguradas: typeof configuracaoPersistida.fontes) => fontesConfiguradas.flatMap((configuracaoFonte) =>
-		configuracaoFonte.categorias.filter((categoria) => categoria.ativa && Boolean(categoria.url)).map((categoria) => {
-			const nome = configuracaoFonte.fonte;
-			return new ColetorFonteSite(
-				nome,
-				categoria.categoria,
-				`${nome}:${categoria.id}`,
-				categoria.url,
-				clienteHttp,
-				new AnalisadorSite(),
-				categoria.seletores,
-				async () => {
-					const atualizada = await configuracaoScraping.obterOuCriarPadrao();
-					const fonteAtual = atualizada.fontes.find((fonte) => fonte.fonte === nome);
-					const categoriaAtual = fonteAtual?.categorias.find((item) => item.id === categoria.id);
-					return categoriaAtual ? { url: categoriaAtual.url, seletores: categoriaAtual.seletores } : undefined;
-				},
-			);
-		}),
-	);
+	const criarFontesConfiguradas = (
+		fontesConfiguradas: typeof configuracaoPersistida.fontes,
+	) =>
+		fontesConfiguradas.flatMap((configuracaoFonte) =>
+			configuracaoFonte.categorias
+				.filter(
+					(categoria) => categoria.ativa && Boolean(categoria.url),
+				)
+				.map((categoria) => {
+					const nome = configuracaoFonte.fonte;
+					return new ColetorFonteSite(
+						nome,
+						categoria.categoria,
+						`${nome}:${categoria.id}`,
+						categoria.url,
+						clienteHttp,
+						new AnalisadorSite(),
+						categoria.seletores,
+						async () => {
+							const atualizada =
+								await configuracaoScraping.obterOuCriarPadrao();
+							const fonteAtual = atualizada.fontes.find(
+								(fonte) => fonte.fonte === nome,
+							);
+							const categoriaAtual = fonteAtual?.categorias.find(
+								(item) => item.id === categoria.id,
+							);
+							return categoriaAtual
+								? {
+										url: categoriaAtual.url,
+										seletores: categoriaAtual.seletores,
+									}
+								: undefined;
+						},
+					);
+				}),
+		);
 	const fontes = criarFontesConfiguradas(configuracaoPersistida.fontes);
-	const obterFontesConfiguradas = async () => criarFontesConfiguradas((await configuracaoScraping.obterOuCriarPadrao()).fontes);
+	const obterFontesConfiguradas = async () =>
+		criarFontesConfiguradas(
+			(await configuracaoScraping.obterOuCriarPadrao()).fontes,
+		);
 	const servicoColeta = new ServicoColeta(
 		fontes,
 		repositorioItem,
 		configuracaoAplicacao.coleta.salvarColeta,
 		servicoMatchingCatalogo,
 		eventosScraping,
-		() => configuracaoScraping.obterFontesAtivas().then((fontes) => fontes.map((fonte) => fonte.fonte)),
+		() =>
+			configuracaoScraping
+				.obterFontesAtivas()
+				.then((fontes) => fontes.map((fonte) => fonte.fonte)),
 		obterFontesConfiguradas,
 	);
 	const servicoBuscaManual = new ServicoBuscaManual(
 		fontes,
-		() => configuracaoScraping.obterFontesAtivas().then((fontesAtivas) => fontesAtivas.map((fonte) => fonte.fonte)),
+		() =>
+			configuracaoScraping
+				.obterFontesAtivas()
+				.then((fontesAtivas) =>
+					fontesAtivas.map((fonte) => fonte.fonte),
+				),
 		obterFontesConfiguradas,
 	);
 
@@ -102,8 +145,22 @@ async function iniciarAplicacao(): Promise<void> {
 		configuracaoAplicacao.agendamento.fusoHorario,
 	);
 
-	const limpezaProdutos = new ServicoLimpezaProdutos(repositorioItem, repositorioIndiceProdutos);
-	const servidorApi = new ServidorApi(repositorioItem, conexaoBanco, autenticacao, configuracaoScraping, eventosScraping, () => agendador.obterProximaExecucao(), servicoBuscaManual, repositorioIndiceProdutos, servicoColeta, limpezaProdutos);
+	const limpezaProdutos = new ServicoLimpezaProdutos(
+		repositorioItem,
+		repositorioIndiceProdutos,
+	);
+	const servidorApi = new ServidorApi(
+		repositorioItem,
+		conexaoBanco,
+		autenticacao,
+		configuracaoScraping,
+		eventosScraping,
+		() => agendador.obterProximaExecucao(),
+		servicoBuscaManual,
+		repositorioIndiceProdutos,
+		servicoColeta,
+		limpezaProdutos,
+	);
 
 	servidorApi.iniciar(configuracaoAplicacao.api.porta);
 	agendador.iniciar();
