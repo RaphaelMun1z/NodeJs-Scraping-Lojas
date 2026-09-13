@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProdutosApiService } from '../../features/produtos/data-access/produtos-api.service';
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -18,10 +18,21 @@ import { LucideDynamicIcon } from '@lucide/angular';
       <form (submit)="search($event)">
         <input
           [formControl]="query"
+          (input)="onQueryInput()"
           placeholder="iPhone 17 Pro Max..."
           aria-label="Buscar produtos"
           autocomplete="off"
-        /><button type="submit">Buscar <svg lucideIcon="search" aria-hidden="true"></svg></button>
+        />@if (query.value) {
+          <button
+            type="button"
+            class="clear-search"
+            aria-label="Apagar pesquisa"
+            title="Apagar pesquisa"
+            (click)="clearSearch()"
+          ><svg lucideIcon="x" aria-hidden="true"></svg></button>
+        } @else {
+          <button type="submit">Buscar <svg lucideIcon="search" aria-hidden="true"></svg></button>
+        }
       </form>
       @if (suggestions().length) {
         <div class="suggestions">
@@ -111,6 +122,12 @@ import { LucideDynamicIcon } from '@lucide/angular';
       gap: 8px;
     }
     form button:hover { background: var(--blue-dark); }
+    form button.clear-search {
+      width: 30px;
+      justify-content: center;
+      padding: 0;
+      border-radius: 50%;
+    }
     form button .lucide { display: inline-block; width: 16px; height: 16px; }
     .suggestions {
       position: absolute;
@@ -186,11 +203,19 @@ export class HeaderComponent {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        filter((value) => value.trim().length >= 2),
-        switchMap((value) => this.products.suggestions(value.trim())),
+        switchMap((value) =>
+          value.trim().length >= 2 ? this.products.suggestions(value.trim()) : of([]),
+        ),
         takeUntilDestroyed(destroyRef),
       )
       .subscribe((items) => this.suggestions.set(items));
+  }
+  protected onQueryInput(): void {
+    if (!this.query.value.trim()) this.suggestions.set([]);
+  }
+  protected clearSearch(): void {
+    this.query.setValue('');
+    this.suggestions.set([]);
   }
   protected search(event: Event): void {
     event.preventDefault();

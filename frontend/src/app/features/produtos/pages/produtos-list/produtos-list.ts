@@ -127,16 +127,50 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
           <section class="new-products panel">
             <div class="section-heading">
               <div>
-                <span class="eyebrow">Atualizados recentemente</span>
                 <h2>Novidades</h2>
               </div>
               <span>{{ newest().length }} produto(s)</span>
             </div>
-            <div class="new-products-grid">
-              @for (product of newestVisible(); track product._id ?? product.id) {
-                <app-product-card [product]="product" [sources]="sourceMap()" [compact]="true" />
-              }
+            <div class="new-products-carousel" role="region" aria-label="Novidades">
+              <button
+                class="carousel-control"
+                type="button"
+                aria-label="Novidades anteriores"
+                (click)="previousNewest()"
+                [disabled]="newestPage() === 1"
+              >
+                <svg lucideIcon="chevron-left" aria-hidden="true"></svg>
+              </button>
+              <div class="new-products-viewport" aria-live="polite">
+                <div class="new-products-grid">
+                  @for (product of newestVisible(); track product._id ?? product.id) {
+                    <app-product-card [product]="product" [sources]="sourceMap()" [compact]="true" />
+                  }
+                </div>
+              </div>
+              <button
+                class="carousel-control"
+                type="button"
+                aria-label="Próximas novidades"
+                (click)="nextNewest()"
+                [disabled]="newestPage() === newestPageCount()"
+              >
+                <svg lucideIcon="chevron-right" aria-hidden="true"></svg>
+              </button>
             </div>
+            @if (newestPageCount() > 1) {
+              <div class="carousel-indicators" aria-label="Páginas de novidades">
+                @for (page of newestPageNumbers(); track page) {
+                  <button
+                    type="button"
+                    [class.active]="newestPage() === page"
+                    [attr.aria-label]="'Ir para novidades ' + page"
+                    [attr.aria-current]="newestPage() === page ? 'page' : null"
+                    (click)="goToNewest(page)"
+                  ></button>
+                }
+              </div>
+            }
           </section>
         }
         <div class="toolbar">
@@ -286,6 +320,8 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
     .new-products {
       margin-bottom: 30px;
       padding: 20px;
+      border: 0;
+      box-shadow: none;
     }
     .section-heading {
       display: flex;
@@ -306,6 +342,61 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 16px;
+    }
+    .new-products-carousel {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) 34px;
+      align-items: center;
+      gap: 10px;
+    }
+    .new-products-viewport {
+      min-width: 0;
+      overflow: hidden;
+    }
+    .carousel-control {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      padding: 0;
+      border: 1px solid #d9dfe8;
+      border-radius: 50%;
+      background: #fff;
+      color: #17233b;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease, opacity 160ms ease;
+    }
+    .carousel-control:hover:not(:disabled) {
+      background: var(--blue);
+      color: #fff;
+    }
+    .carousel-control:disabled {
+      cursor: default;
+      opacity: 0.35;
+    }
+    .carousel-control .lucide {
+      width: 18px;
+      height: 18px;
+    }
+    .carousel-indicators {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 14px;
+    }
+    .carousel-indicators button {
+      width: 7px;
+      height: 7px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: #cfd5df;
+      cursor: pointer;
+    }
+    .carousel-indicators button.active {
+      width: 20px;
+      border-radius: 5px;
+      background: var(--blue);
     }
     .toolbar {
       display: flex;
@@ -617,6 +708,10 @@ export class ProdutosListPage {
   protected readonly products = signal<Product[]>([]);
   protected readonly newest = signal<Product[]>([]);
   protected readonly newestPage = signal(1);
+  protected readonly newestPageCount = computed(() => Math.max(1, Math.ceil(this.newest().length / 4)));
+  protected readonly newestPageNumbers = computed(() =>
+    Array.from({ length: this.newestPageCount() }, (_, index) => index + 1),
+  );
   protected readonly newestVisible = computed(() =>
     this.newest().slice((this.newestPage() - 1) * 4, this.newestPage() * 4),
   );
@@ -685,6 +780,7 @@ export class ProdutosListPage {
         this.sourceMap.set(Object.fromEntries(sources.map((s) => [s.fonte, s])));
         this.categories.set(categories);
         this.newest.set(newest);
+        this.newestPage.set(1);
       },
     });
     this.form.valueChanges.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => {
@@ -698,8 +794,6 @@ export class ProdutosListPage {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((params) => this.load(params.get('busca') ?? ''));
-    const refresh = window.setInterval(() => this.load(), 10_000);
-    destroyRef.onDestroy(() => window.clearInterval(refresh));
   }
   protected load(search = this.route.snapshot.queryParamMap.get('busca') ?? ''): void {
     this.loading.set(true);
@@ -740,5 +834,13 @@ export class ProdutosListPage {
     this.load();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  protected previousNewest(): void {
+    this.newestPage.update((page) => Math.max(1, page - 1));
+  }
+  protected nextNewest(): void {
+    this.newestPage.update((page) => Math.min(this.newestPageCount(), page + 1));
+  }
+  protected goToNewest(page: number): void {
+    this.newestPage.set(Math.min(this.newestPageCount(), Math.max(1, page)));
+  }
 }
-
