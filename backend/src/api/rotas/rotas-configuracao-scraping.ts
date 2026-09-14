@@ -9,11 +9,13 @@ export function criarRotasConfiguracaoScraping(
   const roteador = Router();
   roteador.use(autenticacao.middlewareAdministrador());
   roteador.get("/", controlador.obter);
+	roteador.get("/agendamento", controlador.obterAgendamento);
   roteador.get(
     "/testar-seletores/:execucaoId/progresso",
     controlador.progresso,
   );
   roteador.put("/", autenticacao.middlewareCsrf(), controlador.atualizar);
+	roteador.put("/agendamento", autenticacao.middlewareCsrf(), controlador.atualizarAgendamento);
   roteador.post(
     "/fontes",
     autenticacao.middlewareCsrf(),

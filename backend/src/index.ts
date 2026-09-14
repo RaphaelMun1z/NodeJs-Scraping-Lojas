@@ -144,8 +144,8 @@ async function iniciarAplicacao(): Promise<void> {
 
 	const agendador = new AgendadorColeta(
 		servicoColeta,
-		configuracaoAplicacao.agendamento.expressao,
-		configuracaoAplicacao.agendamento.fusoHorario,
+		configuracaoPersistida.agendamento.horarios,
+		configuracaoPersistida.agendamento.fusoHorario,
 	);
 
 	const limpezaProdutos = new ServicoLimpezaProdutos(
@@ -163,6 +163,8 @@ async function iniciarAplicacao(): Promise<void> {
 		repositorioIndiceProdutos,
 		servicoColeta,
 		limpezaProdutos,
+		(agendamento) =>
+			agendador.atualizar(agendamento.horarios, agendamento.fusoHorario),
 	);
 
 	servidorApi.iniciar(configuracaoAplicacao.api.porta);

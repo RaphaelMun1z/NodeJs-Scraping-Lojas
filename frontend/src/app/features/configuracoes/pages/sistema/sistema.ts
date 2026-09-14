@@ -15,6 +15,7 @@ import { ScrapingApiService } from '../../../scraping/data-access/scraping-api.s
 import { PopupService } from '../../../../core/services/popup.service';
 import { DialogService } from '../../../../core/services/dialog.service';
 import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
+import { NotificationService } from '../../../../shared/notifications/notification.service';
 
 @Component({
   selector: 'app-sistema',
@@ -24,9 +25,34 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
     <header class="system-heading">
       <h1>Sistema</h1>
     </header>
-    @if (feedback()) {
-      <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
-    }
+    <section class="system-card schedule-card">
+      <div>
+        <div class="system-title-row">
+          <h2>Agendamento da coleta</h2>
+          <button class="info-help" type="button" aria-label="Sobre o agendamento">
+            <svg lucideIcon="info" aria-hidden="true"></svg>
+            <span class="info-popup" role="tooltip"
+              >A coleta será iniciada duas vezes por dia, nos horários definidos abaixo.</span
+            >
+          </button>
+        </div>
+        <p>As alterações são aplicadas imediatamente, sem reiniciar o sistema.</p>
+      </div>
+      <div class="schedule-controls">
+        <label>Primeira coleta
+          <input type="time" [value]="scheduleTimes()[0]" (input)="setScheduleTime(0, $event)" />
+        </label>
+        <label>Segunda coleta
+          <input type="time" [value]="scheduleTimes()[1]" (input)="setScheduleTime(1, $event)" />
+        </label>
+        <label>Fuso horário
+          <input type="text" [value]="scheduleTimezone()" (input)="setScheduleTimezone($event)" />
+        </label>
+        <button class="btn primary schedule-save" type="button" [disabled]="busy()" (click)="saveSchedule()">
+          Salvar horários
+        </button>
+      </div>
+    </section>
 
     <div class="system-alert-divider"><span>Zona de alerta</span></div>
 
@@ -269,6 +295,54 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
       width: 19px;
       height: 19px;
     }
+    .schedule-card {
+      align-items: flex-end;
+    }
+    .schedule-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .schedule-controls label {
+      display: grid;
+      gap: 5px;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .schedule-controls input {
+      width: 118px;
+      height: 38px;
+      box-sizing: border-box;
+      padding: 0 9px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      color: #111827;
+      font: inherit;
+    }
+    .schedule-controls label:last-of-type input {
+      width: 170px;
+    }
+    .schedule-save {
+      height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--blue) !important;
+      border-radius: 7px;
+      background: var(--blue) !important;
+      color: #fff !important;
+      box-shadow: none !important;
+      font-size: 12px;
+    }
+    .schedule-save::after {
+      display: none;
+    }
+    .schedule-save:hover:not(:disabled) {
+      border-color: #174fcb !important;
+      background: #174fcb !important;
+    }
     .system-alert-divider {
       display: flex;
       align-items: center;
@@ -434,6 +508,12 @@ import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-bu
         flex-direction: column;
         padding: 24px 20px;
       }
+      .schedule-card {
+        align-items: flex-start;
+      }
+      .schedule-controls {
+        justify-content: flex-start;
+      }
       .system-button {
         width: 100%;
       }
@@ -458,19 +538,73 @@ export class SistemaPage {
   private readonly scraping = inject(ScrapingApiService);
   private readonly popup = inject(PopupService);
   private readonly dialogs = inject(DialogService);
+  private readonly notifications = inject(NotificationService);
   @ViewChild('resetDialog', { static: true }) private readonly resetDialog!: TemplateRef<unknown>;
   private resetDialogRef?: MatDialogRef<unknown>;
   protected readonly busy = signal(false);
-  protected readonly feedback = signal('');
-  protected readonly failed = signal(false);
   protected readonly resetConfirmation = signal('');
   protected readonly resetPassword = signal('');
+  protected readonly scheduleTimes = signal(['00:00', '12:00']);
+  protected readonly scheduleTimezone = signal('America/Sao_Paulo');
+
+  constructor() {
+    this.api.schedule().subscribe({
+      next: (response) => {
+        const times = response.dados.horarios;
+        this.scheduleTimes.set([times[0] ?? '00:00', times[1] ?? '12:00']);
+        this.scheduleTimezone.set(response.dados.fusoHorario);
+      },
+      error: (error: unknown) =>
+        this.show(
+          this.errors.message(
+            error,
+            'Não foi possível carregar o agendamento. Reinicie o backend para habilitar este recurso.',
+          ),
+          true,
+        ),
+    });
+  }
 
   protected runScraping(): void {
     this.busy.set(true);
     this.scraping.execute().subscribe({
       next: (result) => this.show(result.mensagem || 'Busca iniciada.'),
-      error: (error: unknown) => this.show(this.errors.message(error), true),
+      error: (error: unknown) =>
+        this.show(
+          this.errors.message(
+            error,
+            'Não foi possível iniciar a busca.',
+          ),
+          true,
+        ),
+    });
+  }
+  protected setScheduleTime(index: number, event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.scheduleTimes.update((times) => times.map((time, current) => current === index ? value : time));
+  }
+  protected setScheduleTimezone(event: Event): void {
+    this.scheduleTimezone.set((event.target as HTMLInputElement).value);
+  }
+  protected saveSchedule(): void {
+    this.busy.set(true);
+    this.api.saveSchedule({
+      horarios: this.scheduleTimes(),
+      fusoHorario: this.scheduleTimezone().trim(),
+    }).subscribe({
+      next: (response) => {
+        this.scheduleTimes.set([response.dados.horarios[0] ?? '00:00', response.dados.horarios[1] ?? '12:00']);
+        this.scheduleTimezone.set(response.dados.fusoHorario);
+        this.show('Horários da coleta atualizados.');
+      },
+      error: (error: unknown) =>
+        this.show(
+          this.errors.message(
+            error,
+            'Não foi possível salvar o agendamento. Reinicie o backend e tente novamente.',
+          ),
+          true,
+        ),
     });
   }
   protected openResetDialog(): void {
@@ -587,8 +721,8 @@ export class SistemaPage {
     });
   }
   private show(message: string, failed = false): void {
-    this.feedback.set(message);
-    this.failed.set(failed);
+    if (failed) this.notifications.error(message);
+    else this.notifications.success(message);
     this.busy.set(false);
   }
 }

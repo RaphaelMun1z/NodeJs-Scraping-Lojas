@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { configuracaoAplicacao } from "../config/aplicacao.config.js";
 import type { SeletoresSite } from "../modelos/seletores-site.js";
 import { ModeloConfiguracaoScraping } from "./modelos/configuracao-scraping.model.js";
 
@@ -42,6 +43,23 @@ const seletoresPadrao = {
 	parametroPagina: "page",
 	urlPaginacaoTemplate: "",
 };
+const esquemaHorario = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Informe um horário no formato HH:mm");
+const esquemaFusoHorario = z.string().trim().min(1).max(100).refine((fusoHorario) => {
+	try {
+		Intl.DateTimeFormat(undefined, { timeZone: fusoHorario });
+		return true;
+	} catch {
+		return false;
+	}
+}, "Informe um fuso horário IANA válido, por exemplo America/Sao_Paulo");
+const esquemaAgendamento = z.object({
+	horarios: z.array(esquemaHorario).min(1).max(12).superRefine((horarios, contexto) => {
+		if (new Set(horarios).size !== horarios.length) {
+			contexto.addIssue({ code: "custom", message: "Cada horário deve ser único" });
+		}
+	}),
+	fusoHorario: esquemaFusoHorario,
+});
 const esquemaUrlFonte = z
 	.string()
 	.max(2_048)
@@ -113,10 +131,24 @@ export interface CategoriaFonteConfigurada {
 
 export interface ConfiguracaoScraping {
 	fontes: FonteConfigurada[];
+	agendamento: AgendamentoColeta;
 	atualizadaEm: Date;
 }
 
+export interface AgendamentoColeta {
+	horarios: string[];
+	fusoHorario: string;
+}
+
 export class ServicoConfiguracaoScraping {
+	constructor(
+		private readonly agendamentoPadrao: AgendamentoColeta = configuracaoAplicacao.agendamento,
+	) {}
+
+	private normalizarAgendamento(agendamento: unknown): AgendamentoColeta {
+		return esquemaAgendamento.parse(agendamento ?? this.agendamentoPadrao);
+	}
+
 	private normalizarFonte(
 		fonte: Omit<FonteConfigurada, "nome" | "categorias"> & {
 			nome?: string;
@@ -154,6 +186,7 @@ export class ServicoConfiguracaoScraping {
 				fontes: existente.fontes.map((fonte) =>
 					this.normalizarFonte(fonte as FonteConfigurada),
 				),
+				agendamento: this.normalizarAgendamento(existente.agendamento),
 				atualizadaEm: existente.atualizadaEm,
 			};
 		}
@@ -161,8 +194,9 @@ export class ServicoConfiguracaoScraping {
 		// na área administrativa, com URL e seletores validados antes da ativação.
 		const fontes: FonteConfigurada[] = [];
 		const atualizadaEm = new Date();
-		await ModeloConfiguracaoScraping.create({ chave: "principal", fontes, atualizadaEm });
-		return { fontes, atualizadaEm };
+		const agendamento = this.normalizarAgendamento(this.agendamentoPadrao);
+		await ModeloConfiguracaoScraping.create({ chave: "principal", fontes, agendamento, atualizadaEm });
+		return { fontes, agendamento, atualizadaEm };
 	}
 
 	async atualizar(dados: unknown): Promise<ConfiguracaoScraping> {
@@ -210,8 +244,19 @@ export class ServicoConfiguracaoScraping {
 			fontes: configuracao.fontes.map((fonte) =>
 				this.normalizarFonte(fonte as FonteConfigurada),
 			),
+			agendamento: this.normalizarAgendamento(configuracao.agendamento),
 			atualizadaEm: configuracao.atualizadaEm,
 		};
+	}
+
+	async atualizarAgendamento(dados: unknown): Promise<AgendamentoColeta> {
+		const agendamento = esquemaAgendamento.parse(dados);
+		const configuracao = await ModeloConfiguracaoScraping.findOneAndUpdate(
+			{ chave: "principal" },
+			{ $set: { agendamento, atualizadaEm: new Date() }, $setOnInsert: { fontes: [] } },
+			{ upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
+		).lean().exec();
+		return this.normalizarAgendamento(configuracao.agendamento);
 	}
 
 	async adicionar(dados: unknown): Promise<ConfiguracaoScraping> {

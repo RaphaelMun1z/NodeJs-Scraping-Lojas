@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthApiService } from '../../../../core/auth/auth-api.service';
 import { MfaSetup } from '../../../../core/models/domain.models';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
+import { NotificationService } from '../../../../shared/notifications/notification.service';
 
 @Component({
   selector: 'app-autenticacao',
@@ -53,9 +54,6 @@ import { ApiErrorService } from '../../../../core/services/api-error.service';
             </button>
           </div>
         </div>
-      }
-      @if (feedback()) {
-        <div class="admin-feedback" [class.error]="failed()">{{ feedback() }}</div>
       }
     </section>
   `,
@@ -171,14 +169,13 @@ import { ApiErrorService } from '../../../../core/services/api-error.service';
 export class AutenticacaoPage {
   private readonly auth = inject(AuthApiService);
   private readonly errors = inject(ApiErrorService);
+  private readonly notifications = inject(NotificationService);
   protected readonly setup = signal<MfaSetup | null>(null);
   protected readonly code = new FormControl('', {
     nonNullable: true,
     validators: [Validators.required, Validators.pattern(/^\d{6}$/)],
   });
   protected readonly loading = signal(false);
-  protected readonly feedback = signal('');
-  protected readonly failed = signal(false);
   protected readonly qr = signal('');
   protected start(): void {
     this.loading.set(true);
@@ -189,8 +186,7 @@ export class AutenticacaoPage {
         this.loading.set(false);
       },
       error: (e) => {
-        this.feedback.set(this.errors.message(e));
-        this.failed.set(true);
+        this.notifications.error(this.errors.message(e));
         this.loading.set(false);
       },
     });
@@ -203,17 +199,14 @@ export class AutenticacaoPage {
     this.loading.set(true);
     this.auth.activateMfa(this.code.value).subscribe({
       next: () => {
-        this.feedback.set('Autenticação em duas etapas ativada com sucesso.');
-        this.failed.set(false);
+        this.notifications.success('Autenticação em duas etapas ativada com sucesso.');
         this.loading.set(false);
       },
       error: (e) => {
-        this.feedback.set(this.errors.message(e));
-        this.failed.set(true);
+        this.notifications.error(this.errors.message(e));
         this.loading.set(false);
       },
     });
   }
 }
-
 

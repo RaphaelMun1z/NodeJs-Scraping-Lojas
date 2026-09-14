@@ -1,16 +1,13 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { LucideDynamicIcon } from '@lucide/angular';
 
 @Component({
   selector: 'app-source-identity',
-  imports: [LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="source-identity" [class.large]="large()">
+    <span class="source-identity" [class.large]="large()" [class.detail]="detail()">
       @if (logo()) {
         <img [src]="logo()" [alt]="name()" (error)="hide($event)" />
       }
-      <svg class="source-fallback" lucideIcon="store" aria-hidden="true"></svg>
       <span>{{ name() }}</span>
     </span>
   `,
@@ -24,8 +21,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
       font-weight: 600;
       font-size: 10px;
     }
-    img,
-    .source-fallback {
+    img {
       width: 24px;
       height: 24px;
       border-radius: 0;
@@ -34,18 +30,6 @@ import { LucideDynamicIcon } from '@lucide/angular';
       border: 0;
       padding: 0;
     }
-    .source-fallback {
-      width: 30px;
-      height: 30px;
-      display: inline-grid;
-      place-items: center;
-      background: #eef2ff;
-      color: var(--primary);
-      padding: 0;
-    }
-    img:not([hidden]) + .source-fallback {
-      display: none;
-    }
     .source-identity.large {
       color: #171717;
       font-size: 16px;
@@ -53,10 +37,17 @@ import { LucideDynamicIcon } from '@lucide/angular';
       line-height: 1.2;
       gap: 8px;
     }
-    .source-identity.large img,
-    .source-identity.large .source-fallback {
+    .source-identity.large img {
       width: 30px;
       height: 30px;
+    }
+    .source-identity.detail {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+    .source-identity.detail img {
+      width: 24px;
+      height: 24px;
     }
   `,
 })
@@ -64,6 +55,7 @@ export class SourceIdentityComponent {
   readonly name = input.required<string>();
   readonly logo = input<string>('');
   readonly large = input(false);
+  readonly detail = input(false);
   protected hide(event: Event): void {
     (event.target as HTMLImageElement).hidden = true;
   }

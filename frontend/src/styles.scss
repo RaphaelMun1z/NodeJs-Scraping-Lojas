@@ -174,6 +174,24 @@ input,
 select {
   outline-color: var(--blue);
 }
+
+app-fontes-list .category-icon-control { position: relative; z-index: 2; }
+app-fontes-list .category-icon-picker { position: absolute; top: calc(100% + 6px); left: 0; display: grid; width: min(440px, calc(100vw - 32px)); max-height: min(500px, calc(100vh - 72px)); grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid #e1e6ed; border-radius: 9px; background: #fff; box-shadow: 0 10px 26px rgb(15 23 42 / 18%); }
+app-fontes-list .icon-picker-header, app-fontes-list .icon-picker-footer { display: flex; align-items: center; justify-content: space-between; min-height: 51px; padding: 0 18px; border-bottom: 1px solid #edf0f4; }
+app-fontes-list .icon-picker-header h3 { margin: 0; color: #182235; font-size: 14px; font-weight: 600; }
+app-fontes-list .icon-search { display: flex; align-items: center; gap: 8px; margin: 12px 18px; padding: 0 10px; border: 1px solid #cfd6df; border-radius: 7px; color: #7c8797; }
+app-fontes-list .icon-search .lucide { width: 18px; height: 18px; }
+app-fontes-list .icon-search input { width: 100%; min-height: 32px; padding: 0; border: 0; outline: 0; color: #243147; font: inherit; font-size: 12px; }
+app-fontes-list .category-icon-options { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; max-height: 218px; overflow-y: auto; padding: 4px 18px 16px; }
+app-fontes-list .icon-picker-close, app-fontes-list .icon-picker-option, app-fontes-list .icon-picker-cancel, app-fontes-list .icon-picker-save { border: 0; background: transparent; font: inherit; cursor: pointer; }
+app-fontes-list .icon-picker-close { display: grid; width: 32px; height: 32px; place-items: center; color: #111827; }
+app-fontes-list .icon-picker-close .lucide { width: 20px; height: 20px; }
+app-fontes-list .icon-picker-option { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 6px; color: #172033; }
+app-fontes-list .icon-picker-option:hover, app-fontes-list .icon-picker-option.selected { background: #e8f0ff; color: var(--blue); }
+app-fontes-list .icon-picker-option .lucide { width: 19px; height: 19px; }
+app-fontes-list .icon-picker-footer { min-height: 62px; border-top: 1px solid #edf0f4; border-bottom: 0; }
+app-fontes-list .icon-picker-cancel { padding: 8px 0; color: #1769d5; font-size: 12px; font-weight: 600; }
+app-fontes-list .icon-picker-save { min-width: 72px; height: 34px; padding: 0 14px; border-radius: 7px; background: #1473e6; color: #fff; font-size: 12px; font-weight: 600; }
 .page-wrap {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;

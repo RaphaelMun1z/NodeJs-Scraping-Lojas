@@ -28,8 +28,10 @@ function lerCookies(requisicao: Request): Record<string, string> {
 	}));
 }
 
-function definirCookie(resposta: Response, nome: string, valor: string, seguro: boolean, duracaoSessaoMs: number): void {
-	resposta.append("Set-Cookie", `${nome}=${encodeURIComponent(valor)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${duracaoSessaoMs / 1000}${seguro ? "; Secure" : ""}`);
+function lerToken(requisicao: Request): string | undefined {
+	const autorizacao = requisicao.headers.authorization;
+	if (autorizacao?.startsWith("Bearer ")) return autorizacao.slice("Bearer ".length).trim() || undefined;
+	return undefined;
 }
 
 export class ServicoAutenticacao {
@@ -91,14 +93,14 @@ export class ServicoAutenticacao {
 	}
 
 	async encerrarRequisicao(requisicao: Request, resposta: Response): Promise<void> {
-		const token = lerCookies(requisicao)[NOME_COOKIE_SESSAO];
+		const token = lerToken(requisicao);
 		await this.encerrar(token);
 		resposta.append("Set-Cookie", `${NOME_COOKIE_SESSAO}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${this.cookieSeguro ? "; Secure" : ""}`);
 		resposta.append("Set-Cookie", `${NOME_COOKIE_CSRF}=; Path=/; SameSite=Strict; Max-Age=0${this.cookieSeguro ? "; Secure" : ""}`);
 	}
 
 	async obterAdministrador(requisicao: Request): Promise<{ administrador: AdministradorAutenticado; tokenCsrfHash: string; expiraEm: Date } | null> {
-		const token = lerCookies(requisicao)[NOME_COOKIE_SESSAO];
+		const token = lerToken(requisicao);
 		if (!token) return null;
 		const sessao = await ModeloSessaoAdministrador.findOne({ tokenHash: gerarHash(token), expiraEm: { $gt: new Date() } }).populate("administradorId").exec();
 		if (!sessao || !sessao.administradorId) return null;
@@ -106,8 +108,7 @@ export class ServicoAutenticacao {
 		return { administrador: { id: administrador._id.toString(), email: administrador.email, papel: administrador.papel, mfaAtivo: administrador.mfaAtivo }, tokenCsrfHash: sessao.tokenCsrfHash, expiraEm: sessao.expiraEm };
 	}
 
-	definirCookies(resposta: Response, token: string, tokenCsrf: string): void {
-		definirCookie(resposta, NOME_COOKIE_SESSAO, token, this.cookieSeguro, this.duracaoSessaoMs);
+	definirCookies(resposta: Response, tokenCsrf: string): void {
 		resposta.append("Set-Cookie", `${NOME_COOKIE_CSRF}=${encodeURIComponent(tokenCsrf)}; Path=/; SameSite=Strict; Max-Age=${this.duracaoSessaoMs / 1000}${this.cookieSeguro ? "; Secure" : ""}`);
 	}
 
@@ -156,15 +157,14 @@ export class ServicoAutenticacao {
 
 	private async renovarSessaoSeNecessario(requisicao: Request, resposta: Response, expiraEm: Date): Promise<void> {
 		if (expiraEm.getTime() - Date.now() > this.duracaoSessaoMs / 2) return;
-		const cookies = lerCookies(requisicao);
-		const token = cookies[NOME_COOKIE_SESSAO];
-		const tokenCsrf = cookies[NOME_COOKIE_CSRF];
+		const token = lerToken(requisicao);
+		const tokenCsrf = lerCookies(requisicao)[NOME_COOKIE_CSRF];
 		if (!token || !tokenCsrf) return;
 		await ModeloSessaoAdministrador.updateOne(
 			{ tokenHash: gerarHash(token) },
 			{ $set: { expiraEm: new Date(Date.now() + this.duracaoSessaoMs) } },
 		).exec();
-		this.definirCookies(resposta, token, tokenCsrf);
+		this.definirCookies(resposta, tokenCsrf);
 	}
 
 	private resumoAdministrador(administrador: { _id: { toString(): string }; email: string; papel: "administrador"; mfaAtivo: boolean }): AdministradorAutenticado {

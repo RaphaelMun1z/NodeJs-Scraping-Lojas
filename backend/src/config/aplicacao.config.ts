@@ -25,7 +25,7 @@ const esquemaConfiguracao = z.object({
 		.enum(["true", "false"])
 		.default("true")
 		.transform((valor) => valor === "true"),
-	CRON_EXPRESSAO: z.string().min(1).default("*/30 * * * *"),
+	HORARIOS_COLETA: z.string().min(1).default("00:00,12:00"),
 	CRON_FUSO_HORARIO: z.string().min(1).default("America/Sao_Paulo"),
 	EXECUTAR_COLETA_AO_INICIAR: z
 		.enum(["true", "false"])
@@ -54,7 +54,7 @@ export const configuracaoAplicacao = {
 		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
 	},
 	agendamento: {
-		expressao: ambiente.CRON_EXPRESSAO,
+		horarios: ambiente.HORARIOS_COLETA.split(",").map((horario) => horario.trim()).filter(Boolean),
 		fusoHorario: ambiente.CRON_FUSO_HORARIO,
 	},
 } as const;

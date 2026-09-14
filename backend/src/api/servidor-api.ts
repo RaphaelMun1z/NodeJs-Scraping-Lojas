@@ -7,7 +7,7 @@ import { ControladorItem } from "./controladores/controlador-item.js";
 import { tratadorErros } from "./middlewares/tratador-erros.js";
 import { criarRotasItens } from "./rotas/rotas-itens.js";
 import type { ServicoAutenticacao } from "../autenticacao/servico-autenticacao.js";
-import type { ServicoConfiguracaoScraping } from "../configuracoes/servico-configuracao-scraping.js";
+import type { AgendamentoColeta, ServicoConfiguracaoScraping } from "../configuracoes/servico-configuracao-scraping.js";
 import { ControladorAutenticacao } from "./controladores/controlador-autenticacao.js";
 import { ControladorConfiguracaoScraping } from "./controladores/controlador-configuracao-scraping.js";
 import { criarRotasAutenticacao } from "./rotas/rotas-autenticacao.js";
@@ -40,6 +40,7 @@ export class ServidorApi {
     private readonly repositorioIndice?: RepositorioIndiceProdutos,
     private readonly servicoColeta?: ServicoColeta,
     private readonly limpezaProdutos?: ServicoLimpezaProdutos,
+		private readonly aplicarAgendamento?: (agendamento: AgendamentoColeta) => void,
     private readonly clienteHttpConfiguracao: ClienteHttp = new ClienteHttp(),
   ) {
     this.aplicacao = express();
@@ -80,6 +81,7 @@ export class ServidorApi {
       new ServicoResetSistema(this.repositorioIndice),
       this.autenticacao,
       progressoTeste,
+		this.aplicarAgendamento,
     );
     if (!this.servicoColeta)
       throw new Error("Serviço de coleta não configurado");

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { ServicoConfiguracaoScraping } from "../../configuracoes/servico-configuracao-scraping.js";
+import type { AgendamentoColeta, ServicoConfiguracaoScraping } from "../../configuracoes/servico-configuracao-scraping.js";
 import type { ServicoLimpezaProdutos } from "../../servicos/servico-limpeza-produtos.js";
 import type { ClienteHttp } from "../../clientes/cliente-http.js";
 import { AnalisadorSite } from "../../analisadores/analisador-site.js";
@@ -22,10 +22,22 @@ export class ControladorConfiguracaoScraping {
     private readonly resetSistema?: ServicoResetSistema,
     private readonly autenticacao?: ServicoAutenticacao,
     private readonly progressoTeste?: ServicoProgressoTesteSeletores,
+    private readonly aplicarAgendamento?: (agendamento: AgendamentoColeta) => void,
   ) {}
 
   obter = async (_requisicao: Request, resposta: Response): Promise<void> => {
     resposta.json({ dados: await this.configuracao.obterOuCriarPadrao() });
+  };
+
+  obterAgendamento = async (_requisicao: Request, resposta: Response): Promise<void> => {
+    const configuracao = await this.configuracao.obterOuCriarPadrao();
+    resposta.json({ dados: configuracao.agendamento });
+  };
+
+  atualizarAgendamento = async (requisicao: Request, resposta: Response): Promise<void> => {
+    const agendamento = await this.configuracao.atualizarAgendamento(requisicao.body);
+    this.aplicarAgendamento?.(agendamento);
+    resposta.json({ dados: agendamento });
   };
 
   progresso = (requisicao: Request, resposta: Response): void => {

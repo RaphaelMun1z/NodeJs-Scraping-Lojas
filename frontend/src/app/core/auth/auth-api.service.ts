@@ -4,6 +4,7 @@ import { catchError, map, Observable, of, retry, shareReplay, tap } from 'rxjs';
 import { ApiResponse } from '../models/api.models';
 import { Administrator, MfaSetup } from '../models/domain.models';
 import { apiUrl } from '../config/api.config';
+import { AUTH_TOKEN_STORAGE_KEY } from '../interceptors/auth-token.interceptor';
 
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
@@ -31,6 +32,7 @@ export class AuthApiService {
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401) {
           this.administratorState.set(null);
+          localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
           this.checkedState.set(true);
           return of(null);
         }
@@ -52,12 +54,15 @@ export class AuthApiService {
 
   login(email: string, senha: string, codigoTotp?: string): Observable<Administrator> {
     return this.http
-      .post<ApiResponse<Administrator>>(apiUrl('/autenticacao/login'), {
+      .post<ApiResponse<Administrator> & { token: string }>(apiUrl('/autenticacao/login'), {
         email,
         senha,
         ...(codigoTotp ? { codigoTotp } : {}),
       }, { withCredentials: true })
       .pipe(
+        tap((response) => {
+          if (response.token) localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, response.token);
+        }),
         map((response) => response.dados),
         tap((admin) => {
           this.administratorState.set(admin);
@@ -71,6 +76,7 @@ export class AuthApiService {
       .post<void>(apiUrl('/autenticacao/logout'), {}, { withCredentials: true })
       .pipe(
         tap(() => {
+          localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
           this.administratorState.set(null);
           this.checkedState.set(true);
         }),

@@ -40,6 +40,11 @@ export interface ScrapingConfig {
   atualizadaEm?: string;
 }
 
+export interface ScrapingSchedule {
+  horarios: string[];
+  fusoHorario: string;
+}
+
 export interface Product {
   _id?: string;
   id?: string;

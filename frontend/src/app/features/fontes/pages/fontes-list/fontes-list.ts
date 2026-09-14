@@ -8,7 +8,8 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
 import { PopupService } from '../../../../core/services/popup.service';
 import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
-import { LucideDynamicIcon } from '@lucide/angular';
+import { icons, LucideDynamicIcon, provideLucideIcons } from '@lucide/angular';
+import { NotificationService } from '../../../../shared/notifications/notification.service';
 
 type PaginationDefaults = Pick<
   Selectors,
@@ -21,6 +22,7 @@ type PaginationDefaults = Pick<
 
 @Component({
   selector: 'app-fontes-list',
+  providers: [provideLucideIcons(...Object.values(icons))],
   imports: [
     ReactiveFormsModule,
     RouterLink,
@@ -36,9 +38,6 @@ type PaginationDefaults = Pick<
         <h1>Fontes</h1>
       </div>
     </header>
-    @if (feedback()) {
-      <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
-    }
     @if (loading()) {
       <div class="panel state">Carregando fontes…</div>
     } @else if (!config()?.fontes?.length) {
@@ -140,29 +139,23 @@ type PaginationDefaults = Pick<
                         />
                         @if (iconPickerOpen()) {
                           <div class="category-icon-picker" role="dialog" aria-label="Escolher ícone">
-                            <input
-                              class="icon-search"
-                              type="search"
-                              placeholder="Buscar ícone"
-                              aria-label="Buscar ícone pelo nome"
-                              [value]="iconSearch()"
-                              (input)="setIconSearch($event)"
-                            />
+                            <header class="icon-picker-header">
+                              <h3>Escolha um ícone</h3>
+                              <button class="icon-picker-close" type="button" aria-label="Fechar" (click)="cancelIconPicker()"><svg lucideIcon="x" aria-hidden="true"></svg></button>
+                            </header>
+                            <label class="icon-search">
+                              <svg lucideIcon="search" aria-hidden="true"></svg>
+                              <input type="search" placeholder="Buscar um ícone" aria-label="Buscar ícone pelo nome" [value]="iconSearch()" (input)="setIconSearch($event)" />
+                            </label>
                             <div class="category-icon-options">
                               @for (item of filteredCategoryIcons(); track item.name) {
-                                <app-ui-button
-                                  [icon]="item.name"
-                                  [iconOnly]="true"
-                                  height="32px"
-                                  iconSize="32px"
-                                  [ariaLabel]="item.label"
-                                  [attr.title]="item.label"
-                                  variant="secondary"
-                                  type="button"
-                                  (click)="selectCategoryIcon(item.name)"
-                                />
+                                <button class="icon-picker-option" type="button" [class.selected]="iconPickerSelection() === item.name" [attr.aria-label]="item.label" [attr.title]="item.label" (click)="selectCategoryIcon(item.name)"><svg [lucideIcon]="item.name" aria-hidden="true"></svg></button>
                               }
                             </div>
+                            <footer class="icon-picker-footer">
+                              <button class="icon-picker-cancel" type="button" (click)="cancelIconPicker()">Cancelar</button>
+                              <button class="icon-picker-save" type="button" (click)="confirmIconPicker()">Salvar</button>
+                            </footer>
                           </div>
                         }
                       </div>
@@ -253,29 +246,23 @@ type PaginationDefaults = Pick<
                   />
                   @if (iconPickerOpen()) {
                     <div class="category-icon-picker" role="dialog" aria-label="Escolher ícone">
-                      <input
-                        class="icon-search"
-                        type="search"
-                        placeholder="Buscar ícone"
-                        aria-label="Buscar ícone pelo nome"
-                        [value]="iconSearch()"
-                        (input)="setIconSearch($event)"
-                      />
+                      <header class="icon-picker-header">
+                        <h3>Escolha um ícone</h3>
+                        <button class="icon-picker-close" type="button" aria-label="Fechar" (click)="cancelIconPicker()"><svg lucideIcon="x" aria-hidden="true"></svg></button>
+                      </header>
+                      <label class="icon-search">
+                        <svg lucideIcon="search" aria-hidden="true"></svg>
+                        <input type="search" placeholder="Buscar um ícone" aria-label="Buscar ícone pelo nome" [value]="iconSearch()" (input)="setIconSearch($event)" />
+                      </label>
                       <div class="category-icon-options">
                         @for (item of filteredCategoryIcons(); track item.name) {
-                          <app-ui-button
-                            [icon]="item.name"
-                            [iconOnly]="true"
-                            height="32px"
-                            iconSize="32px"
-                            [ariaLabel]="item.label"
-                            [attr.title]="item.label"
-                            variant="secondary"
-                            type="button"
-                            (click)="selectCategoryIcon(item.name)"
-                          />
+                          <button class="icon-picker-option" type="button" [class.selected]="iconPickerSelection() === item.name" [attr.aria-label]="item.label" [attr.title]="item.label" (click)="selectCategoryIcon(item.name)"><svg [lucideIcon]="item.name" aria-hidden="true"></svg></button>
                         }
                       </div>
+                      <footer class="icon-picker-footer">
+                        <button class="icon-picker-cancel" type="button" (click)="cancelIconPicker()">Cancelar</button>
+                        <button class="icon-picker-save" type="button" (click)="confirmIconPicker()">Salvar</button>
+                      </footer>
                     </div>
                   }
                 </div>
@@ -777,37 +764,6 @@ type PaginationDefaults = Pick<
       font: inherit;
       font-size: 12px;
     }
-    .category-icon-picker {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
-      display: grid;
-      width: min(360px, 90vw);
-      max-height: 280px;
-      gap: 6px;
-      overflow-y: auto;
-      padding: 8px;
-      border: 1px solid #dfe3e8;
-      border-radius: 8px;
-      background: #fff;
-    }
-    .category-icon-control {
-      position: relative;
-      z-index: 2;
-    }
-    .icon-search {
-      width: 100%;
-      min-height: 34px;
-      padding: 0 8px;
-      border: 1px solid #d6d6d6;
-      border-radius: 6px;
-      background: #fff;
-    }
-    .category-icon-options {
-      display: grid;
-      grid-template-columns: repeat(6, 32px);
-      gap: 6px;
-    }
     .onboarding {
       text-align: center;
       padding: 4rem max(1rem, 15%);
@@ -921,6 +877,7 @@ export class FontesListPage {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(FontesApiService);
   private readonly errors = inject(ApiErrorService);
+  private readonly notifications = inject(NotificationService);
   private readonly popup = inject(PopupService);
   protected readonly config = signal<ScrapingConfig | null>(null);
   protected readonly loading = signal(true);
@@ -930,8 +887,9 @@ export class FontesListPage {
   protected readonly editingCategoryId = signal<string | null>(null);
   protected readonly iconPickerOpen = signal(false);
   protected readonly iconSearch = signal('');
+  protected readonly iconPickerSelection = signal('tag');
   protected readonly categorySaving = signal(false);
-  protected readonly categoryIcons = [
+  /* protected readonly legacyCategoryIcons = [
     { name: 'activity', label: 'Atividade' },
     { name: 'check', label: 'Concluído' },
     { name: 'clock-3', label: 'Relógio' },
@@ -966,7 +924,114 @@ export class FontesListPage {
     { name: 'star', label: 'Destaques' },
     { name: 'gift', label: 'Presentes' },
     { name: 'wrench', label: 'Ferramentas' },
-  ] as const;
+  ] as const; */
+  protected readonly categoryIcons = `
+laptop|Notebook
+laptop-minimal|Notebook compacto
+monitor|Monitor
+tv|Televisão
+smartphone|Smartphone
+tablet|Tablet
+watch|Smartwatch
+webcam|Webcam
+keyboard|Teclado
+mouse|Mouse
+mouse-pointer-2|Mouse gamer
+headphones|Fone de ouvido
+headset|Headset
+mic|Microfone
+speaker|Caixa de som
+radio|Rádio
+projector|Projetor
+camera|Câmera
+video|Filmadora
+gamepad-2|Controle gamer
+joystick|Joystick
+cpu|Processador
+gpu|Placa de vídeo
+memory-stick|Memória RAM
+hard-drive|HD ou SSD
+hard-drive-download|Armazenamento externo
+hard-drive-upload|Backup
+server|Servidor
+database|Banco de dados
+router|Roteador
+wifi|Wi-Fi
+bluetooth|Bluetooth
+usb|USB
+cable|Cabo
+plug|Tomada
+battery|Bateria
+battery-charging|Carregador
+power|Fonte de energia
+scan-line|Scanner
+armchair|Cadeira
+lamp|Luminária
+lightbulb|Lâmpada
+sofa|Sofá
+bed-double|Cama
+cooking-pot|Panela
+refrigerator|Geladeira
+microwave|Micro-ondas
+coffee|Cafeteira
+utensils|Utensílios
+washing-machine|Máquina de lavar
+air-vent|Ar-condicionado
+fan|Ventilador
+heater|Aquecedor
+shower-head|Chuveiro
+door-open|Porta
+table|Mesa
+bed|Cama de solteiro
+bath|Banheira
+shirt|Camiseta
+hard-hat|Capacete
+glasses|Óculos
+backpack|Mochila
+briefcase-business|Maleta
+shopping-bag|Sacola
+package|Produto
+box|Caixa
+gift|Presente
+tag|Etiqueta
+barcode|Código de barras
+scan-barcode|Leitor de código
+ticket|Cupom
+credit-card|Cartão
+wallet-cards|Carteira
+receipt|Nota fiscal
+truck|Caminhão
+bike|Bicicleta
+car|Carro
+plane|Avião
+ship|Navio
+tram-front|Trem
+smartphone-charging|Celular carregando
+drone|Drone
+printer|Impressora
+disc-3|Disco
+disc-album|Mídia
+cassette-tape|Fita
+music|Música
+book-open|Livro
+notebook-tabs|Caderno
+calculator|Calculadora
+clock-3|Relógio
+alarm-clock|Despertador
+scale|Balança
+ruler|Régua
+paintbrush|Pincel
+hammer|Martelo
+wrench|Ferramenta
+blender|Liquidificador
+cctv|Câmera de segurança
+car-battery|Bateria automotiva`
+    .trim()
+    .split('\n')
+    .map((item) => {
+      const [name, label] = item.split('|');
+      return { name: name!, label: label! };
+    });
   protected readonly filteredCategoryIcons = computed(() => {
     const search = this.iconSearch().trim().toLocaleLowerCase('pt-BR');
     if (!search) return this.categoryIcons;
@@ -976,8 +1041,6 @@ export class FontesListPage {
   });
   protected readonly logo = signal('');
   protected readonly logoFileName = signal('');
-  protected readonly feedback = signal('');
-  protected readonly failed = signal(false);
   protected readonly form = this.fb.nonNullable.group({
     fonte: ['', [Validators.required, Validators.pattern(/^[a-z0-9-]+$/)]],
     nome: ['', Validators.required],
@@ -1028,14 +1091,12 @@ export class FontesListPage {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 700 * 1024) {
-      this.feedback.set('O logo deve ter no máximo 700 KB.');
-      this.failed.set(true);
+      this.notifications.error('O logo deve ter no máximo 700 KB.');
       input.value = '';
       return;
     }
     if (!['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type)) {
-      this.feedback.set('Use uma logo PNG, JPEG, WebP ou SVG.');
-      this.failed.set(true);
+      this.notifications.error('Use uma logo PNG, JPEG, WebP ou SVG.');
       input.value = '';
       return;
     }
@@ -1053,8 +1114,6 @@ export class FontesListPage {
     this.form.reset();
     this.categories.clear();
     this.clearLogo();
-    this.feedback.set('');
-    this.failed.set(false);
   }
   protected startCategory(source: string): void {
     this.editingCategoryId.set(null);
@@ -1084,13 +1143,25 @@ export class FontesListPage {
   }
   protected toggleIconPicker(): void {
     this.iconSearch.set('');
-    this.iconPickerOpen.update((open) => !open);
+    if (this.iconPickerOpen()) {
+      this.iconPickerOpen.set(false);
+      return;
+    }
+    this.iconPickerSelection.set(this.categoryForm.controls.icone.value || 'tag');
+    this.iconPickerOpen.set(true);
   }
   protected setIconSearch(event: Event): void {
     this.iconSearch.set((event.target as HTMLInputElement).value);
   }
   protected selectCategoryIcon(icon: string): void {
-    this.categoryForm.controls.icone.setValue(icon);
+    this.iconPickerSelection.set(icon);
+  }
+  protected confirmIconPicker(): void {
+    this.categoryForm.controls.icone.setValue(this.iconPickerSelection());
+    this.iconPickerOpen.set(false);
+    this.iconSearch.set('');
+  }
+  protected cancelIconPicker(): void {
     this.iconPickerOpen.set(false);
     this.iconSearch.set('');
   }
@@ -1387,13 +1458,11 @@ export class FontesListPage {
     });
   }
   private success(message: string): void {
-    this.feedback.set(message);
-    this.failed.set(false);
+    this.notifications.success(message);
     this.saving.set(false);
   }
   private fail(error: unknown): void {
-    this.feedback.set(this.errors.message(error));
-    this.failed.set(true);
+    this.notifications.error(this.errors.message(error));
     this.saving.set(false);
   }
 }

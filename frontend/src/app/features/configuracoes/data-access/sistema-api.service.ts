@@ -3,10 +3,22 @@ import { Injectable, inject } from '@angular/core';
 import { ApiResponse } from '../../../core/models/api.models';
 import { Observable } from 'rxjs';
 import { apiUrl } from '../../../core/config/api.config';
+import { ScrapingSchedule } from '../../../core/models/domain.models';
 
 @Injectable({ providedIn: 'root' })
 export class SistemaApiService {
   private readonly http = inject(HttpClient);
+  schedule(): Observable<ApiResponse<ScrapingSchedule>> {
+    return this.http.get<ApiResponse<ScrapingSchedule>>(
+      apiUrl('/admin/configuracoes/scraping/agendamento'),
+    );
+  }
+  saveSchedule(schedule: ScrapingSchedule): Observable<ApiResponse<ScrapingSchedule>> {
+    return this.http.put<ApiResponse<ScrapingSchedule>>(
+      apiUrl('/admin/configuracoes/scraping/agendamento'),
+      schedule,
+    );
+  }
   cleanProducts(): Observable<ApiResponse<unknown>> {
     return this.http.post<ApiResponse<unknown>>(
       apiUrl('/admin/configuracoes/scraping/limpar-produtos'),

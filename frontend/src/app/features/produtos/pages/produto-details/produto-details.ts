@@ -17,12 +17,14 @@ import { ApiErrorService } from '../../../../core/services/api-error.service';
 import { ProdutosApiService } from '../../data-access/produtos-api.service';
 import { FontesApiService } from '../../../fontes/data-access/fontes-api.service';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
+import { PriceInsightCardComponent } from '../../components/price-insight-card/price-insight-card';
+import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
 
-type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
+type Period = '7days' | '15days' | '30days' | '90days';
 
 @Component({
   selector: 'app-produto-details',
-  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon],
+  imports: [RouterLink, CurrencyPipe, SourceIdentityComponent, LucideDynamicIcon, PriceInsightCardComponent, UiButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="page-wrap detail-page">
@@ -45,6 +47,7 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
               <app-source-identity
                 [name]="sourceMap()[item.fonte]?.nome ?? item.fonte"
                 [logo]="sourceMap()[item.fonte]?.logo ?? ''"
+                [detail]="true"
               /><span>· {{ item.categoria || 'Produto' }}</span>
             </div>
             <h1>{{ item.titulo }}</h1>
@@ -58,9 +61,7 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
               }
             </div>
             @if (item.url) {
-              <a class="btn primary" [href]="item.url" target="_blank" rel="noreferrer"
-                >Ver na loja <svg lucideIcon="external-link" aria-hidden="true"></svg></a
-              >
+              <app-ui-button label="Ver na loja" icon="external-link" (click)="openStore(item.url)" />
             }
           </div>
         </section>
@@ -104,33 +105,26 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
           </section>
         }
         <section class="section panel history">
-          <div class="section-head">
+          <div class="chart-header">
             <div>
-              <h2>Histórico de preço</h2>
-              <span>{{ history().length }} registro(s)</span>
+              <h2>Gráfico de Evolução de Preço</h2>
+              <p>Acompanhe a variação de preço deste produto nos últimos <strong>{{ periodLabel() }}</strong></p>
             </div>
-            <div class="periods">
+            <label class="period-select">
+              <span class="sr-only">Período do gráfico</span>
+              <select [value]="period()" (change)="changePeriodFromEvent($event)" aria-label="Período do gráfico">
               @for (option of periods; track option.value) {
-                <button
-                  type="button"
-                  [class.active]="period() === option.value"
-                  (click)="changePeriod(option.value)"
-                >
-                  {{ option.label }}
-                </button>
+                <option [value]="option.value" [selected]="option.value === period()">{{ option.label }}</option>
               }
-            </div>
+            </select>
+            </label>
           </div>
+          <app-price-insight-card
+            [currentPrice]="item.preco"
+            [history]="bestHistory()"
+            [periodDays]="periodDays()"
+          />
           @if (history().length) {
-            <div class="range">
-              <span
-                >Maior: <strong>{{ maxPrice() | currency: 'BRL' }}</strong></span
-              ><span
-                >Atual: <strong>{{ item.preco | currency: 'BRL' }}</strong></span
-              ><span
-                >Menor: <strong>{{ minPrice() | currency: 'BRL' }}</strong></span
-              >
-            </div>
             <div class="chart"><canvas #chartCanvas></canvas></div>
           } @else {
             <div class="state">Ainda não há histórico suficiente.</div>
@@ -189,6 +183,18 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
       align-items: flex-start;
       justify-content: center;
     }
+    .detail-source {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 8px;
+      min-width: 0;
+      color: #475569;
+      font-size: 14px;
+    }
+    .detail-source app-source-identity { flex: 0 0 auto; }
+    .detail-source > span { display: inline-flex; align-items: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .summary app-ui-button { margin-top: 4px; }
     .summary h1 {
       max-width: 720px;
       margin: 12px 0 24px;
@@ -282,37 +288,59 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
     .offer-card .store-link { width: fit-content; margin-top: 3px; }
     .store-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: 6px; background: var(--blue); color: #fff; font-size: 12px; }
     .history {
-      padding: 1.3rem;
+      padding: 0;
       margin-top: 54px;
-      border-top: 1px solid var(--line);
-    }
-    .periods {
-      display: flex;
-      gap: 0.25rem;
-      flex-wrap: wrap;
-    }
-    .periods button {
-      border: 1px solid var(--border);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
       background: #fff;
-      border-radius: 8px;
-      padding: 0.45rem 0.65rem;
-      cursor: pointer;
+      box-shadow: none;
+      color: #172033;
     }
-    .periods button.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-    .range {
+    .chart-header {
       display: flex;
-      justify-content: space-around;
-      background: var(--surface-2);
-      padding: 0.8rem;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 25px 30px;
+      border-bottom: 1px solid #e5eaf1;
+    }
+    .chart-header h2 {
+      margin: 0 0 5px;
+      color: #172033;
+      font-size: 20px;
+    }
+    .chart-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 15px;
+    }
+    .chart-header p strong { color: #172033; font-weight: 600; }
+    .period-select select {
+      width: 200px;
+      height: 46px;
+      padding: 0 14px;
+      border: 1px solid #d8dee9;
       border-radius: 10px;
-      margin: 1.2rem 0;
+      outline: 0;
+      background: #fff;
+      color: #172033;
+      font: inherit;
+      font-size: 15px;
     }
     .chart {
-      height: 330px;
+      height: 365px;
+      padding: 10px 24px 25px;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     .detail-skeleton {
       height: 600px;
@@ -327,15 +355,16 @@ type Period = 'day' | 'week' | 'month' | '3months' | '6months' | 'year';
       .detail-image {
         height: 260px;
       }
+      .detail-source { flex-wrap: wrap; }
       .offers { grid-template-columns: 1fr; }
       .section-head {
         align-items: flex-start;
         flex-direction: column;
       }
-      .range {
-        font-size: 0.75rem;
-        gap: 0.5rem;
-      }
+      .chart-header { padding: 22px 20px; }
+      .chart-header p { line-height: 1.4; }
+      .period-select select { width: 145px; }
+      .chart { height: 300px; padding: 8px 12px 18px; }
     }
   `,
 })
@@ -350,10 +379,11 @@ export class ProdutoDetailsPage implements OnDestroy {
   protected readonly history = signal<PriceHistoryEntry[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal('');
-  protected readonly period = signal<Period>('month');
-  protected readonly minPrice = signal(0);
-  protected readonly maxPrice = signal(0);
+  protected readonly period = signal<Period>('30days');
+  protected readonly periodDays = computed(() => ({ '7days': 7, '15days': 15, '30days': 30, '90days': 90 }[this.period()]));
+  protected readonly periodLabel = computed(() => ({ '7days': '7 dias', '15days': '15 dias', '30days': '30 dias', '90days': '90 dias' }[this.period()]));
   protected readonly sourceMap = signal<Record<string, { nome: string; logo?: string }>>({});
+  protected readonly bestHistory = computed(() => this.bestPrices(this.filteredHistory()));
   protected readonly discount = computed(() => {
     const item = this.product();
     const old = item?.precoAntigo ?? 0;
@@ -361,12 +391,10 @@ export class ProdutoDetailsPage implements OnDestroy {
     return old > current && old > 0 ? Math.round(((old - current) / old) * 100) : 0;
   });
   protected readonly periods: { value: Period; label: string }[] = [
-    { value: 'day', label: 'Dia' },
-    { value: 'week', label: 'Semana' },
-    { value: 'month', label: 'Mês' },
-    { value: '3months', label: '3 meses' },
-    { value: '6months', label: '6 meses' },
-    { value: 'year', label: 'Ano' },
+    { value: '7days', label: '7 dias' },
+    { value: '15days', label: '15 dias' },
+    { value: '30days', label: '30 dias' },
+    { value: '90days', label: '90 dias' },
   ];
   constructor() {
     Chart.register(...registerables);
@@ -383,7 +411,6 @@ export class ProdutoDetailsPage implements OnDestroy {
         this.product.set(product);
         this.offers.set((r.ofertas ?? (product ? [product] : [])).filter((o) => o.ativo !== false));
         this.history.set(r.historico ?? []);
-        this.setRange();
         this.loading.set(false);
         setTimeout(() => this.renderChart());
       },
@@ -397,29 +424,39 @@ export class ProdutoDetailsPage implements OnDestroy {
     this.period.set(period);
     this.renderChart();
   }
-  private points(): PriceHistoryEntry[] {
-    const days: Record<Period, number> = {
-      day: 1,
-      week: 7,
-      month: 30,
-      '3months': 90,
-      '6months': 180,
-      year: 365,
-    };
-    const cutoff = Date.now() - days[this.period()] * 86400000;
-    const filtered = this.history().filter(
+  protected changePeriodFromEvent(event: Event): void {
+    this.changePeriod((event.target as HTMLSelectElement).value as Period);
+  }
+  protected openStore(url: string): void {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+  private readonly filteredHistory = computed(() => {
+    const cutoff = Date.now() - this.periodDays() * 86400000;
+    return this.history().filter(
       (p) => new Date(p.coletadoEm ?? p.criadoEm ?? p.data ?? 0).getTime() >= cutoff,
     );
-    return filtered.length ? filtered : this.history().slice(-1);
+  });
+  private points(): PriceHistoryEntry[] {
+    const filtered = this.bestHistory();
+    return filtered.length ? filtered : this.bestPrices(this.history().slice(-1));
   }
-  private setRange(): void {
-    const values = this.history()
-      .map((p) => Number(p.preco))
-      .filter(Number.isFinite);
-    if (values.length) {
-      this.minPrice.set(Math.min(...values));
-      this.maxPrice.set(Math.max(...values));
+  private bestPrices(points: PriceHistoryEntry[]): PriceHistoryEntry[] {
+    const byDate = new Map<string, PriceHistoryEntry>();
+    for (const point of points) {
+      const price = Number(point.preco);
+      const dateValue = point.coletadoEm ?? point.criadoEm ?? point.data;
+      const timestamp = dateValue ? new Date(dateValue).getTime() : Number.NaN;
+      if (!Number.isFinite(price) || !Number.isFinite(timestamp)) continue;
+      const date = new Date(timestamp);
+      const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const current = byDate.get(dateKey);
+      if (!current || price < Number(current.preco)) {
+        byDate.set(dateKey, point);
+      }
     }
+    return [...byDate.values()].sort(
+      (left, right) => new Date(left.coletadoEm ?? left.criadoEm ?? left.data ?? 0).getTime() - new Date(right.coletadoEm ?? right.criadoEm ?? right.data ?? 0).getTime(),
+    );
   }
   private renderChart(): void {
     const canvas = this.canvas()?.nativeElement;
@@ -430,26 +467,67 @@ export class ProdutoDetailsPage implements OnDestroy {
       type: 'line',
       data: {
         labels: points.map((p) =>
-          new Date(p.coletadoEm ?? p.criadoEm ?? p.data ?? 0).toLocaleDateString('pt-BR'),
+          new Date(p.coletadoEm ?? p.criadoEm ?? p.data ?? 0)
+            .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+            .replace('.', ''),
         ),
         datasets: [
           {
+            label: 'Preço',
             data: points.map((p) => p.preco ?? 0),
-            borderColor: '#2456df',
-            backgroundColor: '#2456df16',
+            borderColor: '#7c3aed',
+            backgroundColor: (context) => {
+              const { chart } = context;
+              const area = chart.chartArea;
+              if (!area) return 'rgba(124, 58, 237, 0.18)';
+              const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+              gradient.addColorStop(0, 'rgba(124, 58, 237, 0.26)');
+              gradient.addColorStop(1, 'rgba(124, 58, 237, 0.02)');
+              return gradient;
+            },
             fill: true,
             tension: 0.35,
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 5,
+            pointBackgroundColor: '#a855f7',
+            pointBorderColor: '#fff',
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        animation: { duration: 500, easing: 'easeOutQuart' },
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            displayColors: false,
+            backgroundColor: '#fff',
+            borderColor: '#d8dee9',
+            borderWidth: 1,
+            padding: 12,
+            titleColor: '#475569',
+            bodyColor: '#172033',
+            callbacks: {
+              label: (context) => ` ${Number(context.parsed.y ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+            },
+          },
+        },
         scales: {
-          x: { grid: { display: false } },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#64748b', maxTicksLimit: 8, padding: 8 },
+            border: { display: false },
+          },
           y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(148, 163, 184, 0.22)' },
+            border: { display: false },
             ticks: {
+              color: '#64748b',
+              padding: 10,
               callback: (value) =>
                 Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
             },
@@ -462,5 +540,3 @@ export class ProdutoDetailsPage implements OnDestroy {
     this.chart?.destroy();
   }
 }
-
-

@@ -15,6 +15,7 @@ import { FontesApiService } from '../../data-access/fontes-api.service';
 import { ProductCardComponent } from '../../../produtos/components/product-card/product-card';
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
 import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
+import { NotificationService } from '../../../../shared/notifications/notification.service';
 
 type SelectorKey = keyof Pick<
   Selectors,
@@ -78,9 +79,6 @@ interface ProgressoTeste {
             />
           </div>
         </header>
-        @if (feedback()) {
-          <div class="feedback" [class.error]="failed()">{{ feedback() }}</div>
-        }
         <div class="config-layout">
           <section class="preview-panel">
             <div class="preview-stage">
@@ -786,6 +784,7 @@ export class FonteDetailsPage {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(FontesApiService);
   private readonly errors = inject(ApiErrorService);
+  private readonly notifications = inject(NotificationService);
   private loadedConfig: ScrapingConfig | null = null;
   protected readonly source = signal<ConfiguredSource | null>(null);
   protected readonly category = signal<SourceCategory | null>(null);
@@ -801,8 +800,6 @@ export class FonteDetailsPage {
   private ultimoEventoProgresso = 0;
   protected readonly navegadorVisivel = signal(false);
   protected readonly testResult = signal<SelectorTestResult | null>(null);
-  protected readonly feedback = signal('');
-  protected readonly failed = signal(false);
   protected readonly activeSelector = signal<SelectorKey | ''>('');
   protected readonly form = this.fb.nonNullable.group({
     item: ['', Validators.required],
@@ -1049,8 +1046,7 @@ export class FonteDetailsPage {
           this.testResult.set(result);
           this.testing.set(false);
           this.encerrarProgresso();
-          this.feedback.set('Teste concluído.');
-          this.failed.set(false);
+          this.notifications.success('Teste concluído com sucesso.');
         },
         error: (error) => {
           this.testing.set(false);
@@ -1130,13 +1126,11 @@ export class FonteDetailsPage {
       });
   }
   private success(message: string): void {
-    this.feedback.set(message);
-    this.failed.set(false);
+    this.notifications.success(message);
     this.saving.set(false);
   }
   private fail(error: unknown): void {
-    this.feedback.set(this.errors.message(error));
-    this.failed.set(true);
+    this.notifications.error(this.errors.message(error));
     this.saving.set(false);
   }
 }

@@ -245,7 +245,10 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
               @for (item of statusPageItems(); track item._id) {
                 <article class="monitor-source-card">
                   <div class="monitor-card-title">
-                    <app-source-identity [name]="item.fonte" /><span
+                    <app-source-identity
+                      [name]="sourceName(item.fonte)"
+                      [logo]="sourceLogo(item.fonte)"
+                    /><span
                       class="monitor-status-badge"
                       [class]="item.status"
                       >{{ statusLabel(item) }}</span

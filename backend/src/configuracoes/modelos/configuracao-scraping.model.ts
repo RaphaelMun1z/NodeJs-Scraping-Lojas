@@ -50,6 +50,10 @@ const esquemaConfiguracaoScraping = new Schema(
 	{
 		chave: { type: String, unique: true, required: true, default: "principal" },
 		fontes: { type: [esquemaFonte], required: true },
+		agendamento: {
+			horarios: { type: [String], required: true, default: ["00:00", "12:00"] },
+			fusoHorario: { type: String, required: true, default: "America/Sao_Paulo" },
+		},
 		atualizadaEm: { type: Date, required: true },
 	},
 	{ versionKey: false },
