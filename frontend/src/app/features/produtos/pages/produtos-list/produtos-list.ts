@@ -193,11 +193,13 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
           >
         </div>
         @if (error()) {
-          <div class="state">
-            {{ error() }}
-            <button class="btn primary" type="button" (click)="load()">
-              Tentar novamente <svg lucideIcon="rotate-ccw" aria-hidden="true"></svg>
-            </button>
+          <div class="state error-state">
+            <p class="state-message">{{ error() }}</p>
+            <span class="retry-button-layer">
+              <button class="retry-button" type="button" (click)="load()">
+                Tentar novamente <svg lucideIcon="rotate-ccw" aria-hidden="true"></svg>
+              </button>
+            </span>
           </div>
         } @else if (loading()) {
           <div class="products-grid">
@@ -231,6 +233,68 @@ import { PaginationComponent } from '../../../../shared/components/pagination/pa
     </main>
   `,
   styles: `
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .error-state .state-message {
+      max-width: 720px;
+      margin: 0;
+      line-height: 1.45;
+    }
+    .retry-button-layer {
+      position: relative;
+      z-index: 0;
+      display: inline-block;
+      height: var(--action-button-height);
+      isolation: isolate;
+    }
+    .retry-button-layer::after {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      border: 2px solid var(--action-button-primary-layer);
+      border-radius: var(--action-button-radius);
+      background: var(--action-button-primary-layer);
+      content: '';
+      pointer-events: none;
+      transform: translate(4px, 4px);
+    }
+    .retry-button {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      height: var(--action-button-height);
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      border: 2px solid var(--action-button-border);
+      border-radius: var(--action-button-radius);
+      background: var(--action-button-primary-background);
+      color: #111;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      transition: transform 120ms ease, background-color 120ms ease;
+    }
+    .retry-button:hover {
+      background: var(--action-button-primary-hover);
+    }
+    .retry-button:active {
+      transform: translate(2px, 2px);
+    }
+    .retry-button:focus-visible {
+      outline: 3px solid rgb(36 86 223 / 28%);
+      outline-offset: 2px;
+    }
+    .retry-button .lucide {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.5;
+    }
     .content-layout {
       display: grid;
       grid-template-columns: 302px minmax(0, 1fr);
@@ -771,8 +835,8 @@ export class ProdutosListPage {
     const destroyRef = inject(DestroyRef);
     const busca = this.route.snapshot.queryParamMap.get('busca') ?? '';
     forkJoin({
-      sources: this.sourceApi.publicList(),
-      categories: this.api.categories(),
+      sources: this.sourceApi.publicList().pipe(catchError(() => of([] as SourceIdentity[]))),
+      categories: this.api.categories().pipe(catchError(() => of([] as string[]))),
       newest: this.api.newest(30).pipe(catchError(() => of([] as Product[]))),
     }).subscribe({
       next: ({ sources, categories, newest }) => {
@@ -782,6 +846,7 @@ export class ProdutosListPage {
         this.newest.set(newest);
         this.newestPage.set(1);
       },
+      error: () => this.error.set('Não foi possível carregar os filtros agora. Você ainda pode tentar novamente.'),
     });
     this.form.valueChanges.pipe(takeUntilDestroyed(destroyRef)).subscribe(() => {
       this.page.set(1);

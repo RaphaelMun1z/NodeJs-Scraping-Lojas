@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { retry } from 'rxjs';
+import { catchError, of, retry } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   ScrapingExecution,
@@ -161,9 +161,9 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
                         >{{ statusLabel(item) }}</span
                       >
                     </td>
-                    <td>{{ item.duracaoMs | duration }}</td>
+                    <td>{{ historyDuration(item) }}</td>
                     <td class="history-products">
-                      <strong>{{ item.produtosPersistidos ?? 0 }}</strong>
+                      <strong>{{ historyProducts(item) }}</strong>
                     </td>
                     <td>
                       <button
@@ -890,6 +890,7 @@ export class ScrapingDashboardPage {
   private readonly errors = inject(ApiErrorService);
   private readonly fb = inject(FormBuilder);
   private readonly dialogs = inject(DialogService);
+  private readonly durationPipe = new DurationPipe();
   @ViewChild('logsDialog', { static: true }) private readonly logsDialog!: TemplateRef<unknown>;
   private logsDialogRef?: MatDialogRef<unknown>;
   protected readonly summary = signal<ScrapingSummary | null>(null);
@@ -956,7 +957,8 @@ export class ScrapingDashboardPage {
     destroy.onDestroy(() => window.clearInterval(refresh));
     this.loadStatus();
     this.loadHistory(1);
-    this.sourceApi.config().subscribe((config) => {
+    this.sourceApi.config().pipe(catchError(() => of(null))).subscribe((config) => {
+      if (!config) return;
       this.sources.set(config.fontes.map((source) => source.fonte));
       this.sourceIdentities.set(config.fontes);
     });
@@ -973,7 +975,9 @@ export class ScrapingDashboardPage {
             ...items.filter((item) => item._id !== event.data._id),
           ]);
           this.executions.update((items) =>
-            items.map((item) => (item._id === event.data._id ? event.data : item)),
+            items.map((item) =>
+              item._id === event.data._id ? this.mergeExecution(item, event.data) : item,
+            ),
           );
           if (this.selected()?._id === event.data._id) this.selected.set(event.data);
           if (!executionAlreadyListed) this.loadHistory(this.page());
@@ -1112,6 +1116,29 @@ export class ScrapingDashboardPage {
   protected progressLabel(item: ScrapingExecution): string {
     const progress = item.progresso?.geral ?? 0;
     return progress >= 100 ? 'Concluída' : progress > 0 ? 'Em andamento' : 'Calculando…';
+  }
+  protected historyProducts(item: ScrapingExecution): string | number {
+    if (item.produtosEncontrados !== undefined) return item.produtosEncontrados;
+    if (item.produtosPersistidos !== undefined && item.status !== 'executando') {
+      return item.produtosPersistidos;
+    }
+    return item.status === 'executando' ? 'Aguardando...' : 0;
+  }
+  protected historyDuration(item: ScrapingExecution): string {
+    return item.duracaoMs !== undefined
+      ? this.durationPipe.transform(item.duracaoMs)
+      : item.status === 'executando'
+        ? 'Em andamento'
+        : '—';
+  }
+  private mergeExecution(current: ScrapingExecution, incoming: ScrapingExecution): ScrapingExecution {
+    const merged = { ...current } as ScrapingExecution;
+    for (const [key, value] of Object.entries(incoming)) {
+      if (value !== undefined && value !== null) {
+        (merged as unknown as Record<string, unknown>)[key] = value;
+      }
+    }
+    return merged;
   }
   protected historyProgress(item: ScrapingExecution): string {
     const progress = Math.min(100, Math.max(0, item.progresso?.geral ?? 0));

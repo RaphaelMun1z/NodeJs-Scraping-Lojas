@@ -191,8 +191,8 @@ export class ControladorConfiguracaoScraping {
 			);
       const resultado = await this.clienteHttp.obterHtmlComDiagnostico(url, {
 			...opcoesColeta,
-        // Fora do Docker, NAVEGADOR_VISIVEL=true permite acompanhar a
-        // navegação do Chromium durante o teste.
+        // Esta variável vale somente para o teste de seletores. O scraping
+        // normal usa sempre o navegador em segundo plano.
         navegadorVisivel: process.env.NAVEGADOR_VISIVEL === "true",
         progresso: (evento) => publicar(evento),
         capturarPreview: true,

@@ -3,11 +3,12 @@ import { RouterOutlet } from '@angular/router';
 import { AuthApiService } from './core/auth/auth-api.service';
 import { HeaderComponent } from './layout/header/header';
 import { NotificationComponent } from './shared/notifications/notification.component';
+import { BackendStatusComponent } from './shared/components/backend-status/backend-status';
 
 @Component({
-  imports: [RouterOutlet, HeaderComponent, NotificationComponent],
+  imports: [RouterOutlet, HeaderComponent, NotificationComponent, BackendStatusComponent],
   selector: 'app-root',
-  template: `<app-header /><app-notifications /><router-outlet />`,
+  template: `<app-header /><app-backend-status /><app-notifications /><router-outlet />`,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {

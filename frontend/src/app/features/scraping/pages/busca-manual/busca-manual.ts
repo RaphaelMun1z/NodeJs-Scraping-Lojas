@@ -479,11 +479,14 @@ export class BuscaManualPage {
     );
   });
   constructor() {
-    this.sourceApi.config().subscribe((config) => {
-      const sources = config.fontes
-        .map((f) => ({ fonte: f.fonte, nome: f.nome, logo: f.logo ?? '' }));
-      this.sources.set(sources);
-      this.selected.set(new Set(sources.map((f) => f.fonte)));
+    this.sourceApi.config().subscribe({
+      next: (config) => {
+        const sources = config.fontes
+          .map((f) => ({ fonte: f.fonte, nome: f.nome, logo: f.logo ?? '' }));
+        this.sources.set(sources);
+        this.selected.set(new Set(sources.map((f) => f.fonte)));
+      },
+      error: (error) => this.error.set(this.errors.message(error, 'Não foi possível carregar as fontes agora. Tente novamente em instantes.')),
     });
   }
   protected toggle(source: string, event: Event): void {

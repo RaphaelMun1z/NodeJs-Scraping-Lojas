@@ -11,6 +11,7 @@ import { LOCALE_ID } from '@angular/core';
 import { routes } from './app.routes';
 import { csrfInterceptor } from './core/interceptors/csrf.interceptor';
 import { authTokenInterceptor } from './core/interceptors/auth-token.interceptor';
+import { backendStatusInterceptor } from './core/interceptors/backend-status.interceptor';
 import { APP_ICON_PROVIDERS } from './app-icons';
 import { AppTitleStrategy } from './core/seo/app-title.strategy';
 
@@ -22,7 +23,7 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     { provide: TitleStrategy, useClass: AppTitleStrategy },
-    provideHttpClient(withInterceptors([authTokenInterceptor, csrfInterceptor])),
+    provideHttpClient(withInterceptors([authTokenInterceptor, csrfInterceptor, backendStatusInterceptor])),
     ...APP_ICON_PROVIDERS,
     { provide: LOCALE_ID, useValue: 'pt-BR' },
   ],

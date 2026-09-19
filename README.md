@@ -23,6 +23,17 @@ Para subir um MongoDB local com Docker:
 docker compose up -d
 ```
 
+Para subir somente MongoDB e Elasticsearch e executar backend e frontend localmente:
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+npm --prefix backend run dev
+cd frontend
+npm start
+```
+
+Nesse modo, o arquivo `.env` deve usar `mongodb://127.0.0.1:27018/scraping_lojas` e `http://127.0.0.1:9200`, que são os valores padrão deste projeto.
+
 ## Configuração
 
 Copie `.env.example` para `.env`. As lojas, categorias, URLs e seletores são cadastrados dinamicamente na área administrativa.
@@ -33,12 +44,14 @@ Copie `.env.example` para `.env`. As lojas, categorias, URLs e seletores são ca
 | `PORTA_API` | Não | Porta da API; padrão `3000`. |
 | `SALVAR_COLETA` | Não | Persiste os itens quando `true`; padrão `false`. |
 | `REQUEST_TIMEOUT_MS` | Não | Tempo limite de navegação em milissegundos. |
-| `NAVEGADOR_VISIVEL` | Não | Exibe o Chromium quando `true`. |
+| `NAVEGADOR_VISIVEL` | Não | Exibe o Chromium somente durante o teste de seletores da configuração da fonte. O scraping normal é sempre executado em segundo plano. |
 | `NAVEGADOR_PAUSA_MS` | Não | Pausa após o carregamento da página. |
 | `CRON_EXPRESSAO` | Não | Expressão do agendamento; padrão `0 15 * * *`. |
 | `CRON_FUSO_HORARIO` | Não | Fuso do agendamento; padrão `America/Sao_Paulo`. |
 | `EXECUTAR_COLETA_AO_INICIAR` | Não | Executa uma coleta ao iniciar; padrão `true`. |
 | `LOG_LEVEL` | Não | Nível dos logs do Pino. |
+| `LOG_FILE` | Não | Arquivo onde os logs são gravados; por padrão `backend/.dados/logs/aplicacao.log`. |
+| `LOG_PRETTY` | Não | Quando `true`, grava os logs em formato legível; o destino continua sendo o arquivo. |
 
 ## Execução
 

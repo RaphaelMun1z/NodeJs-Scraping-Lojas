@@ -24,7 +24,7 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 		super();
 	}
 
-	async coletar(): Promise<ItemColetado[]> {
+	async coletar(navegadorVisivel?: boolean): Promise<ItemColetado[]> {
 		const configuracaoAtual = await this.obterConfiguracaoAtual?.();
 		const url = configuracaoAtual?.url ?? this.url;
 		const seletores = configuracaoAtual?.seletores ?? this.seletores;
@@ -38,10 +38,10 @@ export class ColetorFonteSite extends ColetorBase<ItemColetado> implements Fonte
 			},
 			"Configuração resolvida para coleta real",
 		);
-		const resultado = await this.clienteHttp.obterHtmlComDiagnostico(
-			url,
-			opcoes,
-		);
+		const resultado = await this.clienteHttp.obterHtmlComDiagnostico(url, {
+			...opcoes,
+			navegadorVisivel,
+		});
 		const { html } = resultado;
 		this.diagnostico = {
 			paginasProcessadas: resultado.paginacao.paginasProcessadas,

@@ -328,13 +328,14 @@ export class RepositorioItem {
 		if (!produto) return null;
 
 		const filtroHistorico = produto.grupoProdutoId
-			? { grupoProdutoId: produto.grupoProdutoId }
+			? { $or: [{ grupoProdutoId: produto.grupoProdutoId }, { chaveProduto: produto.chave }] }
 			: { chaveProduto: produto.chave };
-		const historico = await ModeloHistoricoPreco.find(filtroHistorico)
+		const historicoBruto = await ModeloHistoricoPreco.find(filtroHistorico)
 			.select("preco precoAntigo coletadoEm fonte")
 			.sort({ coletadoEm: 1 })
 			.lean()
 			.exec();
+		const historico = [...new Map(historicoBruto.map((registro) => [String(registro._id), registro])).values()];
 		const menorPrecoHistorico = historico.reduce<number | undefined>((menor, registro) => menor === undefined || registro.preco < menor ? registro.preco : menor, undefined);
 		Object.assign(produto, { menorPrecoHistorico, precoHistorico: Boolean(produto.grupoProdutoId) && historico.length > 1 && produto.preco === menorPrecoHistorico });
 		const ofertas = produto.grupoProdutoId

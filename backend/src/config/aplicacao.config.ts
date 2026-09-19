@@ -8,6 +8,7 @@ import { z } from "zod";
 // fornecidas pelo processo (como as do Docker).
 carregarAmbiente({
 	path: resolve(fileURLToPath(new URL("../../../.env", import.meta.url))),
+	quiet: true,
 });
 
 const esquemaConfiguracao = z.object({

@@ -66,7 +66,10 @@ export class ClienteHttp {
   private async obterNavegador(): Promise<Browser> {
     if (this.navegador) return this.navegador;
     this.inicializacaoNavegador ??= chromium.launch({
-      headless: process.env.NAVEGADOR_VISIVEL !== "true",
+      // O navegador compartilhado atende ao scraping normal e deve ser
+      // sempre executado em segundo plano. O teste de seletores cria uma
+      // instância exclusiva quando precisa respeitar NAVEGADOR_VISIVEL.
+      headless: true,
     });
     this.navegador = await this.inicializacaoNavegador;
     return this.navegador;

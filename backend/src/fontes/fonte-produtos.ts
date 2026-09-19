@@ -9,6 +9,6 @@ export interface FonteProdutos {
 	nome: string;
 	categoria: string;
 	identificadorColeta: string;
-	coletar(): Promise<ItemColetado[]>;
+	coletar(navegadorVisivel?: boolean): Promise<ItemColetado[]>;
 	obterDiagnosticoColeta?(): DiagnosticoColetaFonte | undefined;
 }

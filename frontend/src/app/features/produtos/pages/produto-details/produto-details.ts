@@ -19,6 +19,7 @@ import { FontesApiService } from '../../../fontes/data-access/fontes-api.service
 import { SourceIdentityComponent } from '../../../../shared/components/source-identity/source-identity';
 import { PriceInsightCardComponent } from '../../components/price-insight-card/price-insight-card';
 import { UiButtonComponent } from '../../../../shared/components/ui-button/ui-button';
+import { catchError, of } from 'rxjs';
 
 type Period = '7days' | '15days' | '30days' | '90days';
 
@@ -399,7 +400,7 @@ export class ProdutoDetailsPage implements OnDestroy {
   constructor() {
     Chart.register(...registerables);
     // Logos are public catalog metadata; use the same public endpoint as the legacy frontend.
-    this.sourceApi.publicList().subscribe((sources) => {
+    this.sourceApi.publicList().pipe(catchError(() => of([]))).subscribe((sources) => {
       this.sourceMap.set(
         Object.fromEntries(sources.map((source) => [source.fonte, { nome: source.nome, logo: source.logo }])),
       );

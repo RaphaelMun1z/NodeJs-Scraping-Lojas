@@ -27,7 +27,9 @@ export class ServicoBuscaManual {
 
 		for (const fonte of fontes) {
 			try {
-				const itensDaFonte = await fonte.coletar();
+				// A busca manual nunca deve abrir uma janela do navegador, mesmo quando
+				// A busca manual tambem nao deve abrir o navegador.
+				const itensDaFonte = await fonte.coletar(false);
 				const termo = busca.toLocaleLowerCase();
 				itens.push(...(termo ? itensDaFonte.filter((item) => item.titulo.toLocaleLowerCase().includes(termo)) : itensDaFonte));
 			} catch (erro) {

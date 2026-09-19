@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { catchError, of } from 'rxjs';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthApiService } from '../../core/auth/auth-api.service';
 import { LucideDynamicIcon } from '@lucide/angular';
@@ -306,7 +307,6 @@ export class AdminShellComponent {
     this.consultationExpanded.update((expanded) => !expanded);
   }
   protected logout(): void {
-    this.auth.logout().subscribe(() => void this.router.navigateByUrl('/produtos'));
+    this.auth.logout().pipe(catchError(() => of(void 0))).subscribe(() => void this.router.navigateByUrl('/produtos'));
   }
 }
-

@@ -200,7 +200,8 @@ export class ServicoConfiguracaoScraping {
 					this.normalizarFonte(fonte as FonteConfigurada),
 				),
 				agendamento: this.normalizarAgendamento(existente.agendamento),
-				telegram: esquemaTelegram.parse(existente.telegram),
+				// Configurações anteriores à integração com Telegram não possuem esse campo.
+				telegram: esquemaTelegram.parse(existente.telegram ?? {}),
 				atualizadaEm: existente.atualizadaEm,
 			};
 		}

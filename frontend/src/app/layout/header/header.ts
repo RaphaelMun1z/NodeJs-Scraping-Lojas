@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProdutosApiService } from '../../features/produtos/data-access/produtos-api.service';
 import { AuthApiService } from '../../core/auth/auth-api.service';
@@ -204,7 +204,9 @@ export class HeaderComponent {
         debounceTime(250),
         distinctUntilChanged(),
         switchMap((value) =>
-          value.trim().length >= 2 ? this.products.suggestions(value.trim()) : of([]),
+          value.trim().length >= 2
+            ? this.products.suggestions(value.trim()).pipe(catchError(() => of([])))
+            : of([]),
         ),
         takeUntilDestroyed(destroyRef),
       )

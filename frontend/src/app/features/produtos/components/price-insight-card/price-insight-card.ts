@@ -1,4 +1,3 @@
-import { CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { LucideDynamicIcon } from '@lucide/angular';
 import { PriceHistoryEntry } from '../../../../core/models/domain.models';
@@ -10,7 +9,7 @@ type PricePosition = 'below' | 'within' | 'above';
 
 @Component({
   selector: 'app-price-insight-card',
-  imports: [CurrencyPipe, LucideDynamicIcon],
+  imports: [LucideDynamicIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="insight-card" aria-labelledby="price-insight-title">

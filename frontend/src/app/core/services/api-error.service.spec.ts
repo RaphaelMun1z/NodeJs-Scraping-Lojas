@@ -11,6 +11,6 @@ describe('ApiErrorService', () => {
 
   it('explains connection failures', () => {
     const error = new HttpErrorResponse({ status: 0 });
-    expect(service.message(error)).toBe('Não foi possível conectar ao servidor.');
+    expect(service.message(error)).toBe('O serviço está temporariamente indisponível. Tente novamente em instantes.');
   });
 });
