@@ -23,6 +23,7 @@ import { ServicoConfiguracaoScraping } from "./configuracoes/servico-configuraca
 import { ServicoEventosScraping } from "./monitoramento/servico-eventos-scraping.js";
 import { ServicoBuscaManual } from "./servicos/servico-busca-manual.js";
 import { ServicoLimpezaProdutos } from "./servicos/servico-limpeza-produtos.js";
+import { ServicoNotificacaoTelegram } from "./notificacoes/servico-notificacao-telegram.js";
 
 async function iniciarAplicacao(): Promise<void> {
 	// Centraliza a composição das dependências compartilhadas pela aplicação.
@@ -119,6 +120,7 @@ async function iniciarAplicacao(): Promise<void> {
 		criarFontesConfiguradas(
 			(await configuracaoScraping.obterOuCriarPadrao()).fontes,
 		);
+	const notificacaoTelegram = new ServicoNotificacaoTelegram();
 	const servicoColeta = new ServicoColeta(
 		fontes,
 		repositorioItem,
@@ -130,6 +132,10 @@ async function iniciarAplicacao(): Promise<void> {
 				.obterFontesAtivas()
 				.then((fontes) => fontes.map((fonte) => fonte.fonte)),
 		obterFontesConfiguradas,
+		async (desde) => {
+			const configuracao = await configuracaoScraping.obterOuCriarPadrao();
+			await notificacaoTelegram.notificarProdutos(configuracao.telegram, await repositorioItem.consultarOfertasTelegram(desde, configuracao.telegram.percentualAbaixoMedia));
+		},
 	);
 	const servicoBuscaManual = new ServicoBuscaManual(
 		fontes,

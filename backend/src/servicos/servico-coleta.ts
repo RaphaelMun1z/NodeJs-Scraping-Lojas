@@ -16,6 +16,7 @@ export class ServicoColeta {
 		private readonly eventosScraping?: ServicoEventosScraping,
 		private readonly obterFontesAtivas?: () => Promise<string[]>,
 		private readonly obterFontesConfiguradas?: () => Promise<FonteProdutos[]>,
+		private readonly notificarTelegram?: (desde: Date) => Promise<void>,
 	) {}
 
 	executar(): Promise<number> {
@@ -122,6 +123,9 @@ export class ServicoColeta {
 		}));
 
 		logger.info({ produtos: totalItens, duracaoMs: Date.now() - inicio, tempoTotalBuscasMs: tempoTotalBuscas }, "Coleta concluída");
+		try { await this.notificarTelegram?.(new Date(inicio)); } catch (erro) {
+			logger.error({ erro }, "Falha ao enviar ofertas para o Telegram");
+		}
 		return totalItens;
 	}
 

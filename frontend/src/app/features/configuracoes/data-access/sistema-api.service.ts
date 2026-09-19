@@ -5,6 +5,12 @@ import { Observable } from 'rxjs';
 import { apiUrl } from '../../../core/config/api.config';
 import { ScrapingSchedule } from '../../../core/models/domain.models';
 
+export interface TelegramConfig {
+  habilitado: boolean;
+  chatId: string;
+  percentualAbaixoMedia: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SistemaApiService {
   private readonly http = inject(HttpClient);
@@ -18,6 +24,12 @@ export class SistemaApiService {
       apiUrl('/admin/configuracoes/scraping/agendamento'),
       schedule,
     );
+  }
+  telegram(): Observable<ApiResponse<TelegramConfig>> {
+    return this.http.get<ApiResponse<TelegramConfig>>(apiUrl('/admin/configuracoes/scraping/telegram'));
+  }
+  saveTelegram(config: TelegramConfig): Observable<ApiResponse<TelegramConfig>> {
+    return this.http.put<ApiResponse<TelegramConfig>>(apiUrl('/admin/configuracoes/scraping/telegram'), config);
   }
   cleanProducts(): Observable<ApiResponse<unknown>> {
     return this.http.post<ApiResponse<unknown>>(

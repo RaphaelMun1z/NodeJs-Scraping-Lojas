@@ -29,10 +29,19 @@ export class ControladorConfiguracaoScraping {
     resposta.json({ dados: await this.configuracao.obterOuCriarPadrao() });
   };
 
-  obterAgendamento = async (_requisicao: Request, resposta: Response): Promise<void> => {
+	obterAgendamento = async (_requisicao: Request, resposta: Response): Promise<void> => {
     const configuracao = await this.configuracao.obterOuCriarPadrao();
     resposta.json({ dados: configuracao.agendamento });
-  };
+	};
+
+	obterTelegram = async (_requisicao: Request, resposta: Response): Promise<void> => {
+		const configuracao = await this.configuracao.obterOuCriarPadrao();
+		resposta.json({ dados: configuracao.telegram });
+	};
+
+	atualizarTelegram = async (requisicao: Request, resposta: Response): Promise<void> => {
+		resposta.json({ dados: await this.configuracao.atualizarTelegram(requisicao.body) });
+	};
 
   atualizarAgendamento = async (requisicao: Request, resposta: Response): Promise<void> => {
     const agendamento = await this.configuracao.atualizarAgendamento(requisicao.body);
@@ -145,28 +154,18 @@ export class ControladorConfiguracaoScraping {
     requisicao: Request,
     resposta: Response,
   ): Promise<void> => {
-    const { url, fonte, categoria, seletores, navegadorVisivel, execucaoId } =
+    const { url, fonte, categoria, seletores, execucaoId } =
       requisicao.body as {
         url?: string;
         fonte?: string;
         categoria?: string;
         seletores?: SeletoresSite;
-        navegadorVisivel?: unknown;
         execucaoId?: unknown;
       };
     if (!url || !seletores || !fonte || !categoria) {
       resposta
         .status(400)
         .json({ erro: "Informe fonte, URL e todos os seletores obrigatórios" });
-      return;
-    }
-    if (
-      navegadorVisivel !== undefined &&
-      typeof navegadorVisivel !== "boolean"
-    ) {
-      resposta
-        .status(400)
-        .json({ erro: "O campo navegadorVisivel deve ser booleano" });
       return;
     }
     const id =
@@ -192,7 +191,9 @@ export class ControladorConfiguracaoScraping {
 			);
       const resultado = await this.clienteHttp.obterHtmlComDiagnostico(url, {
 			...opcoesColeta,
-        navegadorVisivel: navegadorVisivel === true,
+        // Fora do Docker, NAVEGADOR_VISIVEL=true permite acompanhar a
+        // navegação do Chromium durante o teste.
+        navegadorVisivel: process.env.NAVEGADOR_VISIVEL === "true",
         progresso: (evento) => publicar(evento),
         capturarPreview: true,
       });

@@ -10,12 +10,14 @@ export function criarRotasConfiguracaoScraping(
   roteador.use(autenticacao.middlewareAdministrador());
   roteador.get("/", controlador.obter);
 	roteador.get("/agendamento", controlador.obterAgendamento);
+	roteador.get("/telegram", controlador.obterTelegram);
   roteador.get(
     "/testar-seletores/:execucaoId/progresso",
     controlador.progresso,
   );
   roteador.put("/", autenticacao.middlewareCsrf(), controlador.atualizar);
 	roteador.put("/agendamento", autenticacao.middlewareCsrf(), controlador.atualizarAgendamento);
+	roteador.put("/telegram", autenticacao.middlewareCsrf(), controlador.atualizarTelegram);
   roteador.post(
     "/fontes",
     autenticacao.middlewareCsrf(),

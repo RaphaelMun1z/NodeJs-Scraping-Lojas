@@ -54,6 +54,10 @@ const esquemaConfiguracaoScraping = new Schema(
 			horarios: { type: [String], required: true, default: ["00:00", "12:00"] },
 			fusoHorario: { type: String, required: true, default: "America/Sao_Paulo" },
 		},
+		telegram: {
+			habilitado: { type: Boolean, default: false },
+			chatId: { type: String, default: "" },
+		},
 		atualizadaEm: { type: Date, required: true },
 	},
 	{ versionKey: false },

@@ -4,7 +4,7 @@ services:
         container_name: scraping-lojas-mongodb
         restart: unless-stopped
         ports:
-            - "27017:27017"
+            - "27018:27017"
         volumes:
             - scraping_lojas_dados:/data/db
 
@@ -27,6 +27,8 @@ services:
         depends_on:
             mongodb:
                 condition: service_healthy
+            elasticsearch:
+                condition: service_healthy
         environment:
             NODE_ENV: production
             PORTA_API: 3000
@@ -34,6 +36,7 @@ services:
             SALVAR_COLETA: ${SALVAR_COLETA:-true}
             REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-15000}
             USER_AGENT: ${USER_AGENT:-Mozilla/5.0 (compatible; ScrapingLojas/2.0)}
+            TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
             NAVEGADOR_VISIVEL: "false"
             NAVEGADOR_PAUSA_MS: ${NAVEGADOR_PAUSA_MS:-3000}
             NAVEGADOR_ESPERA_VERIFICACAO_MS: ${NAVEGADOR_ESPERA_VERIFICACAO_MS:-60000}

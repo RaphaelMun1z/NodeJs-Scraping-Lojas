@@ -20,6 +20,13 @@ export interface ResultadoConsultaItens {
 	total: number;
 }
 
+export interface ProdutoOfertaTelegram {
+	titulo: string;
+	preco: number;
+	media: number;
+	url?: string;
+}
+
 export interface MetricasSincronizacaoFonte {
 	brutos: number;
 	unicos: number;
@@ -75,12 +82,18 @@ export class RepositorioItem {
 			.lean()
 			.exec();
 		const estadoPorChave = new Map(estadosAtuais.map((item) => [item.chave, item]));
-		const operacoes = itensUnicos.map((item) => ({
-			updateOne: {
-				filter: { chave: gerarChaveItem(item) },
-				update: {
-					$set: {
-						...(estadoPorChave.has(gerarChaveItem(item)) && (estadoPorChave.get(gerarChaveItem(item))?.titulo !== item.titulo || estadoPorChave.get(gerarChaveItem(item))?.categoriaNormalizada !== item.categoria) ? { matchingProcessado: false } : {}),
+		const operacoes = itensUnicos.map((item) => {
+			const chave = gerarChaveItem(item);
+			const estadoAtual = estadoPorChave.get(chave);
+			const matchingPrecisaSerRefeito = Boolean(
+				estadoAtual &&
+				(estadoAtual.titulo !== item.titulo || estadoAtual.categoriaNormalizada !== item.categoria),
+			);
+
+			// matchingProcessado não pode aparecer simultaneamente em $set e
+			// $setOnInsert: o MongoDB rejeita esses caminhos como conflitantes.
+			const camposSet = {
+				...(matchingPrecisaSerRefeito ? { matchingProcessado: false } : {}),
 						fonte: item.fonte,
 						categoriaOriginal: item.categoria,
 						categoriaNormalizada: item.categoria,
@@ -95,19 +108,27 @@ export class RepositorioItem {
 						imagemUrl: item.imagemUrl,
 						url: item.url,
 						ultimaColetaEm: agora,
-					},
-					$setOnInsert: {
-						chave: gerarChaveItem(item),
-						grupoProdutoId: `grupo-${gerarChaveItem(item)}`,
+			};
+			const camposSetOnInsert = {
+				chave,
+				grupoProdutoId: `grupo-${chave}`,
 						primeiraColetaEm: agora,
 						novaNaUltimaColeta: true,
-						matchingProcessado: false,
+						...(matchingPrecisaSerRefeito ? {} : { matchingProcessado: false }),
 						matchingVersao: 0,
+			};
+
+			return {
+				updateOne: {
+					filter: { chave },
+					update: {
+						$set: camposSet,
+						$setOnInsert: camposSetOnInsert,
 					},
-				},
 				upsert: true,
 			},
-		}));
+			};
+		});
 
 		await ModeloItemBanco.bulkWrite(operacoes, { ordered: false });
 		await this.garantirGruposIndividuais(chavesDosItens);
@@ -278,6 +299,17 @@ export class RepositorioItem {
 		]);
 
 		return { itens, total };
+	}
+
+	async consultarOfertasTelegram(desde?: Date, percentualAbaixoMedia = 65): Promise<ProdutoOfertaTelegram[]> {
+		const fatorMaximo = Math.max(0.01, Math.min(0.99, 1 - percentualAbaixoMedia / 100));
+		return ModeloItemBanco.aggregate([
+			{ $match: { ativo: { $ne: false }, preco: { $gt: 0 }, grupoProdutoId: { $nin: [null, ""] }, ...(desde ? { ultimaColetaEm: { $gte: desde } } : {}) } },
+			{ $lookup: { from: "historicoprecos", localField: "grupoProdutoId", foreignField: "grupoProdutoId", as: "historico" } },
+			{ $set: { media: { $avg: "$historico.preco" } } },
+			{ $match: { $expr: { $and: [{ $gt: ["$media", 0] }, { $lte: ["$preco", { $multiply: ["$media", fatorMaximo] }] }] } } },
+			{ $project: { _id: 0, titulo: 1, preco: 1, media: 1, url: 1 } },
+		]).exec() as Promise<ProdutoOfertaTelegram[]>;
 	}
 
 	async buscarPorId(id: string): Promise<unknown | null> {

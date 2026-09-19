@@ -31,7 +31,7 @@ function lerCookies(requisicao: Request): Record<string, string> {
 function lerToken(requisicao: Request): string | undefined {
 	const autorizacao = requisicao.headers.authorization;
 	if (autorizacao?.startsWith("Bearer ")) return autorizacao.slice("Bearer ".length).trim() || undefined;
-	return undefined;
+	return lerCookies(requisicao)[NOME_COOKIE_SESSAO];
 }
 
 export class ServicoAutenticacao {
@@ -108,7 +108,8 @@ export class ServicoAutenticacao {
 		return { administrador: { id: administrador._id.toString(), email: administrador.email, papel: administrador.papel, mfaAtivo: administrador.mfaAtivo }, tokenCsrfHash: sessao.tokenCsrfHash, expiraEm: sessao.expiraEm };
 	}
 
-	definirCookies(resposta: Response, tokenCsrf: string): void {
+	definirCookies(resposta: Response, tokenSessao: string, tokenCsrf: string): void {
+		resposta.append("Set-Cookie", `${NOME_COOKIE_SESSAO}=${encodeURIComponent(tokenSessao)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${this.duracaoSessaoMs / 1000}${this.cookieSeguro ? "; Secure" : ""}`);
 		resposta.append("Set-Cookie", `${NOME_COOKIE_CSRF}=${encodeURIComponent(tokenCsrf)}; Path=/; SameSite=Strict; Max-Age=${this.duracaoSessaoMs / 1000}${this.cookieSeguro ? "; Secure" : ""}`);
 	}
 
@@ -164,7 +165,7 @@ export class ServicoAutenticacao {
 			{ tokenHash: gerarHash(token) },
 			{ $set: { expiraEm: new Date(Date.now() + this.duracaoSessaoMs) } },
 		).exec();
-		this.definirCookies(resposta, tokenCsrf);
+		this.definirCookies(resposta, token, tokenCsrf);
 	}
 
 	private resumoAdministrador(administrador: { _id: { toString(): string }; email: string; papel: "administrador"; mfaAtivo: boolean }): AdministradorAutenticado {

@@ -136,7 +136,12 @@ import { ScrapingApiService } from '../../data-access/scraping-api.service';
               </thead>
               <tbody>
                 @for (item of executions(); track item._id) {
-                  <tr class="history-row" [class]="'status-' + item.status">
+                  <tr
+                    class="history-row"
+                    [class]="'status-' + item.status"
+                    [class.history-loading]="historyIsWaiting(item)"
+                    [style.--history-progress]="historyProgress(item)"
+                  >
                     <td class="history-date">
                       {{ item.iniciadoEm | date: 'dd/MM/yyyy HH:mm:ss' }}
                     </td>
@@ -1074,7 +1079,7 @@ export class ScrapingDashboardPage {
   }
   protected statusIcon(item: ScrapingExecution): string {
     return item.status === 'executando'
-      ? 'clock-3'
+      ? 'loader-circle'
       : item.status === 'erro' || item.erro
         ? 'x'
         : 'check';
@@ -1107,5 +1112,12 @@ export class ScrapingDashboardPage {
   protected progressLabel(item: ScrapingExecution): string {
     const progress = item.progresso?.geral ?? 0;
     return progress >= 100 ? 'Concluída' : progress > 0 ? 'Em andamento' : 'Calculando…';
+  }
+  protected historyProgress(item: ScrapingExecution): string {
+    const progress = Math.min(100, Math.max(0, item.progresso?.geral ?? 0));
+    return `${progress}%`;
+  }
+  protected historyIsWaiting(item: ScrapingExecution): boolean {
+    return item.status === 'executando' && (item.progresso?.geral ?? 0) <= 0;
   }
 }

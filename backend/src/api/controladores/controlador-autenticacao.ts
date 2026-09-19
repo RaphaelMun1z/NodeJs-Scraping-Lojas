@@ -9,7 +9,7 @@ export class ControladorAutenticacao {
 		if (!email || !senha) { resposta.status(400).json({ erro: "E-mail e senha são obrigatórios" }); return; }
 		const resultado = await this.autenticacao.autenticar(email, senha, codigoTotp);
 		if (!resultado) { resposta.status(401).json({ erro: "Credenciais inválidas" }); return; }
-		this.autenticacao.definirCookies(resposta, resultado.tokenCsrf);
+		this.autenticacao.definirCookies(resposta, resultado.token, resultado.tokenCsrf);
 		resposta.json({ dados: resultado.administrador, token: resultado.token });
 	};
 

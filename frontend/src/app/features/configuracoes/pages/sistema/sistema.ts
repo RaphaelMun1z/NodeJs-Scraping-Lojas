@@ -54,6 +54,19 @@ import { NotificationService } from '../../../../shared/notifications/notificati
       </div>
     </section>
 
+    <section class="system-card telegram-card">
+      <div>
+        <div class="system-title-row"><h2>Alertas de ofertas no Telegram</h2></div>
+        <p>Envia automaticamente ofertas abaixo do percentual definido em relação à média histórica ao final de cada scraping.</p>
+      </div>
+      <div class="telegram-controls">
+        <label class="telegram-toggle"><input type="checkbox" [checked]="telegramEnabled()" (change)="setTelegramEnabled($event)" /> Ativar alertas</label>
+        <label>Destinatário (chat ID)<input type="text" [value]="telegramChatId()" placeholder="Ex.: -1001234567890" (input)="setTelegramChatId($event)" /></label>
+        <label>Percentual abaixo da média (%)<input class="telegram-percent" type="number" min="1" max="99" [value]="telegramPercent()" (input)="setTelegramPercent($event)" /></label>
+        <button class="btn primary telegram-save" type="button" [disabled]="busy()" (click)="saveTelegram()">Salvar Telegram</button>
+      </div>
+    </section>
+
     <div class="system-alert-divider"><span>Zona de alerta</span></div>
 
     <section class="system-card system-danger-card">
@@ -546,6 +559,9 @@ export class SistemaPage {
   protected readonly resetPassword = signal('');
   protected readonly scheduleTimes = signal(['00:00', '12:00']);
   protected readonly scheduleTimezone = signal('America/Sao_Paulo');
+  protected readonly telegramEnabled = signal(false);
+  protected readonly telegramChatId = signal('');
+  protected readonly telegramPercent = signal(65);
 
   constructor() {
     this.api.schedule().subscribe({
@@ -562,6 +578,20 @@ export class SistemaPage {
           ),
           true,
         ),
+    });
+    this.api.telegram().subscribe({
+      next: (response) => { this.telegramEnabled.set(response.dados.habilitado); this.telegramChatId.set(response.dados.chatId); this.telegramPercent.set(response.dados.percentualAbaixoMedia); },
+    });
+  }
+
+  protected setTelegramEnabled(event: Event): void { this.telegramEnabled.set((event.target as HTMLInputElement).checked); }
+  protected setTelegramChatId(event: Event): void { this.telegramChatId.set((event.target as HTMLInputElement).value); }
+  protected setTelegramPercent(event: Event): void { this.telegramPercent.set(Math.min(99, Math.max(1, Number((event.target as HTMLInputElement).value) || 1))); }
+  protected saveTelegram(): void {
+    this.busy.set(true);
+    this.api.saveTelegram({ habilitado: this.telegramEnabled(), chatId: this.telegramChatId().trim(), percentualAbaixoMedia: this.telegramPercent() }).subscribe({
+      next: (response) => { this.telegramEnabled.set(response.dados.habilitado); this.telegramChatId.set(response.dados.chatId); this.telegramPercent.set(response.dados.percentualAbaixoMedia); this.show('Configuração do Telegram salva.'); },
+      error: (error: unknown) => this.show(this.errors.message(error, 'Não foi possível salvar o Telegram.'), true),
     });
   }
 

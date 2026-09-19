@@ -44,7 +44,7 @@ import { LucideDynamicIcon } from '@lucide/angular';
     </div>
     <div class="account">
       @if (auth.authenticated()) {
-        <button class="account-avatar is-authenticated" type="button" (click)="logout()">{{ (auth.administrator()?.email ?? 'A').slice(0, 1).toUpperCase() }}</button>
+        <button class="account-avatar is-authenticated" type="button" (click)="openAdmin()" aria-label="Abrir área administrativa">{{ (auth.administrator()?.email ?? 'A').slice(0, 1).toUpperCase() }}</button>
       } @else {
         <a routerLink="/admin/login" class="account-avatar account-login-button">Entrar</a>
       }
@@ -228,7 +228,7 @@ export class HeaderComponent {
     this.query.setValue(value);
     this.search(new Event('submit'));
   }
-  protected logout(): void {
-    this.auth.logout().subscribe(() => void this.router.navigate(['/produtos']));
+  protected openAdmin(): void {
+    void this.router.navigate(['/admin']);
   }
 }

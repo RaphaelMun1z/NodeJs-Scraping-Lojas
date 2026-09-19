@@ -21,6 +21,7 @@ const esquemaConfiguracao = z.object({
 		.string()
 		.min(1)
 		.default("Mozilla/5.0 (compatible; ScrapingLojas/2.0)"),
+	TELEGRAM_BOT_TOKEN: z.string().trim().default(""),
 	SALVAR_COLETA: z
 		.enum(["true", "false"])
 		.default("true")
@@ -53,6 +54,7 @@ export const configuracaoAplicacao = {
 		executarAoIniciar: ambiente.EXECUTAR_COLETA_AO_INICIAR,
 		historicoRetencaoDias: ambiente.HISTORICO_PRECO_RETENCAO_DIAS,
 	},
+	telegram: { botToken: ambiente.TELEGRAM_BOT_TOKEN },
 	agendamento: {
 		horarios: ambiente.HORARIOS_COLETA.split(",").map((horario) => horario.trim()).filter(Boolean),
 		fusoHorario: ambiente.CRON_FUSO_HORARIO,

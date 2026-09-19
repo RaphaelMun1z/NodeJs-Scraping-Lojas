@@ -157,15 +157,6 @@ interface ProgressoTeste {
               </fieldset>
               <div class="test-actions">
                 <app-ui-button
-                  label="Abrir navegador"
-                  [icon]="navegadorVisivel() ? 'eye' : 'eye-off'"
-                  variant="secondary"
-                  [state]="navegadorVisivel() ? 'active' : 'inactive'"
-                  [disabled]="testing()"
-                  [title]="'Quando ativo, abre o navegador usado no teste para acompanhar a coleta visualmente.'"
-                  (click)="toggleNavegadorVisivel()"
-                />
-                <app-ui-button
                   label="Testar seletores"
                   icon="search-check"
                   variant="primary"
@@ -215,6 +206,15 @@ interface ProgressoTeste {
                       <span>{{ mensagem }}</span>
                     }
                   </div>
+                </div>
+              }
+              @if (testResult()?.previewImagem; as previewImagem) {
+                <div class="test-preview">
+                  <div class="test-preview-heading">
+                    <h3>Preview da página coletada</h3>
+                    <span>Capturado em modo invisível</span>
+                  </div>
+                  <img [src]="previewImagem" alt="Preview da página coletada pelo navegador" />
                 </div>
               }
             </div>
@@ -723,6 +723,39 @@ interface ProgressoTeste {
     .test-status:not(.success) {
       color: #667085;
     }
+    .test-preview {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 1rem;
+      padding: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 0.75rem;
+      background: #fff;
+    }
+    .test-preview-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .test-preview-heading h3 {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+    .test-preview-heading span {
+      color: #667085;
+      font-size: 0.72rem;
+    }
+    .test-preview img {
+      display: block;
+      width: 100%;
+      max-height: 420px;
+      border: 1px solid var(--line);
+      border-radius: 0.5rem;
+      object-fit: contain;
+      object-position: top center;
+      background: #f8fafc;
+    }
     @media (max-width: 850px) {
       .config-layout {
         grid-template-columns: 1fr;
@@ -798,7 +831,6 @@ export class FonteDetailsPage {
   private progressoStream?: EventSource;
   private progressoTimer?: number;
   private ultimoEventoProgresso = 0;
-  protected readonly navegadorVisivel = signal(false);
   protected readonly testResult = signal<SelectorTestResult | null>(null);
   protected readonly activeSelector = signal<SelectorKey | ''>('');
   protected readonly form = this.fb.nonNullable.group({
@@ -976,9 +1008,6 @@ export class FonteDetailsPage {
   protected toggleVirtualized(): void {
     this.form.controls.paginaVirtualizada.setValue(!this.form.controls.paginaVirtualizada.value);
   }
-  protected toggleNavegadorVisivel(): void {
-    this.navegadorVisivel.update((ativo) => !ativo);
-  }
   protected paginationValid(): boolean {
     const value = this.form.getRawValue();
     return (
@@ -1023,7 +1052,7 @@ export class FonteDetailsPage {
         fonte: current.fonte,
         categoria: category.categoria,
         url: value.urlColeta,
-        navegadorVisivel: this.navegadorVisivel(),
+        navegadorVisivel: false,
         execucaoId,
         seletores: {
           item: value.item,

@@ -60,6 +60,11 @@ const esquemaAgendamento = z.object({
 	}),
 	fusoHorario: esquemaFusoHorario,
 });
+const esquemaTelegram = z.object({
+	habilitado: z.boolean().default(false),
+	chatId: z.string().trim().max(100).default(""),
+	percentualAbaixoMedia: z.number().min(1).max(99).default(65),
+});
 const esquemaUrlFonte = z
 	.string()
 	.max(2_048)
@@ -99,6 +104,7 @@ const esquemaFonte = z.object({
 
 const esquemaAtualizacao = z.object({
 	fontes: z.array(esquemaFonte).max(100),
+	telegram: esquemaTelegram.optional(),
 }).superRefine((dados, contexto) => {
 	if (
 		new Set(dados.fontes.map((fonte) => fonte.fonte)).size !==
@@ -132,7 +138,14 @@ export interface CategoriaFonteConfigurada {
 export interface ConfiguracaoScraping {
 	fontes: FonteConfigurada[];
 	agendamento: AgendamentoColeta;
+	telegram: TelegramConfig;
 	atualizadaEm: Date;
+}
+
+export interface TelegramConfig {
+	habilitado: boolean;
+	chatId: string;
+	percentualAbaixoMedia: number;
 }
 
 export interface AgendamentoColeta {
@@ -187,6 +200,7 @@ export class ServicoConfiguracaoScraping {
 					this.normalizarFonte(fonte as FonteConfigurada),
 				),
 				agendamento: this.normalizarAgendamento(existente.agendamento),
+				telegram: esquemaTelegram.parse(existente.telegram),
 				atualizadaEm: existente.atualizadaEm,
 			};
 		}
@@ -196,7 +210,7 @@ export class ServicoConfiguracaoScraping {
 		const atualizadaEm = new Date();
 		const agendamento = this.normalizarAgendamento(this.agendamentoPadrao);
 		await ModeloConfiguracaoScraping.create({ chave: "principal", fontes, agendamento, atualizadaEm });
-		return { fontes, agendamento, atualizadaEm };
+		return { fontes, agendamento, telegram: esquemaTelegram.parse({}), atualizadaEm };
 	}
 
 	async atualizar(dados: unknown): Promise<ConfiguracaoScraping> {
@@ -235,7 +249,7 @@ export class ServicoConfiguracaoScraping {
 		const atualizadaEm = new Date();
 		const configuracao = await ModeloConfiguracaoScraping.findOneAndUpdate(
 			{ chave: "principal" },
-			{ $set: { fontes, atualizadaEm } },
+			{ $set: { fontes, telegram: valido.telegram ?? existente?.telegram ?? { habilitado: false, chatId: "" }, atualizadaEm } },
 			{ upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
 		)
 			.lean()
@@ -245,8 +259,19 @@ export class ServicoConfiguracaoScraping {
 				this.normalizarFonte(fonte as FonteConfigurada),
 			),
 			agendamento: this.normalizarAgendamento(configuracao.agendamento),
+			telegram: esquemaTelegram.parse(configuracao.telegram),
 			atualizadaEm: configuracao.atualizadaEm,
 		};
+	}
+
+	async atualizarTelegram(dados: unknown): Promise<TelegramConfig> {
+		const telegram = esquemaTelegram.parse(dados);
+		const configuracao = await ModeloConfiguracaoScraping.findOneAndUpdate(
+			{ chave: "principal" },
+			{ $set: { telegram, atualizadaEm: new Date() }, $setOnInsert: { fontes: [], agendamento: this.agendamentoPadrao } },
+			{ upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
+		).lean().exec();
+		return esquemaTelegram.parse(configuracao.telegram);
 	}
 
 	async atualizarAgendamento(dados: unknown): Promise<AgendamentoColeta> {
