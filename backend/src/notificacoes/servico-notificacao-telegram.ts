@@ -23,11 +23,14 @@ export class ServicoNotificacaoTelegram {
 	}
 
 	private formatarMensagem(configuracao: TelegramConfig, produto: ProdutoAlerta, prefixoTeste?: string): string {
+		const percentualAbaixoMedia = produto.media > 0
+			? ((produto.media - produto.preco) / produto.media) * 100
+			: 0;
 		const valores: Record<string, string> = {
 			titulo: produto.titulo,
 			preco: `R$ ${produto.preco.toFixed(2).replace(".", ",")}`,
 			media: `R$ ${produto.media.toFixed(2).replace(".", ",")}`,
-			percentual: `${configuracao.percentualAbaixoMedia}% abaixo da média`,
+			percentual: `${percentualAbaixoMedia.toFixed(2).replace(".", ",")}% abaixo da média`,
 			url: this.normalizarUrl(produto.url),
 		};
 		let template = configuracao.formato.templateHtml;
