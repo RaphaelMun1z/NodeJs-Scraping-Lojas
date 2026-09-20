@@ -82,6 +82,7 @@ export class ServidorApi {
       this.autenticacao,
       progressoTeste,
 		this.aplicarAgendamento,
+		this.repositorioItem,
     );
     if (!this.servicoColeta)
       throw new Error("Serviço de coleta não configurado");

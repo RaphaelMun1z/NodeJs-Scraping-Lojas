@@ -9,6 +9,24 @@ export interface TelegramConfig {
   habilitado: boolean;
   chatId: string;
   percentualAbaixoMedia: number;
+  formato: TelegramFormat;
+}
+
+export type TelegramFieldKey = 'titulo' | 'preco' | 'media' | 'percentual' | 'url';
+export interface TelegramFormatField {
+  chave: TelegramFieldKey;
+  habilitado: boolean;
+  rotulo: string;
+}
+export interface TelegramFormat {
+  templateHtml: string;
+  campos: TelegramFormatField[];
+  separador: string;
+  prefixo: string;
+  sufixo: string;
+  modoTexto: 'plain' | 'HTML' | 'MarkdownV2';
+  previewLink: boolean;
+  maxCaracteres: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +48,9 @@ export class SistemaApiService {
   }
   saveTelegram(config: TelegramConfig): Observable<ApiResponse<TelegramConfig>> {
     return this.http.put<ApiResponse<TelegramConfig>>(apiUrl('/admin/configuracoes/scraping/telegram'), config);
+  }
+  testTelegram(): Observable<{ mensagem: string }> {
+    return this.http.post<{ mensagem: string }>(apiUrl('/admin/configuracoes/scraping/telegram/testar'), {});
   }
   cleanProducts(): Observable<ApiResponse<unknown>> {
     return this.http.post<ApiResponse<unknown>>(

@@ -18,6 +18,7 @@ export function criarRotasConfiguracaoScraping(
   roteador.put("/", autenticacao.middlewareCsrf(), controlador.atualizar);
 	roteador.put("/agendamento", autenticacao.middlewareCsrf(), controlador.atualizarAgendamento);
 	roteador.put("/telegram", autenticacao.middlewareCsrf(), controlador.atualizarTelegram);
+	roteador.post("/telegram/testar", autenticacao.middlewareCsrf(), controlador.testarTelegram);
   roteador.post(
     "/fontes",
     autenticacao.middlewareCsrf(),

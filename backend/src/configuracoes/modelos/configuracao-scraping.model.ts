@@ -54,9 +54,29 @@ const esquemaConfiguracaoScraping = new Schema(
 			horarios: { type: [String], required: true, default: ["00:00", "12:00"] },
 			fusoHorario: { type: String, required: true, default: "America/Sao_Paulo" },
 		},
-		telegram: {
+	telegram: {
 			habilitado: { type: Boolean, default: false },
 			chatId: { type: String, default: "" },
+			percentualAbaixoMedia: { type: Number, min: 1, max: 99, default: 65 },
+			formato: {
+				templateHtml: { type: String, default: "<b>{{titulo}}</b>\\nPreço: {{preco}}\\nMédia: {{media}}\\n{{percentual}}\\n{{url}}" },
+				campos: {
+					type: [{ chave: { type: String, enum: ["titulo", "preco", "media", "percentual", "url"] }, habilitado: { type: Boolean, default: true }, rotulo: { type: String, default: "" } }],
+					default: [
+						{ chave: "titulo", habilitado: true, rotulo: "Produto" },
+						{ chave: "preco", habilitado: true, rotulo: "Preço" },
+						{ chave: "media", habilitado: true, rotulo: "Média" },
+						{ chave: "percentual", habilitado: true, rotulo: "Desconto" },
+						{ chave: "url", habilitado: true, rotulo: "Link" },
+					],
+				},
+				separador: { type: String, default: "\\n" },
+				prefixo: { type: String, default: "" },
+				sufixo: { type: String, default: "" },
+				modoTexto: { type: String, enum: ["plain", "HTML", "MarkdownV2"], default: "plain" },
+				previewLink: { type: Boolean, default: true },
+				maxCaracteres: { type: Number, min: 100, max: 4096, default: 4096 },
+			},
 		},
 		atualizadaEm: { type: Date, required: true },
 	},

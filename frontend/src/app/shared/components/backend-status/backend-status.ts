@@ -9,7 +9,7 @@ import { BackendStatusService } from '../../../core/services/backend-status.serv
   template: `
     @if (status.unavailable()) {
       <aside class="backend-status" role="status" aria-live="polite">
-        <svg lucideIcon="cloud-off" aria-hidden="true"></svg>
+        <svg lucideIcon="triangle-alert" aria-hidden="true"></svg>
         <div>
           <strong>Estamos com uma instabilidade</strong>
           <p>O catálogo continua disponível, mas algumas informações podem não carregar agora. Tente novamente em instantes.</p>

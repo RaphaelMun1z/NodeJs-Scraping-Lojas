@@ -312,6 +312,28 @@ export class RepositorioItem {
 		]).exec() as Promise<ProdutoOfertaTelegram[]>;
 	}
 
+	async consultarProdutoParaTesteTelegram(): Promise<ProdutoOfertaTelegram | null> {
+		const produto = await ModeloItemBanco.findOne({ ativo: { $ne: false }, preco: { $gt: 0 } })
+			.sort({ ultimaColetaEm: -1 })
+			.select("titulo preco url grupoProdutoId")
+			.lean()
+			.exec();
+		if (!produto) return null;
+
+		const historico = produto.grupoProdutoId
+			? await ModeloHistoricoPreco.aggregate([
+				{ $match: { grupoProdutoId: produto.grupoProdutoId } },
+				{ $group: { _id: null, media: { $avg: "$preco" } } },
+			]).exec()
+			: [];
+		return {
+			titulo: produto.titulo,
+			preco: produto.preco ?? 0,
+			media: historico[0]?.media ?? produto.preco ?? 0,
+			url: produto.url ?? undefined,
+		};
+	}
+
 	async buscarPorId(id: string): Promise<unknown | null> {
 		return ModeloItemBanco.findById(id)
 			.select("fonte titulo preco precoAntigo ativo imagemUrl url primeiraColetaEm ultimaColetaEm")

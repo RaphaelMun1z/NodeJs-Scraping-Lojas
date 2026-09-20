@@ -8,6 +8,8 @@ import { criarOpcoesColeta } from "../../coleta/opcoes-coleta.js";
 import { logger } from "../../config/logger.js";
 import type { ServicoResetSistema } from "../../servicos/servico-reset-sistema.js";
 import type { ServicoAutenticacao } from "../../autenticacao/servico-autenticacao.js";
+import type { RepositorioItem } from "../../banco/repositorios/repositorio-item.js";
+import { ServicoNotificacaoTelegram } from "../../notificacoes/servico-notificacao-telegram.js";
 import type {
   EventoProgressoTeste,
   ServicoProgressoTesteSeletores,
@@ -23,6 +25,8 @@ export class ControladorConfiguracaoScraping {
     private readonly autenticacao?: ServicoAutenticacao,
     private readonly progressoTeste?: ServicoProgressoTesteSeletores,
     private readonly aplicarAgendamento?: (agendamento: AgendamentoColeta) => void,
+    private readonly repositorioItem?: RepositorioItem,
+    private readonly notificacaoTelegram = new ServicoNotificacaoTelegram(),
   ) {}
 
   obter = async (_requisicao: Request, resposta: Response): Promise<void> => {
@@ -41,6 +45,24 @@ export class ControladorConfiguracaoScraping {
 
 	atualizarTelegram = async (requisicao: Request, resposta: Response): Promise<void> => {
 		resposta.json({ dados: await this.configuracao.atualizarTelegram(requisicao.body) });
+	};
+
+	testarTelegram = async (_requisicao: Request, resposta: Response): Promise<void> => {
+		try {
+			if (!this.repositorioItem) throw new Error("Repositório de produtos não configurado");
+			const configuracao = await this.configuracao.obterOuCriarPadrao();
+			const produto = await this.repositorioItem.consultarProdutoParaTesteTelegram();
+			if (!produto) throw new Error("Não há produtos cadastrados para enviar como teste");
+			await this.notificacaoTelegram.testarProduto(configuracao.telegram, produto);
+			resposta.json({ mensagem: "Mensagem de teste enviada pelo Telegram." });
+		} catch (erro) {
+			const mensagem = erro instanceof Error ? erro.message : "Não foi possível configurar o teste do Telegram";
+			if (/TELEGRAM_BOT_TOKEN|chat ID|produtos cadastrados|repositório/i.test(mensagem)) {
+				resposta.status(400).json({ erro: mensagem });
+				return;
+			}
+			throw erro;
+		}
 	};
 
   atualizarAgendamento = async (requisicao: Request, resposta: Response): Promise<void> => {

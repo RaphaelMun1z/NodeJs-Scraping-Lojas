@@ -64,6 +64,41 @@ const esquemaTelegram = z.object({
 	habilitado: z.boolean().default(false),
 	chatId: z.string().trim().max(100).default(""),
 	percentualAbaixoMedia: z.number().min(1).max(99).default(65),
+	formato: z.object({
+		templateHtml: z.string().min(1).max(8_000).default("<b>{{titulo}}</b>\\nPreço: {{preco}}\\nMédia: {{media}}\\n{{percentual}}\\n{{url}}"),
+		campos: z.array(z.object({
+			chave: z.enum(["titulo", "preco", "media", "percentual", "url"]),
+			habilitado: z.boolean().default(true),
+			rotulo: z.string().trim().max(80).default(""),
+		})).min(1).max(5).default([
+			{ chave: "titulo", habilitado: true, rotulo: "Produto" },
+			{ chave: "preco", habilitado: true, rotulo: "Preço" },
+			{ chave: "media", habilitado: true, rotulo: "Média" },
+			{ chave: "percentual", habilitado: true, rotulo: "Desconto" },
+			{ chave: "url", habilitado: true, rotulo: "Link" },
+		]),
+		separador: z.string().max(20).default("\\n"),
+		prefixo: z.string().max(500).default(""),
+		sufixo: z.string().max(500).default(""),
+		modoTexto: z.enum(["plain", "HTML", "MarkdownV2"]).default("plain"),
+		previewLink: z.boolean().default(true),
+		maxCaracteres: z.number().int().min(100).max(4096).default(4096),
+	}).default({
+		templateHtml: "<b>{{titulo}}</b>\\nPreço: {{preco}}\\nMédia: {{media}}\\n{{percentual}}\\n{{url}}",
+		campos: [
+			{ chave: "titulo", habilitado: true, rotulo: "Produto" },
+			{ chave: "preco", habilitado: true, rotulo: "Preço" },
+			{ chave: "media", habilitado: true, rotulo: "Média" },
+			{ chave: "percentual", habilitado: true, rotulo: "Desconto" },
+			{ chave: "url", habilitado: true, rotulo: "Link" },
+		],
+		separador: "\\n",
+		prefixo: "",
+		sufixo: "",
+		modoTexto: "plain",
+		previewLink: true,
+		maxCaracteres: 4096,
+	}),
 });
 const esquemaUrlFonte = z
 	.string()
@@ -146,6 +181,24 @@ export interface TelegramConfig {
 	habilitado: boolean;
 	chatId: string;
 	percentualAbaixoMedia: number;
+	formato: FormatoTelegram;
+}
+
+export interface CampoFormatoTelegram {
+	chave: "titulo" | "preco" | "media" | "percentual" | "url";
+	habilitado: boolean;
+	rotulo: string;
+}
+
+export interface FormatoTelegram {
+	templateHtml: string;
+	campos: CampoFormatoTelegram[];
+	separador: string;
+	prefixo: string;
+	sufixo: string;
+	modoTexto: "plain" | "HTML" | "MarkdownV2";
+	previewLink: boolean;
+	maxCaracteres: number;
 }
 
 export interface AgendamentoColeta {

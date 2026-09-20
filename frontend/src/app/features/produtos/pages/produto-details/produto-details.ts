@@ -61,7 +61,7 @@ type Period = '7days' | '15days' | '30days' | '90days';
                 <span class="discount-badge">-{{ discount() }}% de desconto</span>
               }
             </div>
-            @if (item.url) {
+            @if (item.url && isExternalUrl(item.url)) {
               <app-ui-button label="Ver na loja" icon="external-link" (click)="openStore(item.url)" />
             }
           </div>
@@ -91,11 +91,11 @@ type Period = '7days' | '15days' | '30days' | '90days';
                   <div class="offer-card-title-wrap">
                     <h3 class="offer-card-title">{{ offer.titulo }}</h3>
                   </div>
-                  <strong class="offer-card-price">{{ offer.preco | currency: 'BRL' }}</strong>
                   @if ((offer.precoAntigo ?? 0) > (offer.preco ?? 0)) {
                     <span class="old-price">{{ offer.precoAntigo | currency: 'BRL' }}</span>
                   }
-                  @if (offer.url) {
+                  <strong class="offer-card-price">{{ offer.preco | currency: 'BRL' }}</strong>
+                  @if (offer.url && isExternalUrl(offer.url)) {
                     <a class="store-link" [href]="offer.url" target="_blank" rel="noopener noreferrer"
                       >Ver oferta <svg lucideIcon="external-link" aria-hidden="true"></svg></a
                     >
@@ -283,9 +283,20 @@ type Period = '7days' | '15days' | '30days' | '90days';
     .offer-card-title-wrap { min-width: 0; }
     .offer-card-title { display: -webkit-box; max-height: calc(1.45em * 3); margin: 0; overflow: hidden; color: #333; font-size: 12px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
     }
-    .offer-card-price { color: #111; font-size: 21px;
+    .offer-card .old-price {
+      display: block;
+      margin: 0;
+      color: #7b8494;
+      font-size: 12px;
+      line-height: 1.2;
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
     }
-    .offer-card .old-price { font-size: 12px; }
+    .offer-card-price {
+      display: block;
+      color: #111;
+      font-size: 21px;
+    }
     .offer-card .store-link { width: fit-content; margin-top: 3px; }
     .store-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: 6px; background: var(--blue); color: #fff; font-size: 12px; }
     .history {
@@ -429,7 +440,15 @@ export class ProdutoDetailsPage implements OnDestroy {
     this.changePeriod((event.target as HTMLSelectElement).value as Period);
   }
   protected openStore(url: string): void {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (this.isExternalUrl(url)) window.open(url, '_blank', 'noopener,noreferrer');
+  }
+  protected isExternalUrl(url: string | null | undefined): boolean {
+    if (!url) return false;
+    try {
+      return ['http:', 'https:'].includes(new URL(url, window.location.origin).protocol);
+    } catch {
+      return false;
+    }
   }
   private readonly filteredHistory = computed(() => {
     const cutoff = Date.now() - this.periodDays() * 86400000;

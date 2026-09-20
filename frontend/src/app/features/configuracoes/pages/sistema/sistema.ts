@@ -10,7 +10,7 @@ import {
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatStepperModule } from '@angular/material/stepper';
 import { ApiErrorService } from '../../../../core/services/api-error.service';
-import { SistemaApiService } from '../../data-access/sistema-api.service';
+import { SistemaApiService, TelegramFormat, TelegramFieldKey } from '../../data-access/sistema-api.service';
 import { ScrapingApiService } from '../../../scraping/data-access/scraping-api.service';
 import { PopupService } from '../../../../core/services/popup.service';
 import { DialogService } from '../../../../core/services/dialog.service';
@@ -36,7 +36,6 @@ import { NotificationService } from '../../../../shared/notifications/notificati
             >
           </button>
         </div>
-        <p>As alterações são aplicadas imediatamente, sem reiniciar o sistema.</p>
       </div>
       <div class="schedule-controls">
         <label>Primeira coleta
@@ -56,14 +55,83 @@ import { NotificationService } from '../../../../shared/notifications/notificati
 
     <section class="system-card telegram-card">
       <div>
-        <div class="system-title-row"><h2>Alertas de ofertas no Telegram</h2></div>
-        <p>Envia automaticamente ofertas abaixo do percentual definido em relação à média histórica ao final de cada scraping.</p>
+        <div class="system-title-row">
+          <label class="telegram-switch" [class.is-active]="telegramEnabled()" [class.is-inactive]="!telegramEnabled()" aria-label="Alterar status dos alertas do Telegram">
+            <input type="checkbox" [checked]="telegramEnabled()" (change)="setTelegramEnabled($event)" />
+            <span class="telegram-switch-track"><span></span></span>
+            <span class="telegram-switch-status">{{ telegramEnabled() ? 'Ativo' : 'Inativo' }}</span>
+          </label>
+          <h2>Alertas de ofertas no Telegram</h2>
+        </div>
       </div>
       <div class="telegram-controls">
-        <label class="telegram-toggle"><input type="checkbox" [checked]="telegramEnabled()" (change)="setTelegramEnabled($event)" /> Ativar alertas</label>
         <label>Destinatário (chat ID)<input type="text" [value]="telegramChatId()" placeholder="Ex.: -1001234567890" (input)="setTelegramChatId($event)" /></label>
-        <label>Percentual abaixo da média (%)<input class="telegram-percent" type="number" min="1" max="99" [value]="telegramPercent()" (input)="setTelegramPercent($event)" /></label>
-        <button class="btn primary telegram-save" type="button" [disabled]="busy()" (click)="saveTelegram()">Salvar Telegram</button>
+        <label class="telegram-percent-field">Percentual abaixo da média (%)<input class="telegram-percent" type="number" min="1" max="99" [value]="telegramPercent()" (input)="setTelegramPercent($event)" /></label>
+        <app-ui-button
+          class="telegram-save"
+          icon="save"
+          [iconOnly]="true"
+          ariaLabel="Salvar Telegram"
+          title="Salvar Telegram"
+          variant="primary"
+          [disabled]="busy()"
+          (click)="saveTelegram()"
+        />
+        <app-ui-button
+          class="telegram-test"
+          icon="mail"
+          [iconOnly]="true"
+          ariaLabel="Testar envio"
+          title="Testar envio"
+          variant="secondary"
+          [disabled]="busy()"
+          (click)="testTelegram()"
+        />
+        <app-ui-button
+          class="telegram-edit"
+          icon="pencil"
+          [iconOnly]="true"
+          ariaLabel="Editar formato"
+          title="Editar formato"
+          variant="secondary"
+          [disabled]="busy()"
+          (click)="openTelegramFormat()"
+        />
+      </div>
+      <div class="telegram-format">
+        @if (formatEditorOpen()) {
+          <div class="telegram-format-backdrop" (click)="closeTelegramFormat()">
+            <section class="telegram-format-modal" role="dialog" aria-modal="true" aria-labelledby="telegram-format-title" (click)="$event.stopPropagation()">
+              <header class="telegram-format-modal-header">
+                <div><h3 id="telegram-format-title">Editar formato da mensagem</h3><p>Defina campos, ordem, rótulos e apresentação do envio.</p></div>
+                <button class="telegram-format-close" type="button" aria-label="Fechar edição" (click)="closeTelegramFormat()">×</button>
+              </header>
+              <label class="telegram-template-field">Template HTML<textarea [value]="telegramFormat().templateHtml" (input)="setTelegramTemplate($event)" spellcheck="false"></textarea></label>
+              <p class="telegram-template-help">Placeholders: <code>{{'{{titulo}}'}}</code> <code>{{'{{preco}}'}}</code> <code>{{'{{media}}'}}</code> <code>{{'{{percentual}}'}}</code> <code>{{'{{url}}'}}</code></p>
+              <label class="telegram-preview-toggle"><input type="checkbox" [checked]="telegramFormat().previewLink" (change)="setTelegramPreview($event)" /> Preview de links</label>
+              <div class="telegram-format-fields">
+          @for (field of telegramFormat().campos; track field.chave; let index = $index) {
+            <div class="telegram-format-field">
+              <label class="telegram-field-enabled"><input type="checkbox" [checked]="field.habilitado" (change)="toggleTelegramField(field.chave, $event)" /> {{ telegramFieldName(field.chave) }}</label>
+              <input type="text" [value]="field.rotulo" [placeholder]="telegramFieldName(field.chave)" (input)="setTelegramFieldLabel(field.chave, $event)" />
+              <div class="telegram-field-order">
+                <button type="button" aria-label="Mover campo para cima" title="Mover para cima" [disabled]="index === 0" (click)="moveTelegramField(index, -1)">↑</button>
+                <button type="button" aria-label="Mover campo para baixo" title="Mover para baixo" [disabled]="index === telegramFormat().campos.length - 1" (click)="moveTelegramField(index, 1)">↓</button>
+              </div>
+            </div>
+          }
+        </div>
+              <div class="telegram-format-options">
+          <label>Prefixo<textarea [value]="telegramFormat().prefixo" (input)="setTelegramFormatText('prefixo', $event)" placeholder="Ex.: 🔥 Oferta encontrada"></textarea></label>
+          <label>Sufixo<textarea [value]="telegramFormat().sufixo" (input)="setTelegramFormatText('sufixo', $event)" placeholder="Texto ao final da mensagem"></textarea></label>
+          <label>Separador<input type="text" [value]="telegramFormat().separador" (input)="setTelegramFormatText('separador', $event)" placeholder="\\n" /></label>
+          <label>Formato<select [value]="telegramFormat().modoTexto" (change)="setTelegramTextMode($event)"><option value="plain">Texto simples</option><option value="HTML">HTML</option><option value="MarkdownV2">MarkdownV2</option></select></label>
+          <label>Máximo de caracteres<input type="number" min="100" max="4096" [value]="telegramFormat().maxCaracteres" (input)="setTelegramMaxCharacters($event)" /></label>
+              </div>
+              <footer class="telegram-format-modal-actions"><button class="btn primary" type="button" (click)="closeTelegramFormat()">Concluir edição</button></footer>
+            </section>
+          </div>
+        }
       </div>
     </section>
 
@@ -223,6 +291,40 @@ import { NotificationService } from '../../../../shared/notifications/notificati
       align-items: baseline;
       gap: 9px;
     }
+    .telegram-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #c44343;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .telegram-switch.is-active { color: #168253; }
+    .telegram-switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .telegram-switch-track {
+      display: inline-flex;
+      width: 47px;
+      height: 28px;
+      align-items: center;
+      padding: 3px;
+      border-radius: 20px;
+      background: #d95454;
+      transition: background 0.18s ease;
+    }
+    .telegram-switch-track span {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.18s ease;
+    }
+    .telegram-switch.is-active .telegram-switch-track { background: #22a06b; }
+    .telegram-switch input:checked + .telegram-switch-track span { transform: translateX(19px); }
     .system-card h2 {
       margin: 0 !important;
       color: #151515 !important;
@@ -562,6 +664,18 @@ export class SistemaPage {
   protected readonly telegramEnabled = signal(false);
   protected readonly telegramChatId = signal('');
   protected readonly telegramPercent = signal(65);
+  protected readonly formatEditorOpen = signal(false);
+  protected readonly telegramFormat = signal<TelegramFormat>({
+    templateHtml: '<b>{{titulo}}</b>\\nPreço: {{preco}}\\nMédia: {{media}}\\n{{percentual}}\\n{{url}}',
+    campos: [
+      { chave: 'titulo', habilitado: true, rotulo: 'Produto' },
+      { chave: 'preco', habilitado: true, rotulo: 'Preço' },
+      { chave: 'media', habilitado: true, rotulo: 'Média' },
+      { chave: 'percentual', habilitado: true, rotulo: 'Desconto' },
+      { chave: 'url', habilitado: true, rotulo: 'Link' },
+    ],
+    separador: '\\n', prefixo: '', sufixo: '', modoTexto: 'plain', previewLink: true, maxCaracteres: 4096,
+  });
 
   constructor() {
     this.api.schedule().subscribe({
@@ -580,18 +694,36 @@ export class SistemaPage {
         ),
     });
     this.api.telegram().subscribe({
-      next: (response) => { this.telegramEnabled.set(response.dados.habilitado); this.telegramChatId.set(response.dados.chatId); this.telegramPercent.set(response.dados.percentualAbaixoMedia); },
+      next: (response) => { this.telegramEnabled.set(response.dados.habilitado); this.telegramChatId.set(response.dados.chatId); this.telegramPercent.set(response.dados.percentualAbaixoMedia); this.telegramFormat.set(response.dados.formato); },
     });
   }
 
   protected setTelegramEnabled(event: Event): void { this.telegramEnabled.set((event.target as HTMLInputElement).checked); }
   protected setTelegramChatId(event: Event): void { this.telegramChatId.set((event.target as HTMLInputElement).value); }
   protected setTelegramPercent(event: Event): void { this.telegramPercent.set(Math.min(99, Math.max(1, Number((event.target as HTMLInputElement).value) || 1))); }
+  protected telegramFieldName(chave: TelegramFieldKey): string { return { titulo: 'Título', preco: 'Preço', media: 'Média', percentual: 'Percentual', url: 'Link' }[chave]; }
+  protected toggleTelegramField(chave: TelegramFieldKey, event: Event): void { const habilitado = (event.target as HTMLInputElement).checked; this.telegramFormat.update((f) => ({ ...f, campos: f.campos.map((c) => c.chave === chave ? { ...c, habilitado } : c) })); }
+  protected setTelegramFieldLabel(chave: TelegramFieldKey, event: Event): void { const rotulo = (event.target as HTMLInputElement).value; this.telegramFormat.update((f) => ({ ...f, campos: f.campos.map((c) => c.chave === chave ? { ...c, rotulo } : c) })); }
+  protected moveTelegramField(index: number, direction: -1 | 1): void { this.telegramFormat.update((f) => { const campos = [...f.campos]; const alvo = index + direction; if (alvo < 0 || alvo >= campos.length) return f; [campos[index], campos[alvo]] = [campos[alvo]!, campos[index]!]; return { ...f, campos }; }); }
+  protected setTelegramPreview(event: Event): void { this.telegramFormat.update((f) => ({ ...f, previewLink: (event.target as HTMLInputElement).checked })); }
+  protected setTelegramTemplate(event: Event): void { this.telegramFormat.update((f) => ({ ...f, templateHtml: (event.target as HTMLTextAreaElement).value })); }
+  protected setTelegramFormatText(chave: 'prefixo' | 'sufixo' | 'separador', event: Event): void { this.telegramFormat.update((f) => ({ ...f, [chave]: (event.target as HTMLInputElement | HTMLTextAreaElement).value })); }
+  protected setTelegramTextMode(event: Event): void { this.telegramFormat.update((f) => ({ ...f, modoTexto: (event.target as HTMLSelectElement).value as TelegramFormat['modoTexto'] })); }
+  protected setTelegramMaxCharacters(event: Event): void { this.telegramFormat.update((f) => ({ ...f, maxCaracteres: Math.min(4096, Math.max(100, Number((event.target as HTMLInputElement).value) || 100)) })); }
+  protected openTelegramFormat(): void { this.formatEditorOpen.set(true); }
+  protected closeTelegramFormat(): void { this.formatEditorOpen.set(false); }
   protected saveTelegram(): void {
     this.busy.set(true);
-    this.api.saveTelegram({ habilitado: this.telegramEnabled(), chatId: this.telegramChatId().trim(), percentualAbaixoMedia: this.telegramPercent() }).subscribe({
+    this.api.saveTelegram({ habilitado: this.telegramEnabled(), chatId: this.telegramChatId().trim(), percentualAbaixoMedia: this.telegramPercent(), formato: this.telegramFormat() }).subscribe({
       next: (response) => { this.telegramEnabled.set(response.dados.habilitado); this.telegramChatId.set(response.dados.chatId); this.telegramPercent.set(response.dados.percentualAbaixoMedia); this.show('Configuração do Telegram salva.'); },
       error: (error: unknown) => this.show(this.errors.message(error, 'Não foi possível salvar o Telegram.'), true),
+    });
+  }
+  protected testTelegram(): void {
+    this.busy.set(true);
+    this.api.testTelegram().subscribe({
+      next: (response) => this.show(response.mensagem || 'Mensagem de teste enviada.'),
+      error: (error: unknown) => this.show(this.errors.message(error, 'Não foi possível enviar o teste pelo Telegram.'), true),
     });
   }
 
